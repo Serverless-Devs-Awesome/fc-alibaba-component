@@ -111,9 +111,12 @@ class CustomDomain {
     })
   }
 
-  async deploy(domains, ServiceName, FunctionName) {
+  async deploy(domains, ServiceName, FunctionName, onlyDomainName) {
     const domainNames = []
     for (let i = 0; i < domains.length; i++) {
+      if (onlyDomainName && onlyDomainName !== domains[i].Domain) {
+        continue;
+      }
       const domainName = await this.deployDomain(domains[i], ServiceName, FunctionName)
       domainNames.push(domainName)
     }
