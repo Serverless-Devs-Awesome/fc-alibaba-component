@@ -6,6 +6,7 @@ const path = require('path')
 const { packTo } = require('@serverless-devs/s-zip');
 const OSS = require('../oss')
 const { execSync } = require('child_process')
+const _ = require('lodash')
 
 class Function {
   constructor(credentials, region) {
@@ -104,15 +105,48 @@ class Function {
     }
   }
 
-  async deploy(properties, state, projectName, serviceName) {
-    const functionInput = properties.Function
+  isOnlyDelpoyKey(commands, deployKey) {
+    if (_.isArray(commands) && commands.length > 1) {
+      return commands[1] === deployKey;
+    }
+    return false;
+  }
+
+  handlerConfig(functionInput) {
     const functionProperties = {
       functionName: functionInput.Name,
       description: functionInput.Description,
-      code: await this.getFunctionCode(functionInput.CodeUri, projectName),
-      runtime: functionInput.Runtime ? functionInput.Runtime : DEFAULT.Runtime
+      runtime: functionInput.Runtime
+    };
+
+    functionProperties.handler = functionInput.Handler ? functionInput.Handler : DEFAULT.Handler
+  
+    if (functionInput.MemorySize) {
+      functionProperties.memorySize = functionInput.MemorySize
     }
-    const deployContainerFunction = functionProperties.runtime == "custom-container";
+    if (functionInput.Timeout) {
+      functionProperties.timeout = functionInput.Timeout
+    }
+    if (functionInput.Initializer && functionInput.Initializer.Handler) {
+      functionProperties.initializer = functionInput.Initializer.Handler
+    }
+    if (functionInput.Initializer && functionInput.Initializer.Timeout) {
+      functionProperties.initializationTimeout = functionInput.Initializer.Timeout
+    }
+    if (functionInput.Environment) {
+      const EnvironmentAttr = {}
+      for (let i = 0; i < functionInput.Environment.length; i++) {
+        EnvironmentAttr[functionInput.Environment[i].Key] = functionInput.Environment[i].Value
+      }
+      functionProperties.environmentVariables = EnvironmentAttr
+    }
+    return functionProperties
+  }
+
+  async handlerCode(functionInput, projectName) {
+    const functionProperties = {};
+
+    const deployContainerFunction = functionInput.Runtime === "custom-container";
     if (deployContainerFunction) {
       if (!functionInput.CustomContainer) {
         throw new Error("No CustomContainer found for container runtime")
@@ -140,34 +174,6 @@ class Function {
       if (functionInput.CustomContainer.Args) {
         functionProperties.customContainerConfig.args = functionInput.CustomContainer.Args
       }
-      
-    }
-
-    console.log(`Deploying function ${functionProperties.functionName}.`)
-
-    functionProperties.handler = functionInput.Handler ? functionInput.Handler : DEFAULT.Handler
-
-    if (functionInput.MemorySize) {
-      functionProperties.memorySize = functionInput.MemorySize
-    }
-    if (functionInput.Timeout) {
-      functionProperties.timeout = functionInput.Timeout
-    }
-    if (functionInput.Initializer && functionInput.Initializer.Handler) {
-      functionProperties.initializer = functionInput.Initializer.Handler
-    }
-    if (functionInput.Initializer && functionInput.Initializer.Timeout) {
-      functionProperties.initializationTimeout = functionInput.Initializer.Timeout
-    }
-    if (functionInput.Environment) {
-      const EnvironmentAttr = {}
-      for (let i = 0; i < functionInput.Environment.length; i++) {
-        EnvironmentAttr[functionInput.Environment[i].Key] = functionInput.Environment[i].Value
-      }
-      functionProperties.environmentVariables = EnvironmentAttr
-    }
-
-    if (deployContainerFunction) {
       try {
         // Push image to repo for custom-container
         const customContainer = functionInput.CustomContainer;
@@ -175,20 +181,46 @@ class Function {
       } catch (e) {
         throw e;
       }
+    } else {
+      functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName);
+    }
+    return functionProperties;
+  }
+
+  async deploy(properties, state, projectName, serviceName, commands = []) {
+    const functionInput = properties.Function
+    console.log(`Deploying function ${functionInput.Name}.`)
+
+    const isOnlyDelpoyConfig = this.isOnlyDelpoyKey(commands, 'config');
+    const isOnlyDelpoyCode = this.isOnlyDelpoyKey(commands, 'code');
+
+    functionInput.Runtime = functionInput.Runtime ? functionInput.Runtime : DEFAULT.Runtime;
+    let functionProperties;
+    if (isOnlyDelpoyConfig) {
+      console.log(`Only deploy function config.`)
+      functionProperties = this.handlerConfig(functionInput);
+    } else if (isOnlyDelpoyCode) {
+      console.log(`Only deploy function code.`)
+      functionProperties = await this.handlerCode(functionInput, projectName);
+    } else {
+      functionProperties = {
+        ...this.handlerConfig(functionInput),
+        ...await this.handlerCode(functionInput, projectName)
+      }
     }
 
     try {
-      await this.fcClient.getFunction(serviceName, functionProperties.functionName)
+      await this.fcClient.getFunction(serviceName, functionInput.Name)
       try {
-        console.log(`Function: ${serviceName}@${functionProperties.functionName} updating ...`)
+        console.log(`Function: ${serviceName}@${functionInput.Name} updating ...`)
         await this.fcClient.updateFunction(
           serviceName,
-          functionProperties.functionName,
+          functionInput.Name,
           functionProperties
         )
       } catch (ex) {
         throw new Error(
-          `${serviceName}:${functionProperties.functionName} update failed: ${ex.message}`
+          `${serviceName}:${functionInput.Name} update failed: ${ex.message}`
         )
       }
     } catch (e) {
@@ -197,14 +229,14 @@ class Function {
         await this.fcClient.createFunction(serviceName, functionProperties)
       } catch (ex) {
         throw new Error(
-          `${serviceName}:${functionProperties.functionName} create failed: ${ex.message}`
+          `${serviceName}:${functionInput.Name} create failed: ${ex.message}`
         )
       }
     }
 
-    console.log(`Deployment function ${functionProperties.functionName} successful.`)
+    console.log(`Deployment function ${functionInput.Name} successful.`)
 
-    return functionProperties.functionName
+    return functionInput.Name
   }
 
   async pushImage(userName, password, imageName) {

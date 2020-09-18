@@ -44,7 +44,7 @@
     "@alicloud/fc2": "^2.2.1",
     "@alicloud/pop-core": "^1.7.9",
     "@alicloud/ram": "^1.0.0",
-    "@serverless-devs/s-core": "0.0.1",
+    "@serverless-devs/s-core": "0.0.4",
     "@serverless-devs/s-zip": "0.0.8",
     "ali-oss": "^6.10.0",
     "aliyun-sdk": "^1.12.3",

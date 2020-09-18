@@ -48,9 +48,13 @@ class FcComponent extends Component {
     const credentials = inputs.Credentials
     const properties = inputs.Properties
     const state = inputs.State || {}
-    const args = inputs.Args
+    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args);
 
-    const deployType = args.type ? args.type : 'all'
+    const deployType = commands[0];
+    let isDeployAll = false;
+    if (commands.length === 0) {
+      isDeployAll = true;
+    }
 
     const serviceInput = properties.Service || {}
     const serviceState = state.Service || {}
@@ -65,16 +69,16 @@ class FcComponent extends Component {
     const region = properties.Region || DEFAULT.Region;
 
     // 单独部署服务
-    if (deployType == 'service' || deployType == 'all') {
+    if (deployType === 'service' || isDeployAll) {
       const fcService = new Service(credentials, region)
       output.Service = await fcService.deploy(properties, state)
     }
 
     // 单独部署函数
-    if (deployType == 'function' || deployType == 'all') {
+    if (deployType === 'function' || isDeployAll) {
       if (properties.Function) {
         const fcFunction = new Function(credentials, region)
-        output.Function = await fcFunction.deploy(properties, state, projectName, serviceName)
+        output.Function = await fcFunction.deploy(properties, state, projectName, serviceName, commands)
       }
     }
 
