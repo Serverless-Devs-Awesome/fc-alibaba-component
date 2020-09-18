@@ -3,6 +3,7 @@ const util = require('util')
 const http = require('http')
 const RAM = require('../ram')
 const { CustomDomain } = require('./CustomDomain')
+const _ = require('lodash');
 
 const triggerTypeMapping = {
   Datahub: 'datahub',
@@ -313,7 +314,7 @@ class Trigger {
     return false
   }
 
-  async deployTrigger(serviceName, functionName, trigger) {
+  async deployTrigger(serviceName, functionName, trigger, isOnlyDeployTrigger) {
     const triggerType = trigger.Type
     const triggerName = trigger.Name
     const output = {
@@ -418,7 +419,7 @@ class Trigger {
 
     if (triggerParameters.Qualifier) {
       Object.assign(parameters, {
-        qualifier: triggerParameters.Qualifier
+        qualifier: `${triggerParameters.Qualifier}`
       })
     }
     const endPoint = `https://${this.accountId}.${this.region}.fc.aliyuncs.com/2016-08-15/proxy/${serviceName}/${functionName}/`;
@@ -454,6 +455,7 @@ class Trigger {
         output.Domains = endPoint;
       }
     }
+
     try {
       await this.fcClient.getTrigger(serviceName, functionName, triggerName)
       if (triggerType === 'TableStore' || triggerType === 'MNSTopic') {
@@ -462,7 +464,7 @@ class Trigger {
         // 更新触发器
         try {
           await this.fcClient.updateTrigger(serviceName, functionName, triggerName, parameters)
-          if (triggerType === 'HTTP') {
+          if (triggerType === 'HTTP' && !isOnlyDeployTrigger) {
             await deployDomain(triggerParameters.Domains);
           }
           return output
@@ -477,7 +479,7 @@ class Trigger {
       try {
         parameters.triggerName = triggerName
         await this.fcClient.createTrigger(serviceName, functionName, parameters)
-        if (triggerType === 'HTTP') {
+        if (triggerType === 'HTTP' && !isOnlyDeployTrigger) {
           await deployDomain(triggerParameters.Domains);
         }
         return output
@@ -523,7 +525,13 @@ class Trigger {
     }
   }
 
-  async deploy(properties, serviceName, functionName) {
+  async deploy(properties, serviceName, functionName, commands = [], parameters = {}) {
+    const isOnlyDeployTrigger = _.isArray(commands) && commands[0] === 'trigger';
+    let onlyDeployTriggerName;
+    if (isOnlyDeployTrigger && parameters.n || parameters.name) {
+      onlyDeployTriggerName = parameters.n || parameters.name;
+    }
+
     const triggerOutput = []
     const releaseTriggerList = []
     const thisTriggerList = []
@@ -537,19 +545,37 @@ class Trigger {
       console.log(ex)
     }
     if (properties.Function.Triggers) {
-      for (let i = 0; i < properties.Function.Triggers.length; i++) {
+
+      const handlerDeployTrigger = async (deployTriggerConfig, deployTriggerName) => {
         console.log(
-          `Trigger: ${serviceName}@${functionName}${properties.Function.Triggers[i].Name} deploying ...`
+          `Trigger: ${serviceName}@${functionName}${deployTriggerName} deploying ...`
         )
         triggerOutput.push(
-          await this.deployTrigger(serviceName, functionName, properties.Function.Triggers[i])
+          await this.deployTrigger(serviceName, functionName, deployTriggerConfig, isOnlyDeployTrigger)
         )
-        thisTriggerList.push(properties.Function.Triggers[i].Name)
+        thisTriggerList.push(deployTriggerName)
         console.log(
-          `Trigger: ${serviceName}@${functionName}-${properties.Function.Triggers[i].Name} deployment successful.`
+          `Trigger: ${serviceName}@${functionName}-${deployTriggerName} deployment successful.`
         )
       }
+
+      if (onlyDeployTriggerName) {
+        const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === onlyDeployTriggerName)
+        if (onlyDeployTriggerConfig.length < 1) {
+          throw new Error(`${onlyDeployTriggerName} not found`)
+        }
+        if (onlyDeployTriggerConfig.length > 1) {
+          throw new Error(`${onlyDeployTriggerName} repeated statement`)
+        }
+        await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName);
+      } else {
+        for (let i = 0; i < properties.Function.Triggers.length; i++) {
+          const deployTriggerName = properties.Function.Triggers[i].Name
+          await handlerDeployTrigger(properties.Function.Triggers[i], deployTriggerName);
+        }
+      }
     }
+    
     // 删除触发器
     for (let i = 0; i < releaseTriggerList.length; i++) {
       if (thisTriggerList.indexOf(releaseTriggerList[i]) == -1) {

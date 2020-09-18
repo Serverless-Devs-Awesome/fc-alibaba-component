@@ -83,10 +83,10 @@ class FcComponent extends Component {
     }
 
     // 单独部署触发器
-    if (deployType == 'trigger' || deployType == 'all') {
+    if (deployType === 'trigger' || isDeployAll) {
       if (properties.Function && properties.Function.Triggers) {
         const fcTrigger = new Trigger(credentials, region)
-        output.Triggers = await fcTrigger.deploy(properties, serviceName, functionName)
+        output.Triggers = await fcTrigger.deploy(properties, serviceName, functionName, commands, parameters)
       }
     }
 
