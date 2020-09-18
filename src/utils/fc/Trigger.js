@@ -562,10 +562,10 @@ class Trigger {
       if (onlyDeployTriggerName) {
         const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === onlyDeployTriggerName)
         if (onlyDeployTriggerConfig.length < 1) {
-          throw new Error(`${onlyDeployTriggerName} not found`)
+          throw new Error(`${onlyDeployTriggerName} not found.`)
         }
         if (onlyDeployTriggerConfig.length > 1) {
-          throw new Error(`${onlyDeployTriggerName} repeated statement`)
+          throw new Error(`${onlyDeployTriggerName} repeated statement.`)
         }
         await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName);
       } else {

@@ -1,4 +1,5 @@
 const fc = require('@alicloud/fc2')
+const _ = require('lodash')
 
 class TAG {
   constructor(credentials, region) {
@@ -44,14 +45,27 @@ class TAG {
 
   }
 
-  async deploy(resourceArn, tagsInput) {
-    const tags = {}
+  async deploy(resourceArn, tagsInput, commands, parameters) {
+    const isOnlyDeployTags = _.isArray(commands) && commands[0] === 'tags';
+    let onlyDeployTagName;
+    if (isOnlyDeployTags && parameters.k || parameters.key) {
+      onlyDeployTagName = parameters.k || parameters.key;
+    }
+    let tags = {}
     // tags格式化
     tagsInput.forEach(({ Key, Value }) => {
       if (Key !== undefined) {
         tags[Key] = Value;
       }
     })
+    if (onlyDeployTagName) {
+      if (!_.has(tags, onlyDeployTagName)) {
+        throw new Error(`${onlyDeployTagName} not found.`)
+      }
+      tags = {
+        [onlyDeployTagName]: tags[onlyDeployTagName]
+      }
+    }
 
     let tagsAttr
     try {

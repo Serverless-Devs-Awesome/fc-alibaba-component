@@ -91,11 +91,11 @@ class FcComponent extends Component {
     }
 
     // 单独部署标签
-    if (deployType == 'tags' || deployType == 'all') {
+    if (deployType === 'tags' || isDeployAll) {
       if (properties.Service && properties.Service.Tags) {
         const tag = new TAG(credentials, region)
         const serviceArn = 'services/' + serviceName
-        output.Tags = await tag.deploy(serviceArn, properties.Service.Tags)
+        output.Tags = await tag.deploy(serviceArn, properties.Service.Tags, commands, parameters)
       }
     }
 
