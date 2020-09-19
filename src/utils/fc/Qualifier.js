@@ -1,23 +1,23 @@
-const fc2 = require('@alicloud/fc2')
+const FC = require('@alicloud/fc2')
 
 class Alias {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new fc2(credentials.AccountID, {
+    this.fcClient = new FC(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
       timeout: 60000
     })
-    this.fcClient
+    // this.fcClient
   }
 
-  async publish(alias, serviceName) {
+  async publish (alias, serviceName) {
     const name = alias.Name
-    const versionId = `${alias.Version}`;
+    const versionId = `${alias.Version}`
     const option = {}
     if (alias.Description) {
       option.description = alias.Description
@@ -33,29 +33,29 @@ class Alias {
     }
   }
 
-  async list(serviceName) {
+  async list (serviceName) {
     try {
       return await this.fcClient.listAliases(serviceName)
     } catch (ex) {
-      return ex.message;
+      return ex.message
     }
   }
 
-  async findAlias(serviceName, name) {
-    const listAlias = await this.list(serviceName);
+  async findAlias (serviceName, name) {
+    const listAlias = await this.list(serviceName)
     if (typeof listAlias === 'string') {
       throw new Error(listAlias)
     }
-    const { aliases } = listAlias.data;
+    const { aliases } = listAlias.data
     for (const alias of aliases) {
-      const { aliasName } = alias;
+      const { aliasName } = alias
       if (aliasName === name) {
         return alias
       }
     }
   }
 
-  async delete(serviceName, aliasName) {
+  async delete (serviceName, aliasName) {
     try {
       await this.fcClient.deleteAlias(serviceName, aliasName)
       return true
@@ -64,7 +64,7 @@ class Alias {
     }
   }
 
-  async update(alias, serviceName) {
+  async update (alias, serviceName) {
     const name = alias.Name
     const versionId = alias.Version
     const option = {}
@@ -84,12 +84,12 @@ class Alias {
 }
 
 class Version {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new fc2(credentials.AccountID, {
+    this.fcClient = new FC(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
@@ -97,7 +97,7 @@ class Version {
     })
   }
 
-  async publish(serviceName, description) {
+  async publish (serviceName, description) {
     try {
       await this.fcClient.publishVersion(serviceName, description)
       return true
@@ -106,7 +106,7 @@ class Version {
     }
   }
 
-  async list(serviceName) {
+  async list (serviceName) {
     try {
       return await this.fcClient.listVersions(serviceName)
     } catch (ex) {
@@ -114,7 +114,7 @@ class Version {
     }
   }
 
-  async delete(serviceName, versionId) {
+  async delete (serviceName, versionId) {
     try {
       await this.fcClient.deleteVersion(serviceName, versionId)
       return true
@@ -125,5 +125,6 @@ class Version {
 }
 
 module.exports = {
-  Alias, Version
+  Alias,
+  Version
 }

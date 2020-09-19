@@ -1,9 +1,12 @@
+'use strict'
+
+const _ = require('lodash')
+const moment = require('moment')
+
 const { SLS } = require('aliyun-sdk')
-const util = require('util')
-const colors = require('colors/safe')
 
 class Logs {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.slsClient = new SLS({
       accessKeyId: credentials.AccessKeyID,
       secretAccessKey: credentials.AccessKeySecret,
@@ -12,164 +15,187 @@ class Logs {
     })
   }
 
-  sleep(ms) {
+  sleep (ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms)
     })
   }
 
-  async getLogs(
-    projectName,
-    logStoreName,
-    timeStart,
-    timeEnd,
-    serviceName,
-    functionName,
-    query,
-    error
-  ) {
-    const param = {
-      projectName: projectName,
-      logStoreName: logStoreName,
+  async getLogs ({ projectName, logStoreName, timeStart, timeEnd, serviceName, functionName }) {
+    const requestParams = {
+      projectName,
+      logStoreName,
       from: timeStart,
       to: timeEnd,
       topic: serviceName,
       query: functionName
     }
 
-    let logCount = 1
-    let getCount = 0
-    let times = 10
-    const logsList = {}
-    while (getCount != logCount && times > 0) {
-      times = times - 1
-      const handle = util.promisify(this.slsClient.getLogs.bind(this.slsClient))
-      let result
-      try {
-        const temp = await handle(param)
-        logCount = temp['headers']['x-log-count']
-        result = temp['body']
-      } catch (ex) {
-        result = {}
+    let count
+    let xLogCount
+    let xLogProgress = 'Complete'
+
+    let result
+
+    do {
+      const response = await new Promise((resolve, reject) => {
+        this.slsClient.getLogs(requestParams, (error, data) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve(data)
+        })
+      })
+      const body = response.body
+
+      if (_.isEmpty(body)) {
+        continue
       }
 
-      let requestId
-      for (const item in result) {
-        getCount = getCount + 1
-        const eveLog = result[item]
-        const requestIdList = eveLog['message'].match('(\\w{8}(-\\w{4}){3}-\\w{12}?)')
-        if (requestIdList) {
-          requestId = requestIdList[0]
-        }
-        if (requestId) {
-          if (!logsList.hasOwnProperty(requestId)) {
-            const date = new Date(Number(eveLog['__time__']) * 1000)
-            const year = date.getFullYear()
-            const month = date.getMonth() < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1
-            const day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate()
-            const hour = date.getHours() < 10 ? '0' + date.getHours() : date.getHours()
-            const minute = date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()
-            const second = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds()
+      count = _.keys(body).length
 
-            logsList[requestId] = {
-              time: `${year}-${month}-${day} ${hour}:${minute}:${second}  (${eveLog['__time__']})`,
+      xLogCount = response.headers['x-log-count']
+      xLogProgress = response.headers['x-log-progress']
+
+      let requestId
+      result = _.values(body).reduce((acc, cur) => {
+        const currentMessage = cur.message
+        const found = currentMessage.match('(\\w{8}(-\\w{4}){3}-\\w{12}?)')
+
+        if (!_.isEmpty(found)) {
+          requestId = found[0]
+        }
+
+        if (requestId) {
+          if (!_.has(acc, requestId)) {
+            acc[requestId] = {
+              timestamp: cur.__time__,
+              time: moment.unix(cur.__time__).format('YYYY-MM-DD H:mm:ss'),
               message: ''
             }
           }
-          logsList[requestId]['message'] = logsList[requestId]['message'] + eveLog['message']
+          acc[requestId].message = acc[requestId].message + currentMessage
         }
-      }
-    }
 
-    const resultList = {}
-    for (const item in logsList) {
-      const tempLog = logsList[item]['message'].replace(new RegExp(/(\r)/g), '\n')
-      logsList[item]['message'] = tempLog
-      if (query) {
-        if (tempLog.indexOf(query) != -1) {
-          if (error) {
-            if (tempLog.indexOf(' [ERROR] ') != -1 && tempLog.indexOf('Error: ') != -1) {
-              resultList[item] = logsList[item]
-            }
-          } else {
-            resultList[item] = logsList[item]
-          }
-        }
-      } else {
-        if (error) {
-          if (tempLog.indexOf(' [ERROR] ') != -1 && tempLog.indexOf('Error: ') != -1) {
-            resultList[item] = logsList[item]
-          }
-        } else {
-          resultList[item] = logsList[item]
-        }
-      }
-    }
-    return resultList
+        return acc
+      }, {})
+    } while (xLogCount !== count && xLogProgress !== 'Complete')
+
+    return result
   }
 
-  async history(
+  filterByKeywords (logsList = {}, { requestId, query, queryErrorLog = false }) {
+    let logsClone = _.cloneDeep(logsList)
+
+    if (requestId) {
+      logsClone = _.pick(logsClone, [requestId])
+    }
+
+    if (query) {
+      logsClone = _.pickBy(logsClone, (value, key) => {
+        const replaceLog = value.message.replace(new RegExp(/(\r)/g), '\n')
+        return replaceLog.indexOf(query) !== -1
+      })
+    }
+
+    if (queryErrorLog) {
+      logsClone = _.pickBy(logsClone, (value, key) => {
+        const replaceLog = value.message.replace(new RegExp(/(\r)/g), '\n')
+        return replaceLog.indexOf(' [ERROR] ') !== -1 || replaceLog.indexOf('Error: ') !== -1
+      })
+    }
+
+    return logsClone
+  }
+
+  replaceLineBreak (logsList = {}) {
+    return _.mapValues(logsList, (value, key) => {
+      value.message = value.message.replace(new RegExp(/(\r)/g), '\n')
+      return value
+    })
+  }
+
+  printLogs (historyLogs) {
+    _.values(historyLogs).forEach((data) => {
+      console.log(`\n${data.message}`)
+    })
+  }
+
+  async history (
     projectName,
     logStoreName,
     timeStart,
     timeEnd,
     serviceName,
     functionName,
+
     query,
-    error
+    queryErrorLog = false,
+    requestId
   ) {
-    const result = await this.getLogs(
+    const logsList = await this.getLogs({
       projectName,
       logStoreName,
       timeStart,
       timeEnd,
       serviceName,
-      functionName,
-      query,
-      error
-    )
+      functionName
+    })
 
-    for (const item in result) {
-      console.log(
-        `${colors.blue('RequestId')} : ${item}\n${colors.blue('DateTime')} : ${
-          result[item]['time']
-        }\n${colors.blue('Message')} :\n${result[item]['message']}\n\n`
-      )
-    }
+    return this.filterByKeywords(this.replaceLineBreak(logsList), {
+      query,
+      requestId,
+      queryErrorLog
+    })
   }
 
-  async realtime(projectName, logStoreName, serviceName, functionName, query, error) {
-    let timeStart = parseInt(Date.now() / 1000)
-    let timeEnd = parseInt(Date.now() / 1000)
+  async realtime (projectName, logStoreName, serviceName, functionName) {
+    let timeStart
+    let timeEnd
     let times = 1800
-    const output = []
+
+    const consumedTimeStamps = []
+
     while (times > 0) {
       await this.sleep(1000)
       times = times - 1
-      const result = await this.getLogs(
+
+      timeStart = moment()
+        .subtract(10, 'seconds')
+        .unix()
+      timeEnd = moment().unix()
+
+      const pulledlogs = await this.getLogs({
         projectName,
         logStoreName,
         timeStart,
         timeEnd,
         serviceName,
-        functionName,
-        query,
-        error
-      )
+        functionName
+      })
 
-      for (const item in result) {
-        if (output.indexOf(item) == -1) {
-          output.push(item)
-          console.log(
-            `${colors.blue('RequestId')} : ${item}\n${colors.blue('DateTime')} : ${
-              result[item]['time']
-            }\n${colors.blue('Message')} :\n${result[item]['message']}\n\n`
-          )
-        }
+      if (_.isEmpty(pulledlogs)) {
+        continue
       }
 
-      timeStart = timeEnd - 60 >= timeStart ? timeEnd - 60 : timeStart
-      timeEnd = parseInt(Date.now() / 1000)
+      const notConsumedLogs = _.pickBy(pulledlogs, (data, requestId) => {
+        return !_.includes(consumedTimeStamps, data.timestamp)
+      })
+
+      if (_.isEmpty(notConsumedLogs)) {
+        continue
+      }
+
+      const replaceLogs = this.replaceLineBreak(notConsumedLogs)
+
+      this.printLogs(replaceLogs)
+
+      const pulledTimeStamps = _.values(replaceLogs).map((data) => {
+        return data.timestamp
+      })
+
+      consumedTimeStamps.push(...pulledTimeStamps)
     }
   }
 }

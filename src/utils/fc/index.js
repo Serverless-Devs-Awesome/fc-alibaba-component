@@ -1,18 +1,18 @@
-const Service = require('./Service')
-const Function = require('./Function')
-const { CustomDomain, GetAutoDomain } = require('./CustomDomain')
-const { Alias, Version } = require('./Qualifier')
-const Trigger = require('./Trigger')
-const InvokeRemote = require('./InvokeRemote')
+const Service = require('./service')
+const Trigger = require('./trigger')
+const FcFunction = require('./function')
+const InvokeRemote = require('./invokeRemote')
 
+const { CustomDomain, GetAutoDomain } = require('./customDomain')
+const { Alias, Version } = require('./qualifier')
 
 module.exports = {
   Service,
-  Function,
+  FcFunction,
   Trigger,
-  CustomDomain,
+  Version,
   Alias,
+  CustomDomain,
   GetAutoDomain,
-  InvokeRemote,
-  Version
+  InvokeRemote
 }

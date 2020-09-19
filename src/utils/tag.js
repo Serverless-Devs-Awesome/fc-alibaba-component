@@ -1,12 +1,12 @@
-const fc = require('@alicloud/fc2')
+const FC = require('@alicloud/fc2')
 
 class TAG {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new fc(credentials.AccountID, {
+    this.fcClient = new FC(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
@@ -16,40 +16,39 @@ class TAG {
 
   /**
    * Remove tags
-   * @param {*} resourceArn 
+   * @param {*} resourceArn
    * @param {*} tags : Will delete all tags if not specified
    */
-  async remove(resourceArn, tagKeys = []) {
-    if (tagKeys.length == 0) {
+  async remove (resourceArn, tagKeys = []) {
+    if (tagKeys.length === 0) {
       try {
         const allTags = await this.fcClient.getResourceTags({ resourceArn: resourceArn })
         if (allTags.data && allTags.data.tags) {
           const tagsAttr = allTags.data.tags
           for (const key in tagsAttr) {
-            tagKeys.push(key);
+            tagKeys.push(key)
           }
         }
       } catch (ex) {
-        throw new Error(`Unable to get tags: ${ex.message}`);
+        throw new Error(`Unable to get tags: ${ex.message}`)
       }
     }
 
-    if (tagKeys.length == 0) {
-      return;
+    if (tagKeys.length === 0) {
+      return
     }
 
     console.log('Tags: untag resource: ', tagKeys)
     await this.fcClient.untagResource(resourceArn, tagKeys)
     console.log('Tags: untag resource successfully: ', tagKeys)
-
   }
 
-  async deploy(resourceArn, tagsInput) {
+  async deploy (resourceArn, tagsInput) {
     const tags = {}
     // tags格式化
     tagsInput.forEach(({ Key, Value }) => {
       if (Key !== undefined) {
-        tags[Key] = Value;
+        tags[Key] = Value
       }
     })
 
@@ -64,7 +63,7 @@ class TAG {
     // 删除标签
     const untagResourceKeys = []
     for (const item in tagsAttr) {
-      if (!(tags.hasOwnProperty(item) && tags[item] == tagsAttr[item])) {
+      if (!(Object.prototype.hasOwnProperty.call(tags, item) && tags[item] === tagsAttr[item])) {
         untagResourceKeys.push(item)
       }
     }
@@ -78,7 +77,6 @@ class TAG {
     await this.fcClient.tagResource(resourceArn, tags)
 
     return tags
-
   }
 }
 
