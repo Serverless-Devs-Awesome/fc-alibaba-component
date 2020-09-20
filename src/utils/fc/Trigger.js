@@ -1,9 +1,9 @@
-const fc = require('@alicloud/fc2')
+const FC = require('@alicloud/fc2')
 const util = require('util')
 const http = require('http')
 const RAM = require('../ram')
-const { CustomDomain } = require('./CustomDomain')
-const _ = require('lodash');
+const { CustomDomain } = require('./customDomain')
+const _ = require('lodash')
 
 const triggerTypeMapping = {
   Datahub: 'datahub',
@@ -17,23 +17,23 @@ const triggerTypeMapping = {
   CDN: 'cdn_events'
 }
 
-function displayDomainInfo(domainName, triggerName, triggerProperties, EndPoint) {
-  console.log(`\tTriggerName: ${triggerName}`);
-  console.log(`\tMethods: ${triggerProperties.Methods || triggerProperties.methods}`);
-  if(triggerName){
-    console.log(`\tUrl: ${domainName}`);
+function displayDomainInfo (domainName, triggerName, triggerProperties, EndPoint) {
+  console.log(`\tTriggerName: ${triggerName}`)
+  console.log(`\tMethods: ${triggerProperties.Methods || triggerProperties.methods}`)
+  if (triggerName) {
+    console.log(`\tUrl: ${domainName}`)
   }
-  console.log(`\tEndPoint: ${EndPoint}`);
+  console.log(`\tEndPoint: ${EndPoint}`)
 }
 
 class Trigger {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.credentials = credentials
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new fc(credentials.AccountID, {
+    this.fcClient = new FC(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
@@ -41,22 +41,22 @@ class Trigger {
     })
   }
 
-  sleep(ms) {
+  sleep (ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms)
     })
   }
 
-  async getAutoDomainState(domain) {
+  async getAutoDomainState (domain) {
     const options = {
       host: domain,
       port: '80',
       path: '/'
     }
-    return new Promise(function(resolve, reject) {
-      const req = http.get(options, function(res) {
+    return new Promise(function (resolve, reject) {
+      const req = http.get(options, function (res) {
         res.setEncoding('utf8')
-        res.on('data', function(chunk) {
+        res.on('data', function (chunk) {
           try {
             resolve(String(chunk))
           } catch (e) {
@@ -64,14 +64,14 @@ class Trigger {
           }
         })
       })
-      req.on('error', function(e) {
+      req.on('error', function (e) {
         resolve(undefined)
       })
       req.end()
     })
   }
 
-  async getSourceArn(triggerType, triggerParameters) {
+  async getSourceArn (triggerType, triggerParameters) {
     if (triggerType === 'Log') {
       return `acs:log:${this.region}:${this.accountId}:project/${triggerParameters.LogConfig.Project}`
     } else if (triggerType === 'RDS') {
@@ -88,10 +88,9 @@ class Trigger {
     } else if (triggerType === 'CDN') {
       return `acs:cdn:*:${this.accountId}`
     }
-    return
   }
 
-  async makeInvocationRole(serviceName, functionName, triggerType, qualifier) {
+  async makeInvocationRole (serviceName, functionName, triggerType, qualifier) {
     const ram = new RAM(this.credentials)
     if (triggerType === 'Log') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
@@ -117,7 +116,7 @@ class Trigger {
       const policyName = ram.normalizeRoleOrPoliceName(
         `AliyunFcGeneratedInvocationPolicy-${serviceName}-${functionName}`
       )
-      await ram.makePolicy(ramCient, policyName, {
+      await ram.makePolicy(policyName, {
         Version: '1',
         Statement: [
           {
@@ -314,7 +313,7 @@ class Trigger {
     return false
   }
 
-  async deployTrigger(serviceName, functionName, trigger, isOnlyDeployTrigger) {
+  async deployTrigger (serviceName, functionName, trigger, isOnlyDeployTrigger) {
     const triggerType = trigger.Type
     const triggerName = trigger.Name
     const output = {
@@ -325,27 +324,27 @@ class Trigger {
     const parameters = {
       triggerType: triggerTypeMapping[trigger.Type]
     }
-    if (triggerType == 'OSS') {
-      parameters['triggerConfig'] = {
+    if (triggerType === 'OSS') {
+      parameters.triggerConfig = {
         events: triggerParameters.Events,
         filter: {
           prefix: triggerParameters.Filter.Prefix,
           suffix: triggerParameters.Filter.Suffix
         }
       }
-    } else if (triggerType == 'Timer') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'Timer') {
+      parameters.triggerConfig = {
         payload: triggerParameters.Payload,
         cronExpression: triggerParameters.CronExpression,
         enable: triggerParameters.Enable ? triggerParameters.Enable : true
       }
-    } else if (triggerType == 'HTTP') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'HTTP') {
+      parameters.triggerConfig = {
         authType: triggerParameters.AuthType.toLowerCase(),
         methods: triggerParameters.Methods
       }
-    } else if (triggerType == 'Log') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'Log') {
+      parameters.triggerConfig = {
         sourceConfig: {
           logstore: triggerParameters.SourceConfig.Logstore
         },
@@ -360,15 +359,15 @@ class Trigger {
         functionParameter: triggerParameters.FunctionParameter || {},
         Enable: triggerParameters.Enable ? triggerParameters.Enable : true
       }
-    } else if (triggerType == 'RDS') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'RDS') {
+      parameters.triggerConfig = {
         subscriptionObjects: triggerParameters.SubscriptionObjects,
         retry: triggerParameters.Retry,
         concurrency: triggerParameters.Concurrency,
         eventFormat: triggerParameters.EventFormat
       }
-    } else if (triggerType == 'MNSTopic') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'MNSTopic') {
+      parameters.triggerConfig = {
         NotifyContentFormat: triggerParameters.NotifyContentFormat
           ? triggerParameters.NotifyContentFormat
           : 'STREAM',
@@ -377,12 +376,12 @@ class Trigger {
           : 'BACKOFF_RETRY'
       }
       if (triggerParameters.FilterTag) {
-        parameters['triggerConfig'].FilterTag = triggerParameters.FilterTag
+        parameters.triggerConfig.FilterTag = triggerParameters.FilterTag
       }
-    } else if (triggerType == 'TableStore') {
-      parameters['triggerConfig'] = {}
-    } else if (triggerType == 'CDN') {
-      parameters['triggerConfig'] = {
+    } else if (triggerType === 'TableStore') {
+      parameters.triggerConfig = {}
+    } else if (triggerType === 'CDN') {
+      parameters.triggerConfig = {
         eventName: triggerParameters.EventName,
         eventVersion: triggerParameters.EventVersion,
         notes: triggerParameters.Notes,
@@ -422,37 +421,37 @@ class Trigger {
         qualifier: `${triggerParameters.Qualifier}`
       })
     }
-    const endPoint = `https://${this.accountId}.${this.region}.fc.aliyuncs.com/2016-08-15/proxy/${serviceName}/${functionName}/`;
+    const endPoint = `https://${this.accountId}.${this.region}.fc.aliyuncs.com/2016-08-15/proxy/${serviceName}/${functionName}/`
 
     // 部署 http 域名
     const deployDomain = async (domains) => {
       if (!domains) {
-        return displayDomainInfo(endPoint, undefined, triggerParameters, endPoint);
+        return displayDomainInfo(endPoint, undefined, triggerParameters, endPoint)
       }
       try {
         let domainNames
-        for(let i=0;i<=3;i++) {
-          const customDomain = new CustomDomain(this.credentials, this.region);
-          domainNames = await customDomain.deploy(domains, serviceName, functionName);
+        for (let i = 0; i <= 3; i++) {
+          const customDomain = new CustomDomain(this.credentials, this.region)
+          domainNames = await customDomain.deploy(domains, serviceName, functionName)
 
-          output.Domains = domainNames || endPoint;
-          if(output.Domains && output.Domains.length > 0){
-            for(let j=0;j<output.Domains.length;j++){
-              if(String(output.Domains[j]).endsWith(".test.functioncompute.com")){
+          output.Domains = domainNames || endPoint
+          if (output.Domains && output.Domains.length > 0) {
+            for (let j = 0; j < output.Domains.length; j++) {
+              if (String(output.Domains[j]).endsWith('.test.functioncompute.com')) {
                 const tempState = await this.getAutoDomainState(output.Domains[j])
-                if(tempState!=undefined && !String(tempState).includes('DomainNameNotFound')){
+                if (tempState !== undefined && !String(tempState).includes('DomainNameNotFound')) {
                   i = 5
                 }
-              }else{
+              } else {
                 await this.sleep(2000)
               }
             }
           }
         }
-        domainNames.forEach(domainName => displayDomainInfo(domainName, triggerName, triggerParameters, endPoint));
+        domainNames.forEach(domainName => displayDomainInfo(domainName, triggerName, triggerParameters, endPoint))
       } catch (e) {
-        displayDomainInfo(endPoint, undefined, triggerParameters, endPoint);
-        output.Domains = endPoint;
+        displayDomainInfo(endPoint, undefined, triggerParameters, endPoint)
+        output.Domains = endPoint
       }
     }
 
@@ -465,7 +464,7 @@ class Trigger {
         try {
           await this.fcClient.updateTrigger(serviceName, functionName, triggerName, parameters)
           if (triggerType === 'HTTP' && !isOnlyDeployTrigger) {
-            await deployDomain(triggerParameters.Domains);
+            await deployDomain(triggerParameters.Domains)
           }
           return output
         } catch (ex) {
@@ -480,7 +479,7 @@ class Trigger {
         parameters.triggerName = triggerName
         await this.fcClient.createTrigger(serviceName, functionName, parameters)
         if (triggerType === 'HTTP' && !isOnlyDeployTrigger) {
-          await deployDomain(triggerParameters.Domains);
+          await deployDomain(triggerParameters.Domains)
         }
         return output
       } catch (ex) {
@@ -498,22 +497,22 @@ class Trigger {
    * @param {*} functionName
    * @param {*} triggerList : will delete all triggers if not specified
    */
-  async remove(serviceName, functionName, triggerList = []) {
-    if (triggerList.length == 0) {
+  async remove (serviceName, functionName, triggerList = []) {
+    if (triggerList.length === 0) {
       try {
         const listTriggers = await this.fcClient.listTriggers(serviceName, functionName)
-        const curTriggerList = listTriggers.data;
+        const curTriggerList = listTriggers.data
         for (let i = 0; i < curTriggerList.triggers.length; i++) {
           triggerList.push(curTriggerList.triggers[i].triggerName)
         }
       } catch (ex) {
-        if (ex.code != 'FunctionNotFound') {
+        if (ex.code !== 'FunctionNotFound') {
           throw new Error(`Unable to get triggers: ${ex.message}`)
         }
       }
     }
 
-    if (triggerList.length == 0) {
+    if (triggerList.length === 0) {
       return
     }
 
@@ -525,11 +524,11 @@ class Trigger {
     }
   }
 
-  async deploy(properties, serviceName, functionName, commands = [], parameters = {}) {
-    const isOnlyDeployTrigger = _.isArray(commands) && commands[0] === 'trigger';
-    let onlyDeployTriggerName;
-    if (isOnlyDeployTrigger && parameters.n || parameters.name) {
-      onlyDeployTriggerName = parameters.n || parameters.name;
+  async deploy (properties, serviceName, functionName, commands = [], parameters = {}) {
+    const isOnlyDeployTrigger = _.isArray(commands) && commands[0] === 'trigger'
+    let onlyDeployTriggerName
+    if (isOnlyDeployTrigger && (parameters.n || parameters.name)) {
+      onlyDeployTriggerName = parameters.n || parameters.name
     }
 
     const triggerOutput = []
@@ -537,7 +536,7 @@ class Trigger {
     const thisTriggerList = []
     try {
       const tempTriggerList = await this.fcClient.listTriggers(serviceName, functionName)
-      const data = tempTriggerList.data.triggers;
+      const data = tempTriggerList.data.triggers
       for (let i = 0; i < data.length; i++) {
         releaseTriggerList.push(data[i].triggerName)
       }
@@ -545,7 +544,6 @@ class Trigger {
       console.log(ex)
     }
     if (properties.Function.Triggers) {
-
       const handlerDeployTrigger = async (deployTriggerConfig, deployTriggerName) => {
         console.log(
           `Trigger: ${serviceName}@${functionName}${deployTriggerName} deploying ...`
@@ -567,18 +565,18 @@ class Trigger {
         if (onlyDeployTriggerConfig.length > 1) {
           throw new Error(`${onlyDeployTriggerName} repeated statement.`)
         }
-        await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName);
+        await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName)
       } else {
         for (let i = 0; i < properties.Function.Triggers.length; i++) {
           const deployTriggerName = properties.Function.Triggers[i].Name
-          await handlerDeployTrigger(properties.Function.Triggers[i], deployTriggerName);
+          await handlerDeployTrigger(properties.Function.Triggers[i], deployTriggerName)
         }
       }
     }
-    
+
     // 删除触发器
     for (let i = 0; i < releaseTriggerList.length; i++) {
-      if (thisTriggerList.indexOf(releaseTriggerList[i]) == -1) {
+      if (thisTriggerList.indexOf(releaseTriggerList[i]) === -1) {
         console.log(`Deleting trigger: ${releaseTriggerList[i]}.`)
         await this.fcClient.deleteTrigger(serviceName, functionName, releaseTriggerList[i])
       }
@@ -587,7 +585,5 @@ class Trigger {
     return triggerOutput
   }
 }
-
-
 
 module.exports = Trigger
