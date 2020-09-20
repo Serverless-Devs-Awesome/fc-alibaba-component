@@ -1,15 +1,15 @@
-const FC = require('@alicloud/fc2')
+const fc2 = require('@alicloud/fc2')
 const fs = require('fs')
 const requestP = require('request-promise')
 const _ = require('lodash')
 
 class CustomDomain {
-  constructor (credentials, region) {
+  constructor(credentials, region) {
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
+    this.fcClient = new fc2(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
@@ -17,14 +17,14 @@ class CustomDomain {
     })
   }
 
-  async deployDomain (domain, ServiceName, FunctionName) {
+  async deployDomain(domain, ServiceName, FunctionName) {
     let domainName = domain.Domain
     const tempProtocol = domain.Protocol || ['HTTP']
     const tempRouteConfig = domain.Routes || []
     const certConfig = domain.CertConfig
 
     let protocol = ''
-    if (tempProtocol.length === 1) {
+    if (tempProtocol.length == 1) {
       protocol = protocol[0]
     } else {
       protocol = protocol[0]
@@ -105,15 +105,18 @@ class CustomDomain {
     return domainName
   }
 
-  sleep (ms) {
+  sleep(ms) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms)
     })
   }
 
-  async deploy (domains, ServiceName, FunctionName) {
+  async deploy(domains, ServiceName, FunctionName, onlyDomainName) {
     const domainNames = []
     for (let i = 0; i < domains.length; i++) {
+      if (onlyDomainName && onlyDomainName !== domains[i].Domain) {
+        continue;
+      }
       const domainName = await this.deployDomain(domains[i], ServiceName, FunctionName)
       domainNames.push(domainName)
     }
@@ -122,12 +125,12 @@ class CustomDomain {
 }
 
 class GetAutoDomain {
-  constructor (accountId, accessKeyID, accessKeySecret, region) {
+  constructor(accountId, accessKeyID, accessKeySecret, region) {
     this.accountId = accountId
     this.accessKeyID = accessKeyID
     this.accessKeySecret = accessKeySecret
     this.region = region
-    this.fcClient = new FC(accountId, {
+    this.fcClient = new fc2(accountId, {
       accessKeyID: accessKeyID,
       accessKeySecret: accessKeySecret,
       region: region,
@@ -135,7 +138,7 @@ class GetAutoDomain {
     })
   }
 
-  async deleteFcUtilsFunctionTmpDomain ({ tmpServiceName, tmpFunctionName, tmpTriggerName }) {
+  async deleteFcUtilsFunctionTmpDomain({ tmpServiceName, tmpFunctionName, tmpTriggerName }) {
     try {
       await this.fcClient.deleteTrigger(tmpServiceName, tmpFunctionName, tmpTriggerName)
     } catch (e) {}
@@ -147,7 +150,7 @@ class GetAutoDomain {
     } catch (e) {}
   }
 
-  async makeFcUtilsFunctionTmpDomainToken (token) {
+  async makeFcUtilsFunctionTmpDomainToken(token) {
     const tmpServiceName = 'fc-domain-challenge'
     try {
       await this.fcClient.createService(tmpServiceName, {
@@ -210,7 +213,7 @@ module.exports.handler = function (request, response, context) {
     }
   }
 
-  async processTemporaryDomain () {
+  async processTemporaryDomain() {
     const TMP_DOMAIN_URL =
       'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console.prod/generate_preview_domain_for_fun/'
     const { token } = await sendHttpRequest('POST', TMP_DOMAIN_URL, {
@@ -233,7 +236,7 @@ module.exports.handler = function (request, response, context) {
     }
   }
 
-  async getTmpDomainExpiredTime (domainName) {
+  async getTmpDomainExpiredTime(domainName) {
     const TMP_DOMAIN_EXPIRED_TIME_URL =
       'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console/get_expired_time/'
     const expiredTimeRs = await sendHttpRequest('POST', TMP_DOMAIN_EXPIRED_TIME_URL, {
@@ -251,12 +254,12 @@ module.exports.handler = function (request, response, context) {
     }
   }
 
-  async listCustomDomains () {
+  async listCustomDomains() {
     const rs = await this.fcClient.listCustomDomains()
     return rs.data.customDomains
   }
 
-  async getCustomAutoDomainName (serviceName, functionName) {
+  async getCustomAutoDomainName(serviceName, functionName) {
     const customDomains = await this.listCustomDomains()
     const tmpDomains = customDomains.filter((f) => {
       return f.domainName.endsWith('.test.functioncompute.com')
@@ -278,14 +281,14 @@ module.exports.handler = function (request, response, context) {
     for (const tmpDomain of tmpDomains) {
       const { routes } = tmpDomain.routeConfig
       const tmpDomainName = tmpDomain.domainName
-      // const { protocol } = tmpDomain
+      const { protocol } = tmpDomain
       if (!routes) {
         continue
       }
 
       for (const route of routes) {
         if (serviceName === route.serviceName && functionName === route.functionName) {
-          const { expiredTime } = await this.getTmpDomainExpiredTime(
+          const { expiredTime, timesLimit, expiredTimeObj } = await this.getTmpDomainExpiredTime(
             tmpDomainName
           )
 
@@ -315,7 +318,7 @@ module.exports.handler = function (request, response, context) {
   }
 }
 
-async function sendHttpRequest (method, url, requestData) {
+async function sendHttpRequest(method, url, requestData) {
   return await requestP({
     method,
     uri: url,

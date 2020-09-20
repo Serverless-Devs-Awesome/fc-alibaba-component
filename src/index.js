@@ -1,14 +1,13 @@
 'use strict'
-const _ = require('lodash')
-
 const moment = require('moment')
 const Logs = require('./utils/logs')
 const TAG = require('./utils/tag')
-
-const { execSync } = require('child_process')
 const { existsSync } = require('fs-extra')
 const { Component } = require('@serverless-devs/s-core')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
+const { fstat, existsSync } = require('fs-extra')
+const { execSync } = require('child_process');
+const _ = require('lodash')
 
 const DEFAULT = {
   Region: 'cn-hangzhou',
@@ -20,12 +19,13 @@ class FcComponent extends Component {
   handlerInputs (inputs) {
     const properties = inputs.Properties || {}
     const credentials = inputs.Credentials || {}
-
-    const serviceState = (inputs.State || {}).Service || {}
+    const state = inputs.State || {}
+    
+    const serviceState = state.Service || {}
 
     const serviceProp = properties.Service || {}
     const functionProp = properties.Function || {}
-
+   
     const serviceName = serviceProp.Name || serviceState.Name || DEFAULT.Service
     const functionName = functionProp.Name || ''
 
@@ -37,91 +37,115 @@ class FcComponent extends Component {
     return {
       properties,
       credentials,
+      args: this.args(inputs.Args),
       serviceName,
       serviceProp,
       functionName,
       functionProp,
-      args,
-      type,
       region
     }
   }
 
   // 部署
-  async deploy (inputs) {
+  async deploy(inputs) {
     // 全局部署
     const projectName = inputs.Project.ProjectName
     const credentials = inputs.Credentials
     const properties = inputs.Properties
     const state = inputs.State || {}
-    const args = inputs.Args
+    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args);
 
-    const deployType = args.type ? args.type : 'all'
+    const deployType = commands[0];
+    let isDeployAll = false;
+    if (commands.length === 0) {
+      isDeployAll = true;
+    }
 
     const serviceInput = properties.Service || {}
     const serviceState = state.Service || {}
     const serviceName = serviceInput.Name
       ? serviceInput.Name
       : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
+      ? serviceState.Name
+      : DEFAULT.Service
     const functionName = properties.Function.Name
 
     const output = {}
-    const region = properties.Region || DEFAULT.Region
+    const region = properties.Region || DEFAULT.Region;
 
     // 单独部署服务
-    if (deployType === 'service' || deployType === 'all') {
+    if (deployType === 'service' || isDeployAll) {
       const fcService = new Service(credentials, region)
       output.Service = await fcService.deploy(properties, state)
     }
 
     // 单独部署函数
-    if (deployType === 'function' || deployType === 'all') {
+    if (deployType === 'function' || isDeployAll) {
       if (properties.Function) {
-        const fcFunction = new FcFunction(credentials, region)
-        output.Function = await fcFunction.deploy(properties, state, projectName, serviceName)
+        const fcFunction = new Function(credentials, region)
+        output.Function = await fcFunction.deploy(properties, state, projectName, serviceName, commands)
       }
     }
 
     // 单独部署触发器
-    if (deployType === 'trigger' || deployType === 'all') {
+    if (deployType === 'trigger' || isDeployAll) {
       if (properties.Function && properties.Function.Triggers) {
         const fcTrigger = new Trigger(credentials, region)
-        output.Triggers = await fcTrigger.deploy(properties, serviceName, functionName)
+        output.Triggers = await fcTrigger.deploy(properties, serviceName, functionName, commands, parameters)
       }
     }
 
     // 单独部署标签
-    if (deployType === 'tags' || deployType === 'all') {
+    if (deployType === 'tags' || isDeployAll) {
       if (properties.Service && properties.Service.Tags) {
         const tag = new TAG(credentials, region)
         const serviceArn = 'services/' + serviceName
-        output.Tags = await tag.deploy(serviceArn, properties.Service.Tags)
+        output.Tags = await tag.deploy(serviceArn, properties.Service.Tags, commands, parameters)
       }
     }
 
     // 单独部署自定义域名
     if (deployType === 'domain') {
-      if (properties.Function && properties.Function.Domains) {
-        output.Domains = await this.domain(inputs)
-      }
+      output.Domains = await this.domain(inputs)
     }
-
-    // 存储服务状态
 
     // 返回结果
     return output
   }
-
+  
   // 部署自定义域名
-  async domain (inputs) {
-    const { credentials, properties, functionName, serviceName, region } = this.handlerInputs(
-      inputs
-    )
-    const fcDomain = new CustomDomain(credentials, region)
+async domain(inputs) {
+    const {
+      credentials,
+      properties,
+      functionName,
+      serviceName,
+      args = {},
+      region
+    } = this.handlerInputs(inputs);
+    const parameters = args.Parameters || {};
+    const onlyDomainName = parameters.d || parameters.domain;
+    const fcDomain = new CustomDomain(credentials, region);
+    let triggers = properties.Function.Triggers;
+    if (!_.isArray(triggers)) {
+      return;
+    }
+    triggers = triggers.filter(trigger => trigger.Type === 'HTTP' && trigger.Parameters && trigger.Parameters.Domains);
 
-    return await fcDomain.deploy(properties.Function.Domains, serviceName, functionName)
+    const triggerConfig = [];
+    for (const trigger of triggers) {
+      const t = await fcDomain.deploy(
+        trigger.Parameters.Domains,
+        serviceName,
+        functionName,
+        onlyDomainName
+      );
+      triggerConfig.push({
+        TriggerName: trigger.Name,
+        Domains: t
+      })
+    }
+    return triggerConfig;
   }
 
   // 版本
