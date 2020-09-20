@@ -13,7 +13,8 @@
   "author": "Serverless-Devs",
   "contributors": [
     "Shoushuai Wang",
-    "Anycodes"
+    "Anycodes",
+    "coco-super"
   ],
   "license": "MIT",
   "publishConfig": {
@@ -22,22 +23,6 @@
   "repository": {
     "type": "git",
     "url": ""
-  },
-  "scripts": {
-    "lint": "eslint --ext .js,.ts,.tsx ",
-    "lint:fix": "eslint --fix --ext .js,.ts,.tsx ",
-    "prettier": "prettier --check '**/*.{css,html,js,json,md,yaml,yml}'",
-    "prettier:fix": "prettier --write '**/*.{css,html,js,json,md,yaml,yml}'"
-  },
-  "lint-staged": {
-    "**/*.{js,ts,tsx}": [
-      "npm run lint:fix",
-      "git add ."
-    ],
-    "**/*.{css,html,js,json,md,yaml,yml}": [
-      "npm run prettier:fix",
-      "git add ."
-    ]
   },
   "dependencies": {
     "@alicloud/fc": "^1.2.3",
@@ -54,7 +39,7 @@
     "js-yaml": "^3.14.0",
     "jszip": "^3.5.0",
     "lodash": "^4.17.20",
-    "moment": "^2.27.0",
+    "moment": "^2.28.0",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
     "util": "^0.12.3",
@@ -66,6 +51,7 @@
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-prettier": "^3.1.2",
-    "prettier": "^1.19.1"
+    "prettier": "^1.19.1",
+    "standard": "^14.3.4"
   }
 }

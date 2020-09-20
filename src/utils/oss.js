@@ -1,11 +1,11 @@
-const oss = require('ali-oss')
+const Oss = require('ali-oss')
 
 class OSS {
-  constructor(credentials, region, bucketName) {
+  constructor (credentials, region, bucketName) {
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.ossClient = new oss({
+    this.ossClient = new Oss({
       region: this.region,
       accessKeyId: this.accessKeyID,
       accessKeySecret: this.accessKeySecret,
@@ -13,7 +13,7 @@ class OSS {
     })
   }
 
-  async uploadFile(filePath, object) {
+  async uploadFile (filePath, object) {
     await this.ossClient.put(object, filePath)
   }
 }

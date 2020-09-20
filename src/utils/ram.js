@@ -1,11 +1,11 @@
-const ram = require('@alicloud/ram')
+const Ram = require('@alicloud/ram')
 const _ = require('lodash')
 
 class RAM {
-  constructor(credentials) {
+  constructor (credentials) {
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
-    this.ramClient = new ram({
+    this.ramClient = new Ram({
       accessKeyId: this.accessKeyID,
       accessKeySecret: this.accessKeySecret,
       endpoint: 'https://ram.aliyuncs.com',
@@ -15,11 +15,11 @@ class RAM {
     })
   }
 
-  normalizeRoleOrPoliceName(roleName) {
+  normalizeRoleOrPoliceName (roleName) {
     return roleName.replace(/_/g, '-')
   }
 
-  async makeRole(
+  async makeRole (
     roleName,
     createRoleIfNotExist,
     description = 'FunctionCompute Default Role',
@@ -27,7 +27,7 @@ class RAM {
   ) {
     for (let i = 0; i <= 3; i++) {
       try {
-        let role = undefined
+        let role
         try {
           role = await this.ramClient.getRole({
             RoleName: roleName
@@ -71,7 +71,7 @@ class RAM {
     }
   }
 
-  async makePolicy(policyName, policyDocument) {
+  async makePolicy (policyName, policyDocument) {
     let exists = true
     for (let i = 0; i <= 3; i++) {
       try {
@@ -127,7 +127,7 @@ class RAM {
     }
   }
 
-  async attachPolicyToRole(policyName, roleName, policyType = 'System') {
+  async attachPolicyToRole (policyName, roleName, policyType = 'System') {
     for (let i = 0; i <= 3; i++) {
       try {
         const policies = await this.ramClient.listPoliciesForRole({
@@ -152,27 +152,27 @@ class RAM {
     }
   }
 
-  async getRole(roleName) {
+  async getRole (roleName) {
     return await this.ramClient.getRole({
       RoleName: roleName
-    });
+    })
   }
 
-  async existsRole(roleName) {
+  async existsRole (roleName) {
     try {
-      const role = await this.ramClient.getRole({RoleName: roleName});
+      const role = await this.ramClient.getRole({ RoleName: roleName })
       if (role) {
-        return true;
+        return true
       }
     } catch (e) {
       if (!e.code) {
-        throw e;
+        throw e
       }
-      const notExists = e.code.indexOf("EntityNotExist") >= 0;
-      return !notExists;
+      const notExists = e.code.indexOf('EntityNotExist') >= 0
+      return !notExists
     }
 
-    return false;
+    return false
   }
 }
 

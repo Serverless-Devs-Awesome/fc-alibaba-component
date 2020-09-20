@@ -1,4 +1,3 @@
-
 const DEFAULT = {
   Service: 'Default',
   Region: 'cn-hangzhou',

@@ -1,30 +1,27 @@
-
-const fc = require('@alicloud/fc2')
+const FC = require('@alicloud/fc2')
 const { DEFAULT } = require('./static')
 const RAM = require('../ram')
-const { existsSync } = require('fs-extra')
-
 
 class Service {
-  constructor(credentials, region) {
+  constructor (credentials, region) {
     this.accountId = credentials.AccountID
     this.accessKeyID = credentials.AccessKeyID
     this.accessKeySecret = credentials.AccessKeySecret
     this.region = region
-    this.fcClient = new fc(credentials.AccountID, {
+    this.fcClient = new FC(credentials.AccountID, {
       accessKeyID: credentials.AccessKeyID,
       accessKeySecret: credentials.AccessKeySecret,
       region: region,
       timeout: 60000
     })
-    this.ramClient = new RAM(credentials);
+    this.ramClient = new RAM(credentials)
   }
 
   /**
    * Remove service
    * @param {*} serviceName
    */
-  async remove(serviceName) {
+  async remove (serviceName) {
     try {
       console.log(`Deleting service ${serviceName}`)
       await this.fcClient.deleteService(serviceName)
@@ -34,15 +31,15 @@ class Service {
     }
   }
 
-  async deploy(properties, state) {
+  async deploy (properties, state) {
     const serviceInput = properties.Service ? properties.Service : undefined
     const serviceState = state.Service ? state.Service : undefined
     const serviceProperties = {
       serviceName: serviceInput.Name
         ? serviceInput.Name
         : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
+          ? serviceState.Name
+          : DEFAULT.Service
     }
 
     console.log(`Deploying service ${serviceProperties.serviceName}.`)
@@ -85,18 +82,21 @@ class Service {
     }
 
     if (!serviceProperties.role) {
-      const defaultRoleName = "ServerlessToolDefaultRole";
-      const registryReadOnlyPolicyName = "AliyunContainerRegistryReadOnlyAccess";
+      const defaultRoleName = 'ServerlessToolDefaultRole'
+      const registryReadOnlyPolicyName = 'AliyunContainerRegistryReadOnlyAccess'
       try {
-        console.log(`Checking whether exists default role: ${defaultRoleName}...`);
-        const existsDefaultRole = await this.ramClient.existsRole(defaultRoleName);
+        console.log(`Checking whether exists default role: ${defaultRoleName}...`)
+        const existsDefaultRole = await this.ramClient.existsRole(defaultRoleName)
         if (!existsDefaultRole) {
-          await this.createRole(defaultRoleName);
-          await this.attachPolicyToRole(registryReadOnlyPolicyName, defaultRoleName);
+          await this.createRole(defaultRoleName)
+          await this.attachPolicyToRole(registryReadOnlyPolicyName, defaultRoleName)
         }
-        serviceProperties.role = `acs:ram::${this.accountId}:role/${defaultRoleName.toLocaleLowerCase()}`
+        serviceProperties.role = `acs:ram::${
+          this.accountId
+        }:role/${defaultRoleName.toLocaleLowerCase()}`
       } catch (e) {
-        throw e;
+        console.log(e)
+        throw e
       }
     }
 
@@ -119,31 +119,36 @@ class Service {
 
     console.log(`Deployment service ${serviceProperties.serviceName} successful.`)
 
-    return serviceProperties.serviceName;
+    return serviceProperties.serviceName
   }
 
-  async createRole(defaultRoleName) {
-
-    console.log(`going to create role ${defaultRoleName}...`);
+  async createRole (defaultRoleName) {
+    console.log(`going to create role ${defaultRoleName}...`)
     try {
-      const role = await this.ramClient.makeRole(defaultRoleName, true, "Serverless Tool default role");
+      const role = await this.ramClient.makeRole(
+        defaultRoleName,
+        true,
+        'Serverless Tool default role'
+      )
       if (role) {
-        return defaultRoleName;
+        return defaultRoleName
       }
-      throw new Error("Failed to create role");
+      throw new Error('Failed to create role')
     } catch (e) {
-      throw e;
+      console.log(e)
+      throw e
     }
   }
 
-  async attachPolicyToRole(policyName, roleName) {
-    console.log(`Attaching AliyunContainerRegistryReadOnlyAccess to default role...`);
+  async attachPolicyToRole (policyName, roleName) {
+    console.log('Attaching AliyunContainerRegistryReadOnlyAccess to default role...')
     try {
-      await this.ramClient.attachPolicyToRole(policyName, roleName);
+      await this.ramClient.attachPolicyToRole(policyName, roleName)
     } catch (e) {
-      throw e;
+      console.log(e)
+      throw e
     }
   }
 }
 
-module.exports = Service;
+module.exports = Service
