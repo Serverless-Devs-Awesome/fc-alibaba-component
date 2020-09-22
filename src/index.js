@@ -9,6 +9,7 @@ const { existsSync } = require('fs-extra')
 const { Component } = require('@serverless-devs/s-core')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
 const { execSync } = require('child_process')
+const Builder = require('./utils/fc/builder')
 
 const DEFAULT = {
   Region: 'cn-hangzhou',
@@ -329,39 +330,36 @@ class FcComponent extends Component {
 
   // 构建
   async build (inputs) {
+    console.log('Start to build artifact.');
     const properties = inputs.Properties
-    const functionProperties = properties.Function
-    const customContainer = functionProperties.CustomContainer
+    const state = inputs.State || {}
+    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args)
+    const serviceInput = properties.Service || {}
+    const serviceState = state.Service || {}
+    const serviceName = serviceInput.Name
+      ? serviceInput.Name
+      : serviceState.Name
+        ? serviceState.Name
+        : DEFAULT.Service
+    const functionInput = properties.Function;
+    const functionName = functionInput.Name
 
-    const dockerBuild = functionProperties.Runtime === 'custom-container'
-    if (dockerBuild) {
-      if (!customContainer) {
-        throw new Error('No CustomContainer found for container build')
-      }
-      let dockerFile = 'Dockerfile'
-      if (customContainer && customContainer.Dockerfile) {
-        dockerFile = customContainer.Dockerfile
-      }
-      if (!customContainer.Image) {
-        throw new Error('No CustomContainer.Image found for container build')
-      }
-      const imageName = customContainer.Image
-
-      if (!existsSync(dockerFile)) {
-        throw new Error('No dockerfile found.')
-      }
-
-      try {
-        console.log('Building image...')
-        execSync(`docker build -t ${imageName} -f ${dockerFile} .`, {
-          stdio: 'inherit'
-        })
-        console.log(`Build image(${imageName}) successfully`)
-      } catch (e) {
-        console.log(e.message)
-        throw e
-      }
+    const buildImage = functionInput.Runtime == "custom-container";
+    if (buildImage) {
+      await builder.buildImage();
+      return;
     }
+
+    //serviceName, serviceProps, functionName, functionProps, useDocker, verbose
+    const useDocker = parameters.hasOwnProperty('d');
+    if (useDocker) {
+      console.log('Use docker for building.');
+    }
+    const builder = new Builder();
+    await builder.build(serviceName, serviceInput, functionName, functionInput, useDocker, true);
+
+    console.log('Build artifact successfully.');
+  
   }
 
   // 发布

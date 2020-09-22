@@ -24,6 +24,14 @@
     "type": "git",
     "url": ""
   },
+  "fc-docker": {
+    "version": "1.9.6",
+    "registry_default": "registry.cn-beijing.aliyuncs.com",
+    "registry_mirrors": [
+      "registry.cn-beijing.aliyuncs.com",
+      "registry.hub.docker.com"
+    ]
+  },
   "dependencies": {
     "@alicloud/fc": "^1.2.3",
     "@alicloud/fc2": "^2.2.1",
@@ -31,6 +39,11 @@
     "@alicloud/ram": "^1.0.0",
     "@serverless-devs/s-core": "0.0.4",
     "@serverless-devs/s-zip": "0.0.8",
+    "@alicloud/fc-builders": "^0.14.0",
+    "@alicloud/mns": "^1.0.0",
+    "@alicloud/log": "^1.1.0",
+    "@alicloud/fnf-2019-03-15": "^1.1.0",
+    "@alicloud/cloudapi": "^1.0.0",
     "ali-oss": "^6.10.0",
     "aliyun-sdk": "^1.12.3",
     "async": "^3.2.0",
@@ -43,7 +56,25 @@
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
     "util": "^0.12.3",
-    "zip-local": "^0.3.4"
+    "zip-local": "^0.3.4",
+    "tar-fs": "^2.0.0",
+    "dotenv": "^6.0.0",
+    "os-locale": "^2.1.0",
+    "node-machine-id": "^1.1.10",
+    "tablestore": "^5.0.1",
+    "inquirer-autocomplete-prompt": "^1.0.1",
+    "dockerode": "^3.0.2",
+    "nested-object-assign": "^1.0.3",
+    "universal-analytics": "^0.4.20",
+    "ci-info": "^2.0.0",
+    "conf": "^4.0.2",
+    "string-argv": "^0.3.0",
+    "walkdir": "^0.4.1",
+    "md5-file": "^4.0.0",
+    "cheerio": "^1.0.0-rc.3",
+    "draftlog": "^1.0.12",
+    "detect-mocha": "^0.1.0",
+    "dev-null": "^0.1.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.1.0",
