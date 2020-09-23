@@ -210,9 +210,6 @@ class FcComponent extends Component {
       isDeployAll = true
     }
 
-    console.log(removeType, parameters);
-    console.log('======================')
-    // 15656389.1899690531354629.functioncompute.com
     // 解绑标签
     if (removeType === 'tags' || isDeployAll) {
       // TODO 指定删除标签
