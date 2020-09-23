@@ -147,14 +147,17 @@ class FcComponent extends Component {
   }
 
   // 版本
-  async version (inputs) {
-    const { credentials, region, serviceName, type, args } = this.handlerInputs(inputs)
-    const fcVersion = new Version(credentials, region)
+  async version (inputs, type) {
+    const { credentials, region, serviceName, args } = this.handlerInputs(inputs);
+    const fcVersion = new Version(credentials, region);
+    const { Parameters: parameters = {} } = args;
 
     if (type === 'publish') {
-      await fcVersion.publish(serviceName, args.description)
-    } else if (type === 'delete') {
-      await fcVersion.delete(serviceName, args.versionId)
+      await fcVersion.publish(serviceName, parameters.d)
+    } else if (type === 'unpublish') {
+      await fcVersion.delete(serviceName, parameters.v || parameters.versionId)
+    } else {
+      throw new Error(`${type} command not found.`);
     }
   }
 
@@ -365,7 +368,36 @@ class FcComponent extends Component {
   }
 
   // 发布
-  async publish (inputs) {}
+  async publish (inputs) {
+    const { Commands: commands } = this.args(inputs.Args);
+    const publishType = commands[0];
+
+    const publishFunction = {
+      version: async () => await this.version(inputs, 'publish'),
+      alias: async () => await this.alias(inputs, 'publish'),
+    }
+    if (publishFunction[publishType]) {
+      await publishFunction[publishType]();
+    } else {
+      throw new Error(`${publishType} command not found.`);
+    }
+  }
+
+  // 删除
+  async unpublish (inputs) {
+    const { Commands: commands } = this.args(inputs.Args);
+    const unPublishType = commands[0];
+
+    const unPublishFunction = {
+      version: async () => await this.version(inputs, 'unpublish'),
+      alias: async () => await this.alias(inputs, 'unpublish'),
+    }
+    if (unPublishFunction[unPublishType]) {
+      await unPublishFunction[unPublishType]();
+    } else {
+      throw new Error(`${unPublishType} command not found.`);
+    }
+  }
 
   // 打包
   async package (inputs) {}
