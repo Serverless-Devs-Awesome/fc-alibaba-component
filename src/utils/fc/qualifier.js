@@ -26,7 +26,9 @@ class Alias {
       option.additionalVersionWeight = alias.additionalVersionWeight
     }
     try {
+      console.log(`Create alias: ${name}`)
       await this.fcClient.createAlias(serviceName, name, versionId, option)
+      console.log(`Create alias successfully: ${name}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -57,7 +59,9 @@ class Alias {
 
   async delete (serviceName, aliasName) {
     try {
+      console.log(`Delete alias: ${aliasName}`)
       await this.fcClient.deleteAlias(serviceName, aliasName)
+      console.log(`Delete alias successfully: ${aliasName}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -68,14 +72,13 @@ class Alias {
     const name = alias.Name
     const versionId = alias.Version
     const option = {}
-    if (alias.Description) {
-      option.description = alias.Description
-    }
-    if (alias.additionalVersionWeight) {
-      option.additionalVersionWeight = alias.additionalVersionWeight
-    }
+    option.description = alias.Description
+    option.additionalVersionWeight = alias.additionalVersionWeight
+
     try {
+      console.log(`Update alias: ${name}`)
       await this.fcClient.updateAlias(serviceName, name, versionId, option)
+      console.log(`Update alias successfully: ${name}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)

@@ -162,26 +162,34 @@ class FcComponent extends Component {
   }
 
   // 删除版本
-  async alias (inputs) {
-    const { credentials, region, serviceName, type, args } = this.handlerInputs(inputs)
+  async alias (inputs, type) {
+    const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
+    const { Parameters: parameters = {} } = args;
+    const { n, name, v, versionId, d, description, gv, w } = parameters;
+    const configName = n || name;
 
     const fcAlias = new Alias(credentials, region)
 
     if (type === 'publish') {
-      const config = {
-        Name: args.name,
-        Version: args.Version,
-        Description: args.Description,
-        additionalVersionWeight: args.additionalVersionWeight
+      const additionalVersionWeight = {};
+      if (gv && w) {
+        additionalVersionWeight[gv] = w / 100;
       }
-      const alias = await fcAlias.findAlias(serviceName, args.name)
+
+      const config = {
+        Name: configName,
+        Version: v || versionId,
+        Description: d || description,
+        additionalVersionWeight
+      }
+      const alias = await fcAlias.findAlias(serviceName, configName)
       if (alias) {
         await fcAlias.update(config, serviceName)
       } else {
         await fcAlias.publish(config, serviceName)
       }
-    } else if (type === 'delete') {
-      await fcAlias.delete(serviceName, args.aliasName)
+    } else if (type === 'unpublish') {
+      await fcAlias.delete(serviceName, configName)
     }
   }
 
