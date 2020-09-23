@@ -8,6 +8,10 @@ const { packTo } = require('@serverless-devs/s-zip')
 const OSS = require('../oss')
 const { execSync } = require('child_process')
 const _ = require('lodash')
+const Builder = require('./builder')
+const util = require('util')
+const ncp = require('../ncp')
+const ncpAsync = util.promisify(ncp)
 
 class Function {
   constructor (credentials, region) {
@@ -30,51 +34,82 @@ class Function {
     }
   }
 
-  async getFunctionCode (code, projectName) {
-    // 初始化压缩后文件地址
-    const cachePath = './.s/.cache/'
-    const zipPath = path.join(process.cwd(), `${cachePath}${projectName}.zip`)
+  async getFunctionCode (baseDir, serviceName, functionName, runtime, code, projectName) {
+    const cachePath = path.join(process.cwd(), '.s', 'cache');
+    const zipPath = path.join(cachePath, `${projectName}.zip`);
+    const singlePathConfigued = typeof code === 'string';
+    const codeUri = singlePathConfigued ? code : code.Src;
+    const artifactConfigured = codeUri && (codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'));
 
-    // 如果配置的 oss，直接引用
-    if (typeof code !== 'string' && !_.has(code, 'Src')) {
-      const { Bucket, Object } = code
-      if (Bucket && Object) {
+    // check if configured valid
+    if (!singlePathConfigued) {
+      if (!code.Bucket || !code.Object) {
+        throw new Error(`CodeUri configuration does not meet expectations.`);
+      }
+    }
+
+    // generate the target artifact
+    if (artifactConfigured) {
+      const srcPath = path.resolve(code);
+      const destPath = path.resolve(zipPath);
+      if (srcPath !== destPath) {
+        await fse.copy(srcPath, destPath);
+      }
+    } else {
+      const packToParame = {
+        outputFilePath: cachePath,
+        outputFileName: `${projectName}.zip`
+      };
+      if (singlePathConfigued) {
+        packToParame.codeUri = code;
+      } else {
+        packToParame.codeUri = code.Src;
+        packToParame.exclude = code.Exclude;
+        packToParame.include = code.Include;
+      }
+      const builder = new Builder();
+      const buildArtifactPath = builder.getArtifactPath(baseDir, serviceName, functionName);
+      if (packToParame.codeUri && builder.runtimeMustBuild(runtime)) {
+        if (!builder.hasBuild(baseDir, serviceName, functionName)) {
+          throw new Error("You need to build artifact with 's build' before you deploy.");
+        }
+        packToParame.codeUri = buildArtifactPath;
+      } else if (packToParame.codeUri && fs.existsSync(buildArtifactPath)) {
+        //has execute build before, copy code to build artifact path and zip
+        console.log(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`);
+        await ncpAsync(packToParame.codeUri, buildArtifactPath, {
+          filter: (source) => {
+            if (source.endsWith('.s') || source.endsWith('.fun') || source.endsWith('.git')) {
+              return false;
+            }
+            return true;
+          }
+        });
+        packToParame.codeUri = buildArtifactPath;
+      }
+
+      if (packToParame.codeUri) {
+        const test = await packTo(packToParame);
+        if (!test.count) {
+          throw new Error('Zip file error');
+        }
+      }
+    }
+    
+    if (singlePathConfigued) {
+      // artifact configured
+      const data = await fs.readFileSync(zipPath);
+      return {
+        zipFile: Buffer.from(data).toString('base64')
+      };
+    } else {
+      // OSS configured
+      if (!codeUri) {
         return {
           ossBucketName: code.Bucket,
           ossObjectName: code.Object
         }
       }
-      throw new Error('CodeUri configuration does not meet expectations.')
-    }
-
-    const packToParame = {
-      outputFilePath: cachePath,
-      outputFileName: `${projectName}.zip`
-    }
-    if (typeof code === 'string') {
-      packToParame.codeUri = code
-    } else {
-      packToParame.codeUri = code.Src
-      packToParame.exclude = code.Exclude
-      packToParame.include = code.Include
-    }
-
-    const codeUri = packToParame.codeUri
-    if (codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
-      const srcPath = path.resolve(codeUri)
-      const destPath = path.resolve(cachePath, `${projectName}.zip`)
-      if (srcPath !== destPath) {
-        await fse.copy(srcPath, destPath)
-      }
-    } else {
-      const test = await packTo(packToParame)
-      if (!test.count) {
-        throw new Error('Zip file error')
-      }
-    }
-
-    // 上传到OSS
-    if (code.Bucket) {
       const oss = new OSS(this.credentials, `oss-${this.region}`, code.Bucket)
       const object = `${projectName}-${moment().format('YYYY-MM-DD')}.zip`
       await oss.uploadFile(zipPath, object)
@@ -82,10 +117,6 @@ class Function {
         ossBucketName: code.Bucket,
         ossObjectName: object
       }
-    }
-    const data = await fs.readFileSync(zipPath)
-    return {
-      zipFile: Buffer.from(data).toString('base64')
     }
   }
 
@@ -144,7 +175,7 @@ class Function {
     return functionProperties
   }
 
-  async handlerCode (functionInput, projectName) {
+  async handlerCode (serviceInput, functionInput, serviceName, projectName) {
     const functionProperties = {}
 
     const deployContainerFunction = functionInput.Runtime === 'custom-container'
@@ -184,12 +215,18 @@ class Function {
         throw e
       }
     } else {
-      functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName)
+      const baseDir = process.cwd()
+      const functionName = functionInput.Name
+      const runtime = functionInput.Runtime
+      const codeUri = functionInput.CodeUri
+      functionProperties.code = await this.getFunctionCode(baseDir, serviceName, functionName, runtime, codeUri, projectName)
+      //functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName)
     }
     return functionProperties
   }
 
   async deploy (properties, state, projectName, serviceName, commands = []) {
+    const serviceInput = properties.Service;
     const functionInput = properties.Function
     console.log(`Deploying function ${functionInput.Name}.`)
 
@@ -203,11 +240,11 @@ class Function {
       functionProperties = this.handlerConfig(functionInput)
     } else if (isOnlyDelpoyCode) {
       console.log('Only deploy function code.')
-      functionProperties = await this.handlerCode(functionInput, projectName)
+      functionProperties = await this.handlerCode(serviceInput, functionInput, serviceName, projectName)
     } else {
       functionProperties = {
         ...this.handlerConfig(functionInput),
-        ...await this.handlerCode(functionInput, projectName)
+        ...await this.handlerCode(serviceInput, functionInput, serviceName, projectName)
       }
     }
 
