@@ -25,9 +25,9 @@ class CustomDomain {
 
     let protocol = ''
     if (tempProtocol.length === 1) {
-      protocol = protocol[0]
+      protocol = tempProtocol[0]
     } else {
-      protocol = protocol[0]
+      protocol = tempProtocol[0]
       for (let i = 1; i < tempProtocol.length; i++) {
         protocol = protocol + ',' + tempProtocol[i]
       }
@@ -52,7 +52,7 @@ class CustomDomain {
         this.accessKeySecret,
         this.region
       )
-      const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName)
+      const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName, true)
       domainName = autoDomain.domainName
       options.protocol = 'HTTP'
       if (!domainName) {
@@ -90,7 +90,7 @@ class CustomDomain {
       try {
         await this.fcClient.updateCustomDomain(domainName, options)
         return domainName
-      } catch (e) {}
+      } catch (e) { }
     } catch (e) {
       // 新建自定义域名
       for (let i = 0; i <= 50; i++) {
@@ -121,6 +121,33 @@ class CustomDomain {
       domainNames.push(domainName)
     }
     return domainNames
+  }
+
+  async remove (domains, ServiceName, FunctionName, onlyDomainName) {
+    const deleteDomain = async (domainName) => {
+      console.log(`Deleting domain: ${domainName}`)
+      await this.fcClient.deleteCustomDomain(domainName)
+      console.log(`Delete domain successfully: ${domainName}`)
+    }
+
+    if (onlyDomainName) {
+      await deleteDomain(onlyDomainName);
+      return;
+    }
+    for (const { Domain } of domains) {
+      if (Domain.toLocaleUpperCase() === 'AUTO') {
+        const getAutoDomain = new GetAutoDomain(
+          this.accountId,
+          this.accessKeyID,
+          this.accessKeySecret,
+          this.region
+        )
+        const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName)
+        await deleteDomain(autoDomain);
+      } else {
+        await deleteDomain(Domain);
+      }
+    }
   }
 }
 
@@ -259,11 +286,11 @@ module.exports.handler = function (request, response, context) {
     return rs.data.customDomains
   }
 
-  async getCustomAutoDomainName (serviceName, functionName) {
+  async getCustomAutoDomainName (serviceName, functionName, isGenerate = false) {
     const customDomains = await this.listCustomDomains()
-    const tmpDomains = customDomains.filter((f) => {
+    const tmpDomains = isGenerate ? customDomains.filter((f) => {
       return f.domainName.endsWith('.test.functioncompute.com')
-    })
+    }) : customDomains
 
     const routesToCase = async (routes) => {
       const data = []
@@ -288,6 +315,9 @@ module.exports.handler = function (request, response, context) {
 
       for (const route of routes) {
         if (serviceName === route.serviceName && functionName === route.functionName) {
+          if (!isGenerate) {
+            return tmpDomainName;
+          }
           const { expiredTime } = await this.getTmpDomainExpiredTime(
             tmpDomainName
           )
@@ -302,6 +332,9 @@ module.exports.handler = function (request, response, context) {
           }
         }
       }
+    }
+    if (!isGenerate) {
+      return false;
     }
     const domainName = await this.processTemporaryDomain()
     const routeConfig = {

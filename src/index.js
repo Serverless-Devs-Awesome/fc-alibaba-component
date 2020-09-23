@@ -112,7 +112,7 @@ class FcComponent extends Component {
   }
 
   // 部署自定义域名
-  async domain (inputs) {
+  async domain (inputs, isRemove) {
     const {
       credentials,
       properties,
@@ -132,16 +132,26 @@ class FcComponent extends Component {
 
     const triggerConfig = []
     for (const trigger of triggers) {
-      const t = await fcDomain.deploy(
-        trigger.Parameters.Domains,
-        serviceName,
-        functionName,
-        onlyDomainName
-      )
-      triggerConfig.push({
-        TriggerName: trigger.Name,
-        Domains: t
-      })
+      if (isRemove) {
+        await fcDomain.remove(
+          trigger.Parameters.Domains,
+          serviceName,
+          functionName,
+          onlyDomainName
+        )
+      } else {
+        const t = await fcDomain.deploy(
+          trigger.Parameters.Domains,
+          serviceName,
+          functionName,
+          onlyDomainName
+        )
+      
+        triggerConfig.push({
+          TriggerName: trigger.Name,
+          Domains: t
+        })
+      }
     }
     return triggerConfig
   }
@@ -184,33 +194,35 @@ class FcComponent extends Component {
 
   // 移除
   async remove (inputs) {
-    const credentials = inputs.Credentials
-    const properties = inputs.Properties
-    const state = inputs.State || {}
+    const {
+      credentials,
+      properties,
+      functionName,
+      serviceName,
+      args = {},
+      region
+    } = this.handlerInputs(inputs)
 
-    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args)
+    const { Commands: commands, Parameters: parameters } = args
     const removeType = commands[0]
     let isDeployAll = false
     if (commands.length === 0) {
       isDeployAll = true
     }
 
-    const serviceInput = properties.Service || {}
-    const serviceState = state.Service || {}
-    const region = properties.Region || DEFAULT.Region
-    const serviceName = serviceInput.Name
-      ? serviceInput.Name
-      : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
-    const functionName = properties.Function.Name
-
+    console.log(removeType, parameters);
+    console.log('======================')
+    // 15656389.1899690531354629.functioncompute.com
     // 解绑标签
     if (removeType === 'tags') {
       // TODO 指定删除标签
       const tag = new TAG(credentials, region)
       const serviceArn = 'services/' + serviceName
       await tag.remove(serviceArn, parameters)
+    }
+
+    if (removeType === 'domain' || isDeployAll) {
+      await this.domain(inputs, true);
     }
 
     // 单独删除触发器
