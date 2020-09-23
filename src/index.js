@@ -344,6 +344,7 @@ class FcComponent extends Component {
     const functionInput = properties.Function;
     const functionName = functionInput.Name
 
+    const builder = new Builder();
     const buildImage = functionInput.Runtime == "custom-container";
     if (buildImage) {
       await builder.buildImage();
@@ -355,7 +356,6 @@ class FcComponent extends Component {
     if (useDocker) {
       console.log('Use docker for building.');
     }
-    const builder = new Builder();
     await builder.build(serviceName, serviceInput, functionName, functionInput, useDocker, true);
 
     console.log('Build artifact successfully.');
