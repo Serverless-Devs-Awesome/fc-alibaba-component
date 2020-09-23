@@ -214,7 +214,7 @@ class FcComponent extends Component {
     console.log('======================')
     // 15656389.1899690531354629.functioncompute.com
     // 解绑标签
-    if (removeType === 'tags') {
+    if (removeType === 'tags' || isDeployAll) {
       // TODO 指定删除标签
       const tag = new TAG(credentials, region)
       const serviceArn = 'services/' + serviceName
@@ -229,7 +229,7 @@ class FcComponent extends Component {
     if (removeType === 'trigger' || isDeployAll) {
       // TODO 指定删除特定触发器
       const fcTrigger = new Trigger(credentials, region)
-      await fcTrigger.remove(serviceName, functionName)
+      await fcTrigger.remove(serviceName, functionName, parameters)
     }
 
     // 单独删除函数

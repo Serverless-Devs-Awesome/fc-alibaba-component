@@ -497,8 +497,13 @@ class Trigger {
    * @param {*} functionName
    * @param {*} triggerList : will delete all triggers if not specified
    */
-  async remove (serviceName, functionName, triggerList = []) {
-    if (triggerList.length === 0) {
+  async remove (serviceName, functionName, parameters) {
+    const onlyRemoveTriggerName = !!parameters ? (parameters.n || parameters.name) : false;
+    const triggerList = [];
+    
+    if (onlyRemoveTriggerName) {
+      triggerList.push(onlyRemoveTriggerName);
+    } else {
       try {
         const listTriggers = await this.fcClient.listTriggers(serviceName, functionName)
         const curTriggerList = listTriggers.data
@@ -512,14 +517,15 @@ class Trigger {
       }
     }
 
-    if (triggerList.length === 0) {
-      return
-    }
-
     // 删除触发器
     for (let i = 0; i < triggerList.length; i++) {
       console.log(`Deleting trigger: ${triggerList[i]}`)
-      await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
+      try {
+        await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
+      } catch(e) {
+        throw new Error(`Unable to deleting trigger: ${ex.message}`)
+      }
+      
       console.log(`Delete trigger successfully: ${triggerList[i]}`)
     }
   }
