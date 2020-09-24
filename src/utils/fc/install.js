@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const fcBuilders = require('@alicloud/fc-builders');
 const buildOpts = require('../build/build-opts');
 const docker = require('../docker/docker');
+const dockerOpts = require('../docker/docker-opts');
 const _ = require('lodash');
 const ncp = require('../ncp');
 const util = require('util');
@@ -10,39 +11,59 @@ const ncpAsync = util.promisify(ncp);
 const { processorTransformFactory } = require('../error/error-processor');
 
 
-class Builder {
+class Install {
     constructor() {
 
     }
 
-    async build(serviceName, serviceProps, functionName, functionProps, useDocker, verbose) {
+    async installAll(serviceName, serviceProps, functionName, functionProps, interactive, useDocker, verbose) {
       const codeUri = functionProps.CodeUri;
       const baseDir = process.cwd();
+      const artifactPath = path.resolve(baseDir, codeUri);
       const runtime = functionProps.Runtime;
 
-      if (! await this.codeNeedBuild(baseDir, codeUri, runtime)) {
+      if (! await this.codeNeedInstall(baseDir, codeUri, runtime)) {
         return;
       }
 
-      this.initBuildCodeDir(baseDir, serviceName, functionName);
-      this.initBuildArtifactDir(baseDir, serviceName, functionName);
-      const artifactPath = this.getArtifactPath(baseDir, serviceName, functionName);
-      await this.copyCodeForBuild(baseDir, codeUri, serviceName, functionName);
+      if (interactive) {
+        console.log('Now entering docker environment for installing dependency...');
+        await this.installInteractive(functionProps, baseDir, codeUri);
+        return;
+      }
 
       if (useDocker) {
         //serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose
-        const codeRelativePath = this.getCodeRelativePath(serviceName, functionName);
-        await this.buildInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, codeRelativePath, artifactPath, verbose);
+        await this.installInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, artifactPath, artifactPath, verbose);
       } else {
-        const codePath = this.getCodeAbsPath(baseDir, serviceName, functionName);
-        await this.buildArtifact(serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose);
+        await this.installArtifact(serviceName, serviceProps, functionName, functionProps, artifactPath, artifactPath, verbose);
       }
 
       await this.collectArtifact(functionProps.Runtime, artifactPath);
     }
 
-    async buildInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
-      const stages = ['install', 'build'];
+    async installInteractive(functionProps, baseDir, codeUri) {
+      const runtime = functionProps.Runtime;
+      const imageName = await dockerOpts.resolveRuntimeToDockerImage(runtime, true);
+      const absCodeUri = path.resolve(baseDir, codeUri);
+      let mounts = [];
+      mounts.push(await docker.resolveCodeUriToMount(absCodeUri, false));
+      mounts.push(await docker.resolvePasswdMount());
+
+      await docker.pullImageIfNeed(imageName);
+      await docker.startSboxContainer({
+        runtime,
+        imageName,
+        mounts: _.compact(mounts),
+        cmd: undefined,
+        envs: {},
+        isTty: true,
+        isInteractive: true
+      });
+    }
+
+    async installInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
+      const stages = ['install'];
       const nasProps = {};
       const preferredImage = undefined; 
 
@@ -81,41 +102,14 @@ class Builder {
       }
     }
 
-    async buildArtifact(serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose) {      
-      const stages = ['install', 'build'];
+    async installArtifact(serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose) {      
+      const stages = ['install'];
       const runtime = functionProps.Runtime;
 
       const builder = new fcBuilders.Builder(serviceName, functionName, codePath, runtime, artifactPath, verbose, stages);
       await builder.build();
-    }
 
-    async buildImage(customContainer) {
-        if (!customContainer) {
-            throw new Error("No CustomContainer found for container build");
-          }
-          let dockerFile = "Dockerfile";
-          if (customContainer && customContainer.Dockerfile) {
-            dockerFile = customContainer.Dockerfile;
-          }
-          if (!customContainer.Image) {
-            throw new Error("No CustomContainer.Image found for container build");
-          }
-          const imageName = customContainer.Image;
-          
-          if (!existsSync(dockerFile)) {
-            throw new Error("No dockerfile found.");
-          }
-      
-          try {
-            console.log("Building image...");
-            execSync(`docker build -t ${imageName} -f ${dockerFile} .`, {
-              stdio: 'inherit'
-            })
-            console.log(`Build image(${imageName}) successfully`);
-          } catch (e) {
-            console.log(e.message);
-            throw e;
-          }
+
     }
 
     initBuildCodeDir(baseDir, serviceName, functionName) {
@@ -164,7 +158,11 @@ class Builder {
       }
 
       //remove the unecessary directory 
-      fs.rmdirSync(path.join(funcArtifactDir, ".fun"), {recursive: true});
+      const funPath = path.join(funcArtifactDir, ".fun");
+      if (fs.pathExistsSync(funPath)) {
+        fs.rmdirSync(funPath, {recursive: true});
+      }
+      
     }
 
     isOnlyDefaultTaskFlow(taskFlows) {
@@ -181,7 +179,7 @@ class Builder {
       return runtime.includes('java');
     }
 
-    async codeNeedBuild(baseDir, codeUri, runtime) {
+    async codeNeedInstall(baseDir, codeUri, runtime) {
       //check codeUri
       if (!codeUri) {
         console.warn('No code uri configured, skip building.');
@@ -189,26 +187,18 @@ class Builder {
       }
       if (typeof codeUri == 'string') {
         if (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
-          console.log('Artifact configured, skip building.');
+          console.log('Artifact configured, skip install.');
           return false;
         }
       } else {
         if (!codeUri.Src) {
-          console.log('No Src configured, skip building.');
+          console.log('No Src configured, skip install.');
           return false;
         }
         if (codeUri.Src.endsWith('.zip') || codeUri.Src.endsWith('.jar') || codeUri.Src.endsWith('.war')) {
-          console.log('Artifact configured, skip building.');
+          console.log('Artifact configured, skip install.');
           return false;
         }
-      }
-
-      const Builder = fcBuilders.Builder;
-      const absCodeUri = path.resolve(baseDir, codeUri);
-      const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri);
-      if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
-          console.log("No need build for this project.");
-          return false;
       }
 
       return true;
@@ -252,4 +242,4 @@ class Builder {
 }
 
 
-module.exports = Builder;
+module.exports = Install;

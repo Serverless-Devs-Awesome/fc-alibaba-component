@@ -902,7 +902,6 @@ async function startSboxContainer({
   if (isTty) {
     // fix not exit process in windows
     goThrough();
-
     process.stdin.setRawMode(true);
 
     resize = async () => {
@@ -940,7 +939,8 @@ async function startSboxContainer({
      *  https://stackoverflow.com/questions/31716784/nodejs-process-never-ends-when-piping-the-stdin-to-a-child-process?rq=1
      *  https://github.com/nodejs/node/issues/2276
      * */
-    process.stdin.destroy();
+    //process.stdin.destroy();
+    process.stdin.unref();
   }
 
   if (logStream) {

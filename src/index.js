@@ -10,6 +10,7 @@ const { Component } = require('@serverless-devs/s-core')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
 const { execSync } = require('child_process')
 const Builder = require('./utils/fc/builder')
+const Install = require('./utils/fc/install')
 
 const DEFAULT = {
   Region: 'cn-hangzhou',
@@ -326,7 +327,33 @@ class FcComponent extends Component {
   async metrics (inputs) {}
 
   // 安装
-  async install (inputs) {}
+  async install (inputs) {
+    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args)
+
+    console.log('Start to install dependency.');
+    const properties = inputs.Properties
+    const state = inputs.State || {}
+
+    const serviceInput = properties.Service || {}
+    const serviceState = state.Service || {}
+    const serviceName = serviceInput.Name
+      ? serviceInput.Name
+      : serviceState.Name
+        ? serviceState.Name
+        : DEFAULT.Service
+    const functionInput = properties.Function;
+    const functionName = functionInput.Name
+
+    const interactive = parameters.hasOwnProperty('i');
+    const useDocker = parameters.hasOwnProperty('d');
+    if (useDocker) {
+      console.log('Start installing functions using docker.');
+    }
+    const installer = new Install();
+    await installer.installAll(serviceName, serviceInput, functionName, functionInput, interactive, useDocker, false);
+
+    console.log('Install artifact successfully.');
+  }
 
   // 构建
   async build (inputs) {
