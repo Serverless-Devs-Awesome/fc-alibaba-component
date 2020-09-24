@@ -113,7 +113,7 @@ class FcComponent extends Component {
   }
 
   // 部署自定义域名
-  async domain (inputs) {
+  async domain (inputs, isRemove) {
     const {
       credentials,
       properties,
@@ -133,16 +133,26 @@ class FcComponent extends Component {
 
     const triggerConfig = []
     for (const trigger of triggers) {
-      const t = await fcDomain.deploy(
-        trigger.Parameters.Domains,
-        serviceName,
-        functionName,
-        onlyDomainName
-      )
-      triggerConfig.push({
-        TriggerName: trigger.Name,
-        Domains: t
-      })
+      if (isRemove) {
+        await fcDomain.remove(
+          trigger.Parameters.Domains,
+          serviceName,
+          functionName,
+          onlyDomainName
+        )
+      } else {
+        const t = await fcDomain.deploy(
+          trigger.Parameters.Domains,
+          serviceName,
+          functionName,
+          onlyDomainName
+        )
+      
+        triggerConfig.push({
+          TriggerName: trigger.Name,
+          Domains: t
+        })
+      }
     }
     return triggerConfig
   }
@@ -185,48 +195,56 @@ class FcComponent extends Component {
 
   // 移除
   async remove (inputs) {
-    // const projectName = inputs.Project.ProjectName
-    const credentials = inputs.Credentials
-    const properties = inputs.Properties
-    const state = inputs.State || {}
-    const args = inputs.Args
+    const {
+      credentials,
+      properties,
+      functionName,
+      serviceName,
+      args = {},
+      region
+    } = this.handlerInputs(inputs)
 
-    const removeType = args.type ? args.type : 'all'
+    const { Commands: commands, Parameters: parameters } = args
+    let removeType = 'all';
+    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item));
 
-    const serviceInput = properties.Service || {}
-    const serviceState = state.Service || {}
-    const region = properties.Region || DEFAULT.Region
-    const serviceName = serviceInput.Name
-      ? serviceInput.Name
-      : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
-    const functionName = properties.Function.Name
+    let isDeployAll = false
+    if (removeArr.length > 1) {
+      throw new Error(`Parameters error: 'tags、function、trigger、domain、service' can only choose one`);
+    } else if (removeArr.length === 0) {
+      isDeployAll = true
+    } else {
+      removeType = removeArr[0];
+    }
 
     // 解绑标签
-    if (removeType === 'tags') {
+    if (removeType === 'tags' || isDeployAll) {
       // TODO 指定删除标签
       const tag = new TAG(credentials, region)
       const serviceArn = 'services/' + serviceName
-      await tag.remove(serviceArn)
+      await tag.remove(serviceArn, parameters)
+    }
+
+    if (removeType === 'domain' || isDeployAll) {
+      await this.domain(inputs, true);
     }
 
     // 单独删除触发器
-    if (removeType === 'trigger' || removeType === 'all') {
+    if (removeType === 'trigger' || isDeployAll) {
       // TODO 指定删除特定触发器
       const fcTrigger = new Trigger(credentials, region)
-      await fcTrigger.remove(serviceName, functionName)
+      await fcTrigger.remove(serviceName, functionName, parameters)
     }
 
     // 单独删除函数
-    if (removeType === 'function' || removeType === 'all') {
+    if (removeType === 'function' || isDeployAll) {
       const fcFunction = new FcFunction(credentials, region)
       await fcFunction.remove(serviceName, functionName)
     }
 
     // 单独删除服务
     // TODO 服务是全局的，当前组件如何判断是否要删除服务？
-    if (removeType === 'service' || removeType === 'all') {
+    if (removeType === 'service' || isDeployAll) {
       const fcService = new Service(credentials, region)
       await fcService.remove(serviceName)
     }
