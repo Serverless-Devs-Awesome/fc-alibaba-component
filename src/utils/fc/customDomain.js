@@ -126,7 +126,13 @@ class CustomDomain {
   async remove (domains, ServiceName, FunctionName, onlyDomainName) {
     const deleteDomain = async (domainName) => {
       console.log(`Deleting domain: ${domainName}`)
-      await this.fcClient.deleteCustomDomain(domainName)
+      try {
+        await this.fcClient.deleteCustomDomain(domainName)
+      } catch(e) {
+        if (e.code !== 'DomainNameNotFound') {
+          throw new Error(e.message);
+        }
+      }
       console.log(`Delete domain successfully: ${domainName}`)
     }
 

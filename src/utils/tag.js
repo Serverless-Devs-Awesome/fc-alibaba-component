@@ -39,10 +39,13 @@ class TAG {
         throw new Error(`Unable to get tags: ${ex.message}`)
       }
     }
-
-    console.log('Tags: untag resource: ', tagKeys)
-    await this.fcClient.untagResource(resourceArn, tagKeys)
-    console.log('Tags: untag resource successfully: ', tagKeys)
+    if (tagKeys.length !== 0) {
+      console.log('Tags: untag resource: ', tagKeys);
+      await this.fcClient.untagResource(resourceArn, tagKeys);
+      console.log('Tags: untag resource successfully: ', tagKeys)
+    } else {
+      console.log('tags length is 0, skip deleting.');
+    }
   }
 
   async deploy (resourceArn, tagsInput, commands, parameters) {

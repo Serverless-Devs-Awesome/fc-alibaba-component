@@ -204,10 +204,16 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = args
-    const removeType = commands[0]
+    let removeType = 'all';
+    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item));
+
     let isDeployAll = false
-    if (commands.length === 0) {
+    if (removeArr.length > 1) {
+      throw new Error(`Parameters error: 'tags、function、trigger、domain、service' can only choose one`);
+    } else if (removeArr.length === 0) {
       isDeployAll = true
+    } else {
+      removeType = removeArr[0];
     }
 
     // 解绑标签
