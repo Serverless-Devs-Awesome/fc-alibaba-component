@@ -20,8 +20,13 @@ class TAG {
    * @param {*} resourceArn
    * @param {*} tags : Will delete all tags if not specified
    */
-  async remove (resourceArn, tagKeys = []) {
-    if (tagKeys.length === 0) {
+  async remove (resourceArn, parameters) {
+    const onlyRemoveTagName = !!parameters ? (parameters.k || parameters.key) : false;
+    const tagKeys = [];
+    
+    if (onlyRemoveTagName) {
+      tagKeys.push(onlyRemoveTagName)
+    } else {
       try {
         const allTags = await this.fcClient.getResourceTags({ resourceArn: resourceArn })
         if (allTags.data && allTags.data.tags) {
@@ -34,14 +39,13 @@ class TAG {
         throw new Error(`Unable to get tags: ${ex.message}`)
       }
     }
-
-    if (tagKeys.length === 0) {
-      return
+    if (tagKeys.length !== 0) {
+      console.log('Tags: untag resource: ', tagKeys);
+      await this.fcClient.untagResource(resourceArn, tagKeys);
+      console.log('Tags: untag resource successfully: ', tagKeys)
+    } else {
+      console.log('tags length is 0, skip deleting.');
     }
-
-    console.log('Tags: untag resource: ', tagKeys)
-    await this.fcClient.untagResource(resourceArn, tagKeys)
-    console.log('Tags: untag resource successfully: ', tagKeys)
   }
 
   async deploy (resourceArn, tagsInput, commands, parameters) {
