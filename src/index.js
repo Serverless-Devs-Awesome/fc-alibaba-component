@@ -263,29 +263,36 @@ class FcComponent extends Component {
 
   // 触发
   async invoke (inputs) {
-    const { credentials, type = '', args, functionName, serviceName, region } = this.handlerInputs(
-      inputs
-    )
+    const { credentials, args, functionName, serviceName, region } = this.handlerInputs(inputs)
+    const { Commands: commands = [], Parameters: parameters } = args
+    const invokeCommand = commands[0];
+    if (!invokeCommand || !parameters.type) {
+      throw new Error(`Invoke command error,example: s invoke remote --type event/http`)
+    }
 
-    const invokeType = type.toLocaleUpperCase()
+    const invokeType = parameters.type.toLocaleUpperCase()
     if (invokeType !== 'EVENT' && invokeType !== 'HTTP') {
       throw new Error('Need to specify the function execution type: event or http')
     }
 
-    const invokeRemote = new InvokeRemote(credentials, region)
+    let invokeClient;
+    if (invokeCommand === 'remote') {
+      invokeClient = new InvokeRemote(credentials, region)
+    }
+
     if (invokeType === 'EVENT') {
-      await invokeRemote.invokeEvent(
+      await invokeClient.invokeEvent(
         serviceName,
         functionName,
-        { eventFilePath: args.eventFilePath, event: args.event },
-        args.qualifier
+        { eventFilePath: parameters.eventFilePath, event: parameters.event },
+        parameters.qualifier
       )
     } else {
-      await invokeRemote.invokeHttp(
+      await invokeClient.invokeHttp(
         serviceName,
         functionName,
-        { eventFilePath: args.eventFilePath },
-        args.qualifier
+        { eventFilePath: parameters.eventFilePath },
+        parameters.qualifier
       )
     }
   }
