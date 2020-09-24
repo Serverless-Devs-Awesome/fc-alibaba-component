@@ -158,38 +158,49 @@ class FcComponent extends Component {
   }
 
   // 版本
-  async version (inputs) {
-    const { credentials, region, serviceName, type, args } = this.handlerInputs(inputs)
-    const fcVersion = new Version(credentials, region)
+  async version (inputs, type) {
+    const { credentials, region, serviceName, args } = this.handlerInputs(inputs);
+    const fcVersion = new Version(credentials, region);
+    const { Parameters: parameters = {} } = args;
 
     if (type === 'publish') {
-      await fcVersion.publish(serviceName, args.description)
-    } else if (type === 'delete') {
-      await fcVersion.delete(serviceName, args.versionId)
+      await fcVersion.publish(serviceName, parameters.d)
+    } else if (type === 'unpublish') {
+      await fcVersion.delete(serviceName, parameters.v || parameters.versionId)
+    } else {
+      throw new Error(`${type} command not found.`);
     }
   }
 
   // 删除版本
-  async alias (inputs) {
-    const { credentials, region, serviceName, type, args } = this.handlerInputs(inputs)
+  async alias (inputs, type) {
+    const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
+    const { Parameters: parameters = {} } = args;
+    const { n, name, v, versionId, d, description, gv, w } = parameters;
+    const configName = n || name;
 
     const fcAlias = new Alias(credentials, region)
 
     if (type === 'publish') {
-      const config = {
-        Name: args.name,
-        Version: args.Version,
-        Description: args.Description,
-        additionalVersionWeight: args.additionalVersionWeight
+      const additionalVersionWeight = {};
+      if (gv && w) {
+        additionalVersionWeight[gv] = w / 100;
       }
-      const alias = await fcAlias.findAlias(serviceName, args.name)
+
+      const config = {
+        Name: configName,
+        Version: v || versionId,
+        Description: d || description,
+        additionalVersionWeight
+      }
+      const alias = await fcAlias.findAlias(serviceName, configName)
       if (alias) {
         await fcAlias.update(config, serviceName)
       } else {
         await fcAlias.publish(config, serviceName)
       }
-    } else if (type === 'delete') {
-      await fcAlias.delete(serviceName, args.aliasName)
+    } else if (type === 'unpublish') {
+      await fcAlias.delete(serviceName, configName)
     }
   }
 
@@ -381,7 +392,36 @@ class FcComponent extends Component {
   }
 
   // 发布
-  async publish (inputs) {}
+  async publish (inputs) {
+    const { Commands: commands } = this.args(inputs.Args);
+    const publishType = commands[0];
+
+    const publishFunction = {
+      version: async () => await this.version(inputs, 'publish'),
+      alias: async () => await this.alias(inputs, 'publish'),
+    }
+    if (publishFunction[publishType]) {
+      await publishFunction[publishType]();
+    } else {
+      throw new Error(`${publishType} command not found.`);
+    }
+  }
+
+  // 删除
+  async unpublish (inputs) {
+    const { Commands: commands } = this.args(inputs.Args);
+    const unPublishType = commands[0];
+
+    const unPublishFunction = {
+      version: async () => await this.version(inputs, 'unpublish'),
+      alias: async () => await this.alias(inputs, 'unpublish'),
+    }
+    if (unPublishFunction[unPublishType]) {
+      await unPublishFunction[unPublishType]();
+    } else {
+      throw new Error(`${unPublishType} command not found.`);
+    }
+  }
 
   // 打包
   async package (inputs) {}
