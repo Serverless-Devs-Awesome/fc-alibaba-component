@@ -524,16 +524,11 @@ class Trigger {
     }
   }
 
-  async deploy (properties, serviceName, functionName, commands = [], parameters = {}) {
-    const isOnlyDeployTrigger = _.isArray(commands) && commands[0] === 'trigger'
-    let onlyDeployTriggerName
-    if (isOnlyDeployTrigger && (parameters.n || parameters.name)) {
-      onlyDeployTriggerName = parameters.n || parameters.name
-    }
-
+  async deploy (properties, serviceName, functionName, triggerName, onlyDeployTrigger) {
     const triggerOutput = []
     const releaseTriggerList = []
     const thisTriggerList = []
+
     try {
       const tempTriggerList = await this.fcClient.listTriggers(serviceName, functionName)
       const data = tempTriggerList.data.triggers
@@ -549,7 +544,7 @@ class Trigger {
           `Trigger: ${serviceName}@${functionName}${deployTriggerName} deploying ...`
         )
         triggerOutput.push(
-          await this.deployTrigger(serviceName, functionName, deployTriggerConfig, isOnlyDeployTrigger)
+          await this.deployTrigger(serviceName, functionName, deployTriggerConfig, onlyDeployTrigger)
         )
         thisTriggerList.push(deployTriggerName)
         console.log(
@@ -557,15 +552,15 @@ class Trigger {
         )
       }
 
-      if (onlyDeployTriggerName) {
-        const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === onlyDeployTriggerName)
+      if (triggerName) {
+        const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === triggerName)
         if (onlyDeployTriggerConfig.length < 1) {
-          throw new Error(`${onlyDeployTriggerName} not found.`)
+          throw new Error(`${triggerName} not found.`)
         }
         if (onlyDeployTriggerConfig.length > 1) {
-          throw new Error(`${onlyDeployTriggerName} repeated statement.`)
+          throw new Error(`${triggerName} repeated statement.`)
         }
-        await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName)
+        await handlerDeployTrigger(onlyDeployTriggerConfig[0], triggerName)
       } else {
         for (let i = 0; i < properties.Function.Triggers.length; i++) {
           const deployTriggerName = properties.Function.Triggers[i].Name

@@ -44,12 +44,7 @@ class TAG {
     console.log('Tags: untag resource successfully: ', tagKeys)
   }
 
-  async deploy (resourceArn, tagsInput, commands, parameters) {
-    const isOnlyDeployTags = _.isArray(commands) && commands[0] === 'tags'
-    let onlyDeployTagName
-    if (isOnlyDeployTags && (parameters.k || parameters.key)) {
-      onlyDeployTagName = parameters.k || parameters.key
-    }
+  async deploy (resourceArn, tagsInput, tagName) {
     let tags = {}
     // tags格式化
     tagsInput.forEach(({ Key, Value }) => {
@@ -57,12 +52,12 @@ class TAG {
         tags[Key] = Value
       }
     })
-    if (onlyDeployTagName) {
-      if (!_.has(tags, onlyDeployTagName)) {
-        throw new Error(`${onlyDeployTagName} not found.`)
+    if (tagName) {
+      if (!_.has(tags, tagName)) {
+        throw new Error(`${tagName} not found.`)
       }
       tags = {
-        [onlyDeployTagName]: tags[onlyDeployTagName]
+        [tagName]: tags[tagName]
       }
     }
 
