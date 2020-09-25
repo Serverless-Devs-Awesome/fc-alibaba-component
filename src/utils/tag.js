@@ -49,6 +49,7 @@ class TAG {
   }
 
   async deploy (resourceArn, tagsInput, tagName) {
+    if (_.isEmpty(tagsInput)) { return }
     let tags = {}
     // tags格式化
     tagsInput.forEach(({ Key, Value }) => {
