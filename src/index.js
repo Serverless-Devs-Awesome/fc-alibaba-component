@@ -5,9 +5,10 @@ const _ = require('lodash')
 const moment = require('moment')
 const Logs = require('./utils/logs')
 const TAG = require('./utils/tag')
-const { existsSync } = require('fs-extra')
+const fse = require('fs-extra');
+const yaml = require('js-yaml')
 const { Component } = require('@serverless-devs/s-core')
-const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
+const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote, Sync } = require('./utils/fc')
 const { execSync } = require('child_process')
 const Builder = require('./utils/fc/builder')
 
@@ -421,6 +422,45 @@ class FcComponent extends Component {
     } else {
       throw new Error(`${unPublishType} command not found.`);
     }
+  }
+
+  // 同步
+  async sync (inputs) {
+    const {
+      credentials,
+      properties,
+      serviceProp,
+      functionProp,
+      args = {},
+      region
+    } = this.handlerInputs(inputs);
+
+    const serviceName = serviceProp.Name;
+    const functionName = functionProp.Name;
+    const { Parameters: parameters } = args;
+    const syncAllFlag = Object.keys(parameters).length === 0;
+    
+    const syncClient = new Sync(credentials, region);
+    const pro = await syncClient.sync({
+      syncAllFlag,
+      parameters,
+      serviceName,
+      functionName,
+      properties
+    });
+
+    const project = _.cloneDeepWith(inputs.Project);
+    const projectName = project.ProjectName;
+    delete project.ProjectName;
+    const yData = yaml.dump({
+      [projectName]: {
+        ...project,
+        Properties: pro,
+        // ...(_.assign(properties, pro)),
+      }
+    })
+    await fse.outputFile('./template.yaml', yData)
+    
   }
 
   // 打包
