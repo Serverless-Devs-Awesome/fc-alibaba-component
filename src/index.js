@@ -437,13 +437,17 @@ class FcComponent extends Component {
 
     const serviceName = serviceProp.Name;
     const functionName = functionProp.Name;
-    const { Parameters: parameters } = args;
-    const syncAllFlag = Object.keys(parameters).length === 0;
+    const { Commands: commands } = args;
+    if (commands.length > 1) {
+      throw new Error('Commands error.');
+    }
+    const syncAllFlag = commands.length === 0;
+    const onlySyncType = commands[0];
     
     const syncClient = new Sync(credentials, region);
     const pro = await syncClient.sync({
       syncAllFlag,
-      parameters,
+      onlySyncType,
       serviceName,
       functionName,
       properties
