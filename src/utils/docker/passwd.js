@@ -1,8 +1,8 @@
 
-'use strict';
+'use strict'
 
-const fs = require('fs-extra');
-const path = require('path');
+const fs = require('fs-extra')
+const path = require('path')
 
 const passwdContent = `
 root:x:0:0:root:/root:/bin/bash
@@ -28,22 +28,22 @@ systemd-network:x:101:104:systemd Network Management,,,:/run/systemd/netif:/bin/
 systemd-resolve:x:102:105:systemd Resolver,,,:/run/systemd/resolve:/bin/false
 systemd-bus-proxy:x:103:106:systemd Bus Proxy,,,:/run/systemd:/bin/false
 messagebus:x:104:108::/var/run/dbus:/bin/false
-`;
+`
 
-async function generatePwdFile(uid, gid) {
-  if (!uid) { uid = process.getuid(); }
-  if (!gid) { gid = process.getgid(); }
+async function generatePwdFile (uid, gid) {
+  if (!uid) { uid = process.getuid() }
+  if (!gid) { gid = process.getgid() }
 
-  const filePath = path.join('/', 'tmp', `fun_${uid}_${gid}_passwd`);
+  const filePath = path.join('/', 'tmp', `fun_${uid}_${gid}_passwd`)
 
   if (!await fs.pathExists(filePath)) {
-    const content = passwdContent + `funcrafter:x:${uid}:${gid}::/tmp:/usr/sbin/nologin`;
-    await fs.writeFile(filePath, content);
+    const content = passwdContent + `funcrafter:x:${uid}:${gid}::/tmp:/usr/sbin/nologin`
+    await fs.writeFile(filePath, content)
   }
 
-  return filePath;
+  return filePath
 }
 
 module.exports = {
   generatePwdFile
-};
+}
