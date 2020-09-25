@@ -216,46 +216,41 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = args
-    let removeType = 'all';
-    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item));
-
-    let isDeployAll = false
-    if (removeArr.length > 1) {
-      throw new Error(`Parameters error: 'tags、function、trigger、domain、service' can only choose one`);
-    } else if (removeArr.length === 0) {
-      isDeployAll = true
-    } else {
-      removeType = removeArr[0];
+    const removeType = commands[0]
+    
+    let isRemoveAll = false
+    if (commands.length === 0) {
+      isRemoveAll = true
     }
 
     // 解绑标签
-    if (removeType === 'tags' || isDeployAll) {
+    if (removeType === 'tags' || isRemoveAll) {
       // TODO 指定删除标签
       const tag = new TAG(credentials, region)
       const serviceArn = 'services/' + serviceName
       await tag.remove(serviceArn, parameters)
     }
 
-    if (removeType === 'domain' || isDeployAll) {
+    if (removeType === 'domain' || isRemoveAll) {
       await this.domain(inputs, true);
     }
 
     // 单独删除触发器
-    if (removeType === 'trigger' || isDeployAll) {
+    if (removeType === 'trigger' || isRemoveAll) {
       // TODO 指定删除特定触发器
       const fcTrigger = new Trigger(credentials, region)
       await fcTrigger.remove(serviceName, functionName, parameters)
     }
 
     // 单独删除函数
-    if (removeType === 'function' || isDeployAll) {
+    if (removeType === 'function' || isRemoveAll) {
       const fcFunction = new FcFunction(credentials, region)
       await fcFunction.remove(serviceName, functionName)
     }
 
     // 单独删除服务
     // TODO 服务是全局的，当前组件如何判断是否要删除服务？
-    if (removeType === 'service' || isDeployAll) {
+    if (removeType === 'service' || isRemoveAll) {
       const fcService = new Service(credentials, region)
       await fcService.remove(serviceName)
     }
