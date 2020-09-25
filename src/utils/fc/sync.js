@@ -21,7 +21,7 @@ class Sync {
 
   async sync ({
     syncAllFlag,
-    parameters,
+    onlySyncType,
     serviceName,
     functionName,
     properties
@@ -38,26 +38,26 @@ class Sync {
     
     const pro = _.cloneDeepWith(properties);
     // --service，只同步服务
-    if (syncAllFlag || _.has(parameters, 'service')) {
+    if (syncAllFlag || onlySyncType === 'service') {
       console.log(`Starting sync ${serviceName} config.`);
       pro.Service = await this.syncService(serviceName, pro.Service);
       console.log(`End sync ${serviceName} config.`);
     }
     // --tags，只同步标签
-    if (syncAllFlag || _.has(parameters, 'tags')) {
+    if (syncAllFlag || onlySyncType === 'tags') {
       console.log(`Starting sync ${serviceName} tags.`);
       pro.Service.Tags = await this.syncTags(`services/${serviceName}`);
       console.log(`End sync ${serviceName} tags.`);
     }
     // --function，只同步函数
-    if (syncAllFlag || _.has(parameters, 'function')) {
+    if (syncAllFlag || onlySyncType === 'function') {
       findFunction();
       console.log(`Starting sync ${serviceName}/${functionName} config.`);
       pro.Function = await this.syncFunction(serviceName, functionName, pro.Function);;
       console.log(`End sync ${serviceName}/${functionName} config.`);
     }
     // --code，只同步代码
-    if (syncAllFlag || _.has(parameters, 'code')) {
+    if (syncAllFlag || onlySyncType === 'code') {
       findFunction();
       console.log(`Starting sync ${serviceName}/${functionName} code.`);
       const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName);
@@ -70,7 +70,7 @@ class Sync {
       console.log(`End ${serviceName}/${functionName} code.`);
     }
     // --trigger，只同步触发器
-    if (syncAllFlag || _.has(parameters, 'trigger')) {
+    if (syncAllFlag || onlySyncType === 'trigger') {
       findFunction();
       console.log(`Starting sync ${serviceName}/${functionName} trigger.`);
       pro.Function.Triggers = await this.syncTrigger(serviceName, functionName);
