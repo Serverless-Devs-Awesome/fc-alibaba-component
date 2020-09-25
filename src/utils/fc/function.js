@@ -7,7 +7,7 @@ const { DEFAULT } = require('./static')
 const { packTo } = require('@serverless-devs/s-zip')
 const OSS = require('../oss')
 const { execSync } = require('child_process')
-const _ = require('lodash')
+
 const Builder = require('./builder')
 const util = require('util')
 const ncp = require('../ncp')
@@ -35,73 +35,73 @@ class Function {
   }
 
   async getFunctionCode (baseDir, serviceName, functionName, runtime, code, projectName) {
-    const cachePath = path.join(process.cwd(), '.s', 'cache');
-    const zipPath = path.join(cachePath, `${projectName}.zip`);
-    const singlePathConfigued = typeof code === 'string';
-    const codeUri = singlePathConfigued ? code : code.Src;
-    const artifactConfigured = codeUri && (codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'));
+    const cachePath = path.join(process.cwd(), '.s', 'cache')
+    const zipPath = path.join(cachePath, `${projectName}.zip`)
+    const singlePathConfigued = typeof code === 'string'
+    const codeUri = singlePathConfigued ? code : code.Src
+    const artifactConfigured = codeUri && (codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'))
 
     // check if configured valid
     if (!singlePathConfigued) {
       if (!code.Bucket || !code.Object) {
-        throw new Error(`CodeUri configuration does not meet expectations.`);
+        throw new Error('CodeUri configuration does not meet expectations.')
       }
     }
 
     // generate the target artifact
     if (artifactConfigured) {
-      const srcPath = path.resolve(code);
-      const destPath = path.resolve(zipPath);
+      const srcPath = path.resolve(code)
+      const destPath = path.resolve(zipPath)
       if (srcPath !== destPath) {
-        await fse.copy(srcPath, destPath);
+        await fse.copy(srcPath, destPath)
       }
     } else {
       const packToParame = {
         outputFilePath: cachePath,
         outputFileName: `${projectName}.zip`
-      };
-      if (singlePathConfigued) {
-        packToParame.codeUri = code;
-      } else {
-        packToParame.codeUri = code.Src;
-        packToParame.exclude = code.Exclude;
-        packToParame.include = code.Include;
       }
-      const builder = new Builder();
-      const buildArtifactPath = builder.getArtifactPath(baseDir, serviceName, functionName);
+      if (singlePathConfigued) {
+        packToParame.codeUri = code
+      } else {
+        packToParame.codeUri = code.Src
+        packToParame.exclude = code.Exclude
+        packToParame.include = code.Include
+      }
+      const builder = new Builder()
+      const buildArtifactPath = builder.getArtifactPath(baseDir, serviceName, functionName)
       if (packToParame.codeUri && builder.runtimeMustBuild(runtime)) {
         if (!builder.hasBuild(baseDir, serviceName, functionName)) {
-          throw new Error("You need to build artifact with 's build' before you deploy.");
+          throw new Error("You need to build artifact with 's build' before you deploy.")
         }
-        packToParame.codeUri = buildArtifactPath;
+        packToParame.codeUri = buildArtifactPath
       } else if (packToParame.codeUri && fs.existsSync(buildArtifactPath)) {
-        //has execute build before, copy code to build artifact path and zip
-        console.log(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`);
+        // has execute build before, copy code to build artifact path and zip
+        console.log(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`)
         await ncpAsync(packToParame.codeUri, buildArtifactPath, {
           filter: (source) => {
             if (source.endsWith('.s') || source.endsWith('.fun') || source.endsWith('.git')) {
-              return false;
+              return false
             }
-            return true;
+            return true
           }
-        });
-        packToParame.codeUri = buildArtifactPath;
+        })
+        packToParame.codeUri = buildArtifactPath
       }
 
       if (packToParame.codeUri) {
-        const test = await packTo(packToParame);
+        const test = await packTo(packToParame)
         if (!test.count) {
-          throw new Error('Zip file error');
+          throw new Error('Zip file error')
         }
       }
     }
-    
+
     if (singlePathConfigued) {
       // artifact configured
-      const data = await fs.readFileSync(zipPath);
+      const data = await fs.readFileSync(zipPath)
       return {
         zipFile: Buffer.from(data).toString('base64')
-      };
+      }
     } else {
       // OSS configured
       if (!codeUri) {
@@ -135,13 +135,6 @@ class Function {
         throw new Error(`Unable to delete function ${serviceName}@${functionName}: ${err.message}`)
       }
     }
-  }
-
-  isOnlyDelpoyKey (commands, deployKey) {
-    if (_.isArray(commands) && commands.length > 1) {
-      return commands[1] === deployKey
-    }
-    return false
   }
 
   handlerConfig (functionInput) {
@@ -220,46 +213,46 @@ class Function {
       const runtime = functionInput.Runtime
       const codeUri = functionInput.CodeUri
       functionProperties.code = await this.getFunctionCode(baseDir, serviceName, functionName, runtime, codeUri, projectName)
-      //functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName)
+      // functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName)
     }
     return functionProperties
   }
 
-  async deploy (properties, state, projectName, serviceName, commands = []) {
-    const serviceInput = properties.Service;
-    const functionInput = properties.Function
-    console.log(`Deploying function ${functionInput.Name}.`)
+  async deploy ({
+    projectName,
+    serviceName, serviceProp,
+    functionName, functionProp,
+    onlyDelpoyConfig, onlyDelpoyCode
+  }) {
+    console.log(`Deploying function ${functionProp.Name}.`)
 
-    const isOnlyDelpoyConfig = this.isOnlyDelpoyKey(commands, 'config')
-    const isOnlyDelpoyCode = this.isOnlyDelpoyKey(commands, 'code')
-
-    functionInput.Runtime = functionInput.Runtime ? functionInput.Runtime : DEFAULT.Runtime
+    functionProp.Runtime = functionProp.Runtime ? functionProp.Runtime : DEFAULT.Runtime
     let functionProperties
-    if (isOnlyDelpoyConfig) {
+    if (onlyDelpoyConfig) {
       console.log('Only deploy function config.')
-      functionProperties = this.handlerConfig(functionInput)
-    } else if (isOnlyDelpoyCode) {
+      functionProperties = this.handlerConfig(functionProp)
+    } else if (onlyDelpoyCode) {
       console.log('Only deploy function code.')
-      functionProperties = await this.handlerCode(serviceInput, functionInput, serviceName, projectName)
+      functionProperties = await this.handlerCode(serviceProp, functionProp, serviceName, projectName)
     } else {
       functionProperties = {
-        ...this.handlerConfig(functionInput),
-        ...await this.handlerCode(serviceInput, functionInput, serviceName, projectName)
+        ...this.handlerConfig(functionProp),
+        ...await this.handlerCode(serviceProp, functionProp, serviceName, projectName)
       }
     }
 
     try {
-      await this.fcClient.getFunction(serviceName, functionInput.Name)
+      await this.fcClient.getFunction(serviceName, functionName)
       try {
-        console.log(`Function: ${serviceName}@${functionInput.Name} updating ...`)
+        console.log(`Function: ${serviceName}@${functionName} updating ...`)
         await this.fcClient.updateFunction(
           serviceName,
-          functionInput.Name,
+          functionName,
           functionProperties
         )
       } catch (ex) {
         throw new Error(
-          `${serviceName}:${functionInput.Name} update failed: ${ex.message}`
+          `${serviceName}:${functionName} update failed: ${ex.message}`
         )
       }
     } catch (e) {
@@ -268,14 +261,14 @@ class Function {
         await this.fcClient.createFunction(serviceName, functionProperties)
       } catch (ex) {
         throw new Error(
-          `${serviceName}:${functionInput.Name} create failed: ${ex.message}`
+          `${serviceName}:${functionName} create failed: ${ex.message}`
         )
       }
     }
 
-    console.log(`Deployment function ${functionInput.Name} successful.`)
+    console.log(`Deployment function ${functionName} successful.`)
 
-    return functionInput.Name
+    return functionName
   }
 
   async pushImage (userName, password, imageName) {

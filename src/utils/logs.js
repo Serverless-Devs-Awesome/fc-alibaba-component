@@ -1,12 +1,23 @@
 'use strict'
 
 const _ = require('lodash')
+
+const debug = require('debug')('fun:deploy')
+const getUuid = require('uuid-by-string')
 const moment = require('moment')
+const definition = require('./tpl/definition')
 
 const { SLS } = require('aliyun-sdk')
+const { promiseRetry } = require('./common')
+const { red, yellow } = require('colors')
 
 class Logs {
   constructor (credentials, region) {
+    this.accountId = credentials.AccountID
+    this.accessKeyID = credentials.AccessKeyID
+    this.accessKeySecret = credentials.AccessKeySecret
+    this.region = region
+
     this.slsClient = new SLS({
       accessKeyId: credentials.AccessKeyID,
       secretAccessKey: credentials.AccessKeySecret,
@@ -196,6 +207,200 @@ class Logs {
       })
 
       consumedTimeStamps.push(...pulledTimeStamps)
+    }
+  }
+
+  generateSlsProjectName (accountId, region) {
+    const uuidHash = getUuid(accountId)
+    return `aliyun-fc-${region}-${uuidHash}`
+  }
+
+  generateDefaultLogConfig () {
+    return {
+      project: this.generateSlsProjectName(this.accountId, this.region),
+      logstore: 'function-log'
+    }
+  }
+
+  async createSlsProject (projectName, description) {
+    await promiseRetry(async (retry, times) => {
+      try {
+        await this.slsClient.createProject(projectName, {
+          description
+        })
+      } catch (ex) {
+        if (ex.code === 'Unauthorized') {
+          throw ex
+        } else if (ex.code === 'ProjectAlreadyExist') {
+          throw new Error(red(`error: sls project ${projectName} already exist, it may be in other region or created by other users.`))
+        } else if (ex.code === 'ProjectNotExist') {
+          throw new Error(red('Please go to https://sls.console.aliyun.com/ to open the LogServce.'))
+        } else {
+          debug('error when createProject, projectName is %s, error is: \n%O', projectName, ex)
+          console.log(red(`\tretry ${times} times`))
+          retry(ex)
+        }
+      }
+    })
+  }
+
+  async slsProjectExist (projectName) {
+    let projectExist = true
+    await promiseRetry(async (retry, times) => {
+      try {
+        await this.slsClient.getProject(projectName)
+      } catch (ex) {
+        if (ex.code === 'Unauthorized') {
+          throw new Error(red(`Log Service '${projectName}' may create by others, you should use a unique project name.`))
+        } else if (ex.code !== 'ProjectNotExist') {
+          debug('error when getProject, projectName is %s, error is: \n%O', projectName, ex)
+
+          console.log(red(`\tretry ${times} times`))
+          retry(ex)
+        } else { projectExist = false }
+      }
+    })
+    return projectExist
+  }
+
+  async makeSlsProject (projectName, description) {
+    const projectExist = await this.slsProjectExist(projectName)
+
+    let create = false
+    if (projectExist) {
+      // no update project api
+      // only description can be updated by console.
+      debug('sls project exists, but could not be updated')
+    } else {
+      await this.createSlsProject(projectName, description)
+      create = true
+    }
+
+    return create
+  }
+
+  async makeLogstore ({
+    projectName,
+    logstoreName,
+    ttl = 3600,
+    shardCount = 1
+  }) {
+    let exists = true
+    await promiseRetry(async (retry, times) => {
+      try {
+        await this.slsClient.getLogStore(projectName, logstoreName)
+      } catch (ex) {
+        if (ex.code !== 'LogStoreNotExist') {
+          debug('error when getLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
+
+          console.log(red(`\t\tretry ${times} times`))
+
+          retry(ex)
+        } else { exists = false }
+      }
+    })
+
+    if (!exists) {
+      await promiseRetry(async (retry, times) => {
+        try {
+          await this.slsClient.createLogStore(projectName, logstoreName, {
+            ttl,
+            shardCount
+          })
+        } catch (ex) {
+          if (ex.code === 'Unauthorized') {
+            throw ex
+          }
+          debug('error when createLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
+          console.log(red(`\t\tretry ${times} times`))
+          retry(ex)
+        }
+      })
+    } else {
+      await promiseRetry(async (retry, times) => {
+        try {
+          await this.slsClient.updateLogStore(projectName, logstoreName, {
+            ttl,
+            shardCount
+          })
+        } catch (ex) {
+          debug('error when updateLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
+          if (ex.code === 'Unauthorized') {
+            throw ex
+          }
+          if (ex.code !== 'ParameterInvalid' && ex.message !== 'no parameter changed') {
+            console.log(red(`\t\tretry ${times} times`))
+            retry(ex)
+          } else {
+            throw ex
+          }
+        }
+      })
+    }
+  }
+
+  async makeLogstoreIndex (projectName, logstoreName) {
+    // create index if index not exist.
+    await promiseRetry(async (retry, times) => {
+      try {
+        try {
+          await this.slsClient.getIndexConfig(projectName, logstoreName)
+          return
+        } catch (ex) {
+          if (ex.code !== 'IndexConfigNotExist') {
+            debug('error when getIndexConfig, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
+
+            throw ex
+          }
+        }
+
+        // create default logstore index. index configuration is same with sls console.
+        debug('logstore index not exist, try to create a default index for project %s logstore %s', projectName, logstoreName)
+        await this.slsClient.createIndex(projectName, logstoreName, {
+          ttl: 10,
+          line: {
+            caseSensitive: false,
+            chn: false,
+            token: [...', \'";=()[]{}?@&<>/:\n\t\r']
+          }
+        })
+        debug('create default index success for project %s logstore %s', projectName, logstoreName)
+      } catch (ex) {
+        debug('error when createIndex, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
+
+        console.log(red(`\t\t\tretry ${times} times`))
+        retry(ex)
+      }
+    })
+  }
+
+  async makeSlsAuto (projectName, description, logstoreName) {
+    await this.makeSlsProject(projectName, description)
+
+    await this.makeLogstore({
+      projectName,
+      logstoreName
+    })
+
+    await this.makeLogstoreIndex(projectName, logstoreName)
+  }
+
+  async transformLogConfig (logConfig) {
+    if (definition.isLogConfigAuto(logConfig)) {
+      const defaultLogConfig = this.generateDefaultLogConfig()
+
+      console.log(yellow('\tusing \'LogConfig: Auto\'. serverless tool will generate default sls project.'))
+      console.log(`\tproject: ${defaultLogConfig.project}, logstore: ${defaultLogConfig.logStore}\n`)
+
+      const description = 'create default log project by serverless tool'
+      await this.makeSlsAuto(defaultLogConfig.project, description, defaultLogConfig.logStore)
+
+      return defaultLogConfig
+    }
+
+    return {
+      project: logConfig.Project || '',
+      logstore: logConfig.LogStore || ''
     }
   }
 }
