@@ -8,6 +8,7 @@ const TAG = require('./utils/tag')
 
 const Builder = require('./utils/fc/builder')
 
+const { green, yellow } = require('colors')
 const { Component } = require('@serverless-devs/s-core')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
 
@@ -47,8 +48,9 @@ class FcComponent extends Component {
     }
   }
 
-  // 部署
   /**
+   * deploy usage:
+   *
    * s deploy
    * s deploy --config
 
@@ -90,7 +92,16 @@ class FcComponent extends Component {
     // Service
     if (deployService) {
       const fcService = new Service(credentials, region)
-      await fcService.deploy(serviceName, serviceProp)
+
+      const hasFunctionAsyncConfig = _.has(functionProp, 'AsyncConfiguration')
+      const hasCustomContainerConfig = _.has(functionProp, 'CustomContainerConfig')
+
+      const beforeDeployLog = deployAllConfig ? 'config to be updated' : 'to be deployed'
+      const afterDeployLog = deployAllConfig ? 'config update success' : 'deploy success'
+
+      console.log(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
+      await fcService.deploy(serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig)
+      console.log(green(`service ${serviceName} ${afterDeployLog}\n`))
     }
 
     // Function
@@ -161,7 +172,7 @@ class FcComponent extends Component {
           functionName,
           onlyDomainName
         )
-      
+
         triggerConfig.push({
           TriggerName: trigger.Name,
           Domains: t
@@ -173,32 +184,32 @@ class FcComponent extends Component {
 
   // 版本
   async version (inputs, type) {
-    const { credentials, region, serviceName, args } = this.handlerInputs(inputs);
-    const fcVersion = new Version(credentials, region);
-    const { Parameters: parameters = {} } = args;
+    const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
+    const fcVersion = new Version(credentials, region)
+    const { Parameters: parameters = {} } = args
 
     if (type === 'publish') {
       await fcVersion.publish(serviceName, parameters.d)
     } else if (type === 'unpublish') {
       await fcVersion.delete(serviceName, parameters.v || parameters.versionId)
     } else {
-      throw new Error(`${type} command not found.`);
+      throw new Error(`${type} command not found.`)
     }
   }
 
   // 删除版本
   async alias (inputs, type) {
     const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
-    const { Parameters: parameters = {} } = args;
-    const { n, name, v, versionId, d, description, gv, w } = parameters;
-    const configName = n || name;
+    const { Parameters: parameters = {} } = args
+    const { n, name, v, versionId, d, description, gv, w } = parameters
+    const configName = n || name
 
     const fcAlias = new Alias(credentials, region)
 
     if (type === 'publish') {
-      const additionalVersionWeight = {};
+      const additionalVersionWeight = {}
       if (gv && w) {
-        additionalVersionWeight[gv] = w / 100;
+        additionalVersionWeight[gv] = w / 100
       }
 
       const config = {
@@ -230,16 +241,16 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = args
-    let removeType = 'all';
-    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item));
+    let removeType = 'all'
+    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item))
 
     let isDeployAll = false
     if (removeArr.length > 1) {
-      throw new Error(`Parameters error: 'tags、function、trigger、domain、service' can only choose one`);
+      throw new Error('Parameters error: \'tags、function、trigger、domain、service\' can only choose one')
     } else if (removeArr.length === 0) {
       isDeployAll = true
     } else {
-      removeType = removeArr[0];
+      removeType = removeArr[0]
     }
 
     // 解绑标签
@@ -251,7 +262,7 @@ class FcComponent extends Component {
     }
 
     if (removeType === 'domain' || isDeployAll) {
-      await this.domain(inputs, true);
+      await this.domain(inputs, true)
     }
 
     // 单独删除触发器
@@ -330,14 +341,16 @@ class FcComponent extends Component {
       throw new Error('Missing logs options.')
     }
 
-    const cmdParameters = this.args(args).Parameters
+    console.log(yellow('by default, find logs within 20 minutes...\n'))
 
     const logs = new Logs(credentials, region)
+
+    const cmdParameters = args.Parameters
 
     if (_.has(cmdParameters, 't') || _.has(cmdParameters, 'tail')) {
       await logs.realtime(projectName, logStoreName, serviceName, functionName)
     } else {
-      // Ten minutes ago
+      // 20 minutes ago
       const from = moment().subtract(20, 'minutes').unix()
       const to = moment().unix()
 
@@ -403,33 +416,33 @@ class FcComponent extends Component {
 
   // 发布
   async publish (inputs) {
-    const { Commands: commands } = this.args(inputs.Args);
-    const publishType = commands[0];
+    const { Commands: commands } = this.args(inputs.Args)
+    const publishType = commands[0]
 
     const publishFunction = {
       version: async () => await this.version(inputs, 'publish'),
-      alias: async () => await this.alias(inputs, 'publish'),
+      alias: async () => await this.alias(inputs, 'publish')
     }
     if (publishFunction[publishType]) {
-      await publishFunction[publishType]();
+      await publishFunction[publishType]()
     } else {
-      throw new Error(`${publishType} command not found.`);
+      throw new Error(`${publishType} command not found.`)
     }
   }
 
   // 删除
   async unpublish (inputs) {
-    const { Commands: commands } = this.args(inputs.Args);
-    const unPublishType = commands[0];
+    const { Commands: commands } = this.args(inputs.Args)
+    const unPublishType = commands[0]
 
     const unPublishFunction = {
       version: async () => await this.version(inputs, 'unpublish'),
-      alias: async () => await this.alias(inputs, 'unpublish'),
+      alias: async () => await this.alias(inputs, 'unpublish')
     }
     if (unPublishFunction[unPublishType]) {
-      await unPublishFunction[unPublishType]();
+      await unPublishFunction[unPublishType]()
     } else {
-      throw new Error(`${unPublishType} command not found.`);
+      throw new Error(`${unPublishType} command not found.`)
     }
   }
 

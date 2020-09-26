@@ -19,6 +19,8 @@ const requestOption = {
   method: 'POST'
 }
 
+const FIVE_SPACES = '     '
+
 const NAS_DEFAULT_DESCRIPTION = 'default_nas_created_by_fc_fun'
 const FUN_NAS_SERVICE_PREFIX = '_FUN_NAS_'
 // const FUN_NAS_FUNCTION = 'fun-nas-function'
@@ -122,8 +124,7 @@ async function createMountTargetIfNotExist (nasClient, region, fileSystemId, vpc
   let mountTargetDomain = await findMountTarget(nasClient, region, fileSystemId, vpcId, vswitchId)
 
   if (mountTargetDomain) {
-    console.log(green('\t\tnas file system mount target is already created, mountTargetDomain is: ' + mountTargetDomain))
-
+    console.log(green(`${FIVE_SPACES}nas file system mount target is already created, mountTargetDomain is: ` + mountTargetDomain))
     return mountTargetDomain
   }
 
@@ -142,13 +143,13 @@ async function createNasFileSystemIfNotExist (nasClient, region, zoneId, storage
   let fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
 
   if (!fileSystemId) {
-    console.log('\t\tcould not find default nas file system, ready to generate one')
+    console.log(`${FIVE_SPACES}could not find default nas file system, ready to generate one`)
 
     fileSystemId = await createNasFileSystem({ nasClient, region, zoneId, storageType })
 
-    console.log(green('\t\tdefault nas file system has been generated, fileSystemId is: ' + fileSystemId))
+    console.log(green(`${FIVE_SPACES}default nas file system has been generated, fileSystemId is: ` + fileSystemId))
   } else {
-    console.log(green('\t\tnas file system already generated, fileSystemId is: ' + fileSystemId))
+    console.log(green(`${FIVE_SPACES}nas file system already generated, fileSystemId is: ` + fileSystemId))
   }
 
   return fileSystemId

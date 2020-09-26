@@ -128,17 +128,17 @@ class CustomDomain {
       console.log(`Deleting domain: ${domainName}`)
       try {
         await this.fcClient.deleteCustomDomain(domainName)
-      } catch(e) {
+      } catch (e) {
         if (e.code !== 'DomainNameNotFound') {
-          throw new Error(e.message);
+          throw new Error(e.message)
         }
       }
       console.log(`Delete domain successfully: ${domainName}`)
     }
 
     if (onlyDomainName) {
-      await deleteDomain(onlyDomainName);
-      return;
+      await deleteDomain(onlyDomainName)
+      return
     }
     for (const { Domain } of domains) {
       if (Domain.toLocaleUpperCase() === 'AUTO') {
@@ -149,9 +149,9 @@ class CustomDomain {
           this.region
         )
         const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName)
-        await deleteDomain(autoDomain);
+        await deleteDomain(autoDomain)
       } else {
-        await deleteDomain(Domain);
+        await deleteDomain(Domain)
       }
     }
   }
@@ -322,7 +322,7 @@ module.exports.handler = function (request, response, context) {
       for (const route of routes) {
         if (serviceName === route.serviceName && functionName === route.functionName) {
           if (!isGenerate) {
-            return tmpDomainName;
+            return tmpDomainName
           }
           const { expiredTime } = await this.getTmpDomainExpiredTime(
             tmpDomainName
@@ -340,7 +340,7 @@ module.exports.handler = function (request, response, context) {
       }
     }
     if (!isGenerate) {
-      return false;
+      return false
     }
     const domainName = await this.processTemporaryDomain()
     const routeConfig = {

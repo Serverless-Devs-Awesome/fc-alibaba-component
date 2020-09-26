@@ -4,11 +4,12 @@ const vswitch = require('./vswitch')
 const securityGroup = require('./security-group')
 const debug = require('debug')('fun:nas')
 
-const { green } = require('colors')
 const { sleep } = require('./common')
 const { getVpcPopClient, getEcsPopClient } = require('./client')
 
 const _ = require('lodash')
+
+const TEN_SPACES = '          '
 
 var requestOption = {
   method: 'POST'
@@ -62,7 +63,7 @@ async function createVpc (vpcClient, region, vpcName) {
   try {
     createRs = await vpcClient.request('CreateVpc', createParams, requestOption)
   } catch (ex) {
-    throw ex
+    throw new Error(`error when create Vpc:\n${ex}`)
   }
 
   const vpcId = createRs.VpcId
@@ -106,11 +107,11 @@ async function createDefaultVSwitchIfNotExist (vpcClient, region, vpcId, vswitch
   let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
 
   if (!vswitchId) { // create vswitch
-    console.log('\t\tcould not find default vswitch, ready to generate one')
+    console.log(`${TEN_SPACES}could not find default vswitch, ready to generate one.`)
     vswitchId = await vswitch.createDefaultVSwitch(vpcClient, region, vpcId, defaultVSwitchName)
-    console.log(green('\t\tdefault vswitch has been generated, vswitchId is: ' + vswitchId))
+    console.log(`${TEN_SPACES}default vswitch has been generated, vswitchId is: ` + vswitchId)
   } else {
-    console.log(green('\t\tvswitch already generated, vswitchId is: ' + vswitchId))
+    console.log(`${TEN_SPACES}vswitch already generated, vswitchId is: ` + vswitchId)
   }
   return vswitchId
 }
@@ -122,24 +123,19 @@ async function createDefaultSecurityGroupIfNotExist (ecsClient, region, vpcId) {
 
   // create security group
   if (_.isEmpty(defaultSecurityGroup)) {
-    console.log('\t\tcould not find default security group, ready to generate one')
-
+    console.log(`${TEN_SPACES}could not find default security group, ready to generate one`)
     const securityGroupId = await securityGroup.createSecurityGroup(ecsClient, region, vpcId, defaultSecurityGroupName)
 
-    console.log('\t\t\tsetting default security group rules')
-
+    console.log(`${TEN_SPACES}setting default security group rules`)
     await securityGroup.authDefaultSecurityGroupRules(ecsClient, region, securityGroupId)
-
-    console.log(green('\t\t\tdefault security group rules has been generated'))
-
-    console.log(green('\t\tdefault security group has been generated, security group is: ' + securityGroupId))
+    console.log(`${TEN_SPACES}default security group rules has been generated`)
+    console.log(`${TEN_SPACES}default security group has been generated, security group is: ` + securityGroupId)
 
     return securityGroupId
   }
+
   const securityGroupId = defaultSecurityGroup[0].SecurityGroupId
-
-  console.log(green('\t\tsecurity group already generated, security group is: ' + securityGroupId))
-
+  console.log(`${TEN_SPACES}security group already generated, security group is: ` + securityGroupId)
   return securityGroupId
 }
 
@@ -158,15 +154,14 @@ async function createDefaultVpcIfNotExist (region) {
     vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
     vpcId = funDefaultVpc.VpcId
 
-    console.log(green('\t\tvpc already generated, vpcId is: ' + vpcId))
+    console.log(`${TEN_SPACES}vpc already generated, vpcId is: ` + vpcId)
   } else { // create
-    console.log('\t\tcould not find default vpc, ready to generate one')
+    console.log(`${TEN_SPACES}could not find default vpc, ready to generate one`)
     vpcId = await createVpc(vpcClient, region, defaultVpcName)
-    console.log(green('\t\tdefault vpc has been generated, vpcId is: ' + vpcId))
+    console.log(`${TEN_SPACES}default vpc has been generated, vpcId is: ` + vpcId)
   }
 
   debug('vpcId is %s', vpcId)
-
   const vswitchId = await createDefaultVSwitchIfNotExist(vpcClient, region, vpcId, vswitchIds)
 
   vswitchIds = [vswitchId]

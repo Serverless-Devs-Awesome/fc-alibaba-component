@@ -102,7 +102,7 @@ class Version {
 
   async publish (serviceName, description) {
     try {
-      console.log(`Publish version.`)
+      console.log('Publish version.')
       const { data } = await this.fcClient.publishVersion(serviceName, description)
       console.log(`Publish version successfully: ${data.versionId}`)
       return true
@@ -121,9 +121,9 @@ class Version {
 
   async delete (serviceName, versionId) {
     try {
-      console.log(`Deleting version: ${versionId}`);
+      console.log(`Deleting version: ${versionId}`)
       await this.fcClient.deleteVersion(serviceName, versionId)
-      console.log(`Delete version successfully: ${versionId}`);
+      console.log(`Delete version successfully: ${versionId}`)
       return true
     } catch (ex) {
       return ex.message

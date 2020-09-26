@@ -9,17 +9,16 @@ const RAM = require('../ram')
 const Logs = require('../logs')
 const debug = require('debug')('fun:deploy')
 const zip = require('../zip')
-
-const { sleep } = require('../common')
-const { green, red } = require('colors')
-
 const vpc = require('../vpc')
 const nas = require('../nas/nas')
 const definition = require('../tpl/definition')
 
+const { sleep } = require('../common')
 const { promiseRetry } = require('../common')
+const { green, red, yellow } = require('colors')
 const { DEFAULT_VPC_CONFIG, DEFAULT_NAS_CONFIG, FUN_GENERATED_SERVICE } = require('./static')
 
+const FIVE_SPACES = '     '
 const EXTREME_PATH_PREFIX = '/share'
 
 class Service {
@@ -254,13 +253,46 @@ class Service {
     }
   }
 
+  async deployPolicy (resourceName, roleName, policy, curCount, product = 'Fc') {
+    if (typeof policy === 'string') {
+      await this.ram.attachPolicyToRole(policy, roleName)
+      return curCount
+    }
+
+    const policyName = this.ram.normalizeRoleOrPoliceName(`Aliyun${product}GeneratedServicePolicy-${this.region}-${resourceName}${curCount}`)
+
+    await this.ram.makeAndAttachPolicy(policyName, policy, roleName)
+
+    return curCount + 1
+  }
+
+  async deployPolicies (resourceName, roleName, policies, product) {
+    let nextCount = 1
+
+    if (Array.isArray(policies)) {
+      for (const policy of policies) {
+        nextCount = await this.deployPolicy(resourceName, roleName, policy, nextCount, product)
+      }
+    } else {
+      nextCount = await this.deployPolicy(resourceName, roleName, policies, nextCount, product)
+    }
+  }
+
+  printAttachPolicyLog (policyName, roleName) {
+    console.log(`${FIVE_SPACES}attached police ${yellow(policyName)} to role: ` + roleName)
+  }
+
   async generateServiceRole ({
     serviceName, vpcConfig, nasConfig,
-    logConfig, roleArn, policies, region
+    logConfig, roleArn, policies, region,
+    hasFunctionAsyncConfig,
+    hasCustomContainerConfig
   }) {
     let role
     let roleName
     let createRoleIfNotExist = false
+
+    const attachedPolicies = []
 
     if (_.isNil(roleArn)) {
       roleName = 'serverlessToolDefaultRole'
@@ -280,15 +312,41 @@ class Service {
     // https://github.com/aliyun/fun/pull/223
     if (!roleArn && (policies || !_.isEmpty(vpcConfig) || !_.isEmpty(logConfig) || !_.isEmpty(nasConfig))) {
       // create role
-      console.log(`\tmake sure role '${roleName}' is exist`)
+      console.log(`${FIVE_SPACES}make sure role '${roleName}' is exist...`)
       role = await this.ram.makeRole(roleName, createRoleIfNotExist)
-      console.log(green(`\trole '${roleName}' is already exist`))
+    }
+
+    if (!roleArn && policies) { // if roleArn exist, then ignore polices
+      await this.deployPolicies(serviceName, roleName, policies)
+      attachedPolicies.push(...(_.isString(policies) ? [policies] : policies))
+    }
+
+    if (!roleArn && hasFunctionAsyncConfig) {
+      await this.ram.attachPolicyToRole('AliyunFCInvocationAccess', roleName)
+      attachedPolicies.push('AliyunFCInvocationAccess')
+
+      const mnsPolicyName = this.ram.normalizeRoleOrPoliceName(`AliyunFcGeneratedMNSPolicy-${this.region}-${serviceName}`)
+      await this.ram.makeAndAttachPolicy(mnsPolicyName, {
+        Version: '1',
+        Statement: [{
+          Action: [
+            'mns:SendMessage',
+            'mns:PublishMessage'
+          ],
+          Resource: '*',
+          Effect: 'Allow'
+        }]
+      }, roleName)
     }
 
     if (!roleArn && (!_.isEmpty(vpcConfig) || !_.isEmpty(nasConfig))) {
-      console.log('\tattaching police \'AliyunECSNetworkInterfaceManagementAccess\' to role: ' + roleName)
       await this.ram.attachPolicyToRole('AliyunECSNetworkInterfaceManagementAccess', roleName)
-      console.log(green('\tattached police \'AliyunECSNetworkInterfaceManagementAccess\' to role: ' + roleName))
+      attachedPolicies.push('AliyunECSNetworkInterfaceManagementAccess')
+    }
+
+    if (!roleArn && hasCustomContainerConfig) {
+      await this.ram.attachPolicyToRole('AliyunContainerRegistryReadOnlyAccess', roleName)
+      attachedPolicies.push('AliyunContainerRegistryReadOnlyAccess')
     }
 
     if (logConfig.LogStore && logConfig.Project) {
@@ -309,11 +367,12 @@ class Service {
       throw new Error('LogStore and Project must both exist')
     } else if (definition.isLogConfigAuto(logConfig)) {
       if (!roleArn) {
-        console.log('\tattaching police \'AliyunLogFullAccess\' to role: ' + roleName)
         await this.ram.attachPolicyToRole('AliyunLogFullAccess', roleName)
-        console.log(green('\tattached police \'AliyunLogFullAccess\' to role: ' + roleName))
+        attachedPolicies.push('AliyunLogFullAccess')
       }
     }
+
+    if (!_.isEmpty(attachedPolicies)) { this.printAttachPolicyLog(JSON.stringify(attachedPolicies), roleName) }
 
     return ((role || {}).Role || {}).Arn || roleArn || ''
   }
@@ -383,7 +442,7 @@ class Service {
       }
     })
 
-    const logs = new Logs(this.credentials, this.region)
+    const logs = new Logs(this.credentials, this.region, false)
     const resolvedLogConfig = await logs.transformLogConfig(logConfig)
 
     const options = {
@@ -404,9 +463,9 @@ class Service {
 
     if (!_.isEmpty(vpcConfig) || isNasAuto) {
       if (isVpcAuto || (_.isEmpty(vpcConfig) && isNasAuto)) {
-        console.log('\tusing \'VpcConfig: Auto\', Fun will try to generate related vpc resources automatically')
+        console.log(`${FIVE_SPACES}using 'Vpc: Auto', try to generate related vpc resources automatically`)
         vpcConfig = await vpc.createDefaultVpcIfNotExist(this.region)
-        console.log(green('\tgenerated auto VpcConfig done: ', JSON.stringify(vpcConfig)))
+        console.log(green(`${FIVE_SPACES}generated default Vpc config done:`, JSON.stringify(vpcConfig)))
 
         debug('generated vpcConfig: %j', vpcConfig)
       }
@@ -420,9 +479,9 @@ class Service {
       const vpcId = vpcConfig.vpcId || vpcConfig.VpcId
       const vswitchIds = vpcConfig.vswitchIds || vpcConfig.VSwitchIds
 
-      console.log('\tusing \'NasConfig: Auto\', Fun will try to generate related nas file system automatically')
+      console.log(`${FIVE_SPACES}using 'Nas: Auto', Fun will try to generate related nas file system automatically`)
       nasConfig = await nas.generateAutoNasConfig(serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
-      console.log(green('\tgenerated auto NasConfig done: ', JSON.stringify(nasConfig)))
+      console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nasConfig)))
     }
 
     Object.assign(options, {
@@ -455,32 +514,36 @@ class Service {
     return service
   }
 
-  async deploy (serviceName, properties) {
-    const internetAccess = 'InternetAccess' in properties ? properties.InternetAccess : null
-    const description = properties.Description
+  async deploy (serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig) {
+    const internetAccess = 'InternetAccess' in serviceProp ? serviceProp.InternetAccess : null
+    const description = serviceProp.Description
 
-    const vpcConfig = properties.Vpc
-    const nasConfig = properties.Nas
-    const logConfig = properties.Log || {}
+    const vpcConfig = serviceProp.Vpc
+    const nasConfig = serviceProp.Nas
+    const logConfig = serviceProp.Log || {}
 
-    // TODO: defaute service role
+    const roleArn = (serviceProp.Role || {}).Name
+    const policies = (serviceProp.Role || {}).Policies
+
     const role = await this.generateServiceRole({
+      hasFunctionAsyncConfig,
+      hasCustomContainerConfig,
       serviceName,
+      roleArn,
+      policies,
       vpcConfig,
       nasConfig,
-      logConfig,
-      roleArn: properties.Role,
-      policies: properties.Policies
+      logConfig
     })
 
     await this.makeService({
+      logConfig,
+      vpcConfig,
+      nasConfig,
       serviceName,
       role,
       internetAccess,
-      description,
-      logConfig,
-      vpcConfig,
-      nasConfig
+      description
     })
   }
 }
