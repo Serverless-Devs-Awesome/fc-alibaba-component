@@ -6,6 +6,7 @@ const fs = require('fs-extra')
 const path = require('path')
 const debug = require('debug')('fun:tpl')
 const { red, yellow } = require('colors')
+const yaml = require('js-yaml')
 
 const DEFAULT_BUILD_ARTIFACTS_PATH_SUFFIX = path.join('.fun', 'build', 'artifacts')
 const DEFAULT_NAS_PATH_SUFFIX = path.join('.fun', 'nas')

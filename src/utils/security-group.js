@@ -63,7 +63,7 @@ async function createSecurityGroup (ecsClient, region, vpcId, securityGroupName)
   try {
     createRs = await ecsClient.request('CreateSecurityGroup', params, requestOption)
   } catch (ex) {
-    throw ex
+    throw new Error(`error when create securityGroup:\n${ex}`)
   }
 
   return createRs.SecurityGroupId

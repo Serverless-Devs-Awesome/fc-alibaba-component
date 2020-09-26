@@ -26,7 +26,7 @@ async function createDefaultVSwitch (vpcClient, region, vpcId, vswitchName) {
       vswitchName: vswitchName
     })
   } catch (ex) {
-    throw ex
+    throw new Error(`error when create VSwitch:\n${ex}`)
   }
   return vswitchId
 }

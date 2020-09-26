@@ -21,9 +21,9 @@ class TAG {
    * @param {*} tags : Will delete all tags if not specified
    */
   async remove (resourceArn, parameters) {
-    const onlyRemoveTagName = !!parameters ? (parameters.k || parameters.key) : false;
-    const tagKeys = [];
-    
+    const onlyRemoveTagName = parameters ? (parameters.k || parameters.key) : false
+    const tagKeys = []
+
     if (onlyRemoveTagName) {
       tagKeys.push(onlyRemoveTagName)
     } else {
@@ -40,11 +40,11 @@ class TAG {
       }
     }
     if (tagKeys.length !== 0) {
-      console.log('Tags: untag resource: ', tagKeys);
-      await this.fcClient.untagResource(resourceArn, tagKeys);
+      console.log('Tags: untag resource: ', tagKeys)
+      await this.fcClient.untagResource(resourceArn, tagKeys)
       console.log('Tags: untag resource successfully: ', tagKeys)
     } else {
-      console.log('tags length is 0, skip deleting.');
+      console.log('tags length is 0, skip deleting.')
     }
   }
 

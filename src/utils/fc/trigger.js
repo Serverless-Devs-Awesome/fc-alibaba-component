@@ -498,11 +498,11 @@ class Trigger {
    * @param {*} triggerList : will delete all triggers if not specified
    */
   async remove (serviceName, functionName, parameters) {
-    const onlyRemoveTriggerName = !!parameters ? (parameters.n || parameters.name) : false;
-    const triggerList = [];
-    
+    const onlyRemoveTriggerName = parameters ? (parameters.n || parameters.name) : false
+    const triggerList = []
+
     if (onlyRemoveTriggerName) {
-      triggerList.push(onlyRemoveTriggerName);
+      triggerList.push(onlyRemoveTriggerName)
     } else {
       try {
         const listTriggers = await this.fcClient.listTriggers(serviceName, functionName)
@@ -522,10 +522,10 @@ class Trigger {
       console.log(`Deleting trigger: ${triggerList[i]}`)
       try {
         await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
-      } catch(e) {
+      } catch (ex) {
         throw new Error(`Unable to deleting trigger: ${ex.message}`)
       }
-      
+
       console.log(`Delete trigger successfully: ${triggerList[i]}`)
     }
   }
