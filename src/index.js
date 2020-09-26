@@ -107,15 +107,24 @@ class FcComponent extends Component {
     // Function
     if (deployFunction) {
       const fcFunction = new FcFunction(credentials, region)
+
+      const onlyDelpoyCode = (parameters.code && !deployAll)
+      const onlyDelpoyConfig = (parameters.config || deployAllConfig)
+
+      const beforeDeployLog = onlyDelpoyConfig ? 'config to be updated' : 'to be deployed'
+      const afterDeployLog = onlyDelpoyConfig || deployAllConfig ? 'config update success' : 'deploy success'
+
+      console.log(`Waiting for function ${functionName} ${beforeDeployLog}...`)
       await fcFunction.deploy({
         projectName,
         serviceName,
         serviceProp,
         functionName,
         functionProp,
-        onlyDelpoyCode: parameters.code && !deployAll,
-        onlyDelpoyConfig: parameters.config || deployAllConfig
+        onlyDelpoyCode,
+        onlyDelpoyConfig
       })
+      console.log(green(`function ${functionName} ${afterDeployLog}\n`))
     }
 
     // Triggers
@@ -328,22 +337,15 @@ class FcComponent extends Component {
 
     const logConfig = serviceProp.Log
 
-    const projectName = logConfig.Project
-    const logStoreName = logConfig.LogStore
-
-    if (_.isEmpty(logConfig) || _.isEmpty(projectName) || _.isEmpty(logStoreName)) {
-      throw new Error(
-        'Missing Log definition in template.yml.\nRefer to https://github.com/ServerlessTool/fc-alibaba#log'
-      )
-    }
-
-    if (_.isEmpty(args)) {
-      throw new Error('Missing logs options.')
+    if (_.isEmpty(logConfig)) {
+      throw new Error('Missing Log definition in template.yml.\nRefer to https://github.com/ServerlessTool/fc-alibaba#log')
     }
 
     console.log(yellow('by default, find logs within 20 minutes...\n'))
 
     const logs = new Logs(credentials, region)
+
+    const { projectName, logStoreName } = logs.processLogAutoIfNeed(logConfig)
 
     const cmdParameters = args.Parameters
 
@@ -360,16 +362,7 @@ class FcComponent extends Component {
 
       const queryErrorLog = type === 'failed'
 
-      const historyLogs = await logs.history(
-        projectName,
-        logStoreName,
-        from, to,
-        serviceName,
-        functionName,
-        query,
-        queryErrorLog,
-        requestId
-      )
+      const historyLogs = await logs.history(projectName, logStoreName, from, to, serviceName, functionName, query, queryErrorLog, requestId)
 
       logs.printLogs(historyLogs)
     }

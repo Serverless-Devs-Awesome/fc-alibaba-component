@@ -314,6 +314,7 @@ class Service {
       // create role
       console.log(`${FIVE_SPACES}make sure role '${roleName}' is exist...`)
       role = await this.ram.makeRole(roleName, createRoleIfNotExist)
+      console.log(green(`${FIVE_SPACES}role '${roleName}' is already exist`))
     }
 
     if (!roleArn && policies) { // if roleArn exist, then ignore polices

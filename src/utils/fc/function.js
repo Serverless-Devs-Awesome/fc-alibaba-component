@@ -224,8 +224,6 @@ class Function {
     functionName, functionProp,
     onlyDelpoyConfig, onlyDelpoyCode
   }) {
-    console.log(`Deploying function ${functionProp.Name}.`)
-
     functionProp.Runtime = functionProp.Runtime ? functionProp.Runtime : DEFAULT.Runtime
     let functionProperties
     if (onlyDelpoyConfig) {

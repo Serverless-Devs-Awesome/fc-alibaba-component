@@ -145,32 +145,34 @@ class Logs {
     })
   }
 
-  async history (
-    projectName,
-    logStoreName,
-    timeStart,
-    timeEnd,
-    serviceName,
-    functionName,
+  processLogAutoIfNeed (logConfig) {
+    let projectName
+    let logStoreName
 
-    query,
-    queryErrorLog = false,
-    requestId
-  ) {
+    if (definition.isLogConfigAuto(logConfig)) {
+      const defaultLogConfig = this.generateDefaultLogConfig()
+
+      projectName = defaultLogConfig.project
+      logStoreName = defaultLogConfig.logStore
+    } else {
+      projectName = logConfig.Project
+      logStoreName = logConfig.LogStore
+    }
+
+    return { projectName, logStoreName }
+  }
+
+  async history (projectName, logStoreName, timeStart, timeEnd, serviceName, functionName, query, queryErrorLog = false, requestId) {
     const logsList = await this.getLogs({
-      projectName,
-      logStoreName,
       timeStart,
       timeEnd,
+      projectName,
+      logStoreName,
       serviceName,
       functionName
     })
 
-    return this.filterByKeywords(this.replaceLineBreak(logsList), {
-      query,
-      requestId,
-      queryErrorLog
-    })
+    return this.filterByKeywords(this.replaceLineBreak(logsList), { query, requestId, queryErrorLog })
   }
 
   async realtime (projectName, logStoreName, serviceName, functionName) {
@@ -184,9 +186,7 @@ class Logs {
       await this.sleep(1000)
       times = times - 1
 
-      timeStart = moment()
-        .subtract(10, 'seconds')
-        .unix()
+      timeStart = moment().subtract(10, 'seconds').unix()
       timeEnd = moment().unix()
 
       const pulledlogs = await this.getLogs({
@@ -198,17 +198,13 @@ class Logs {
         functionName
       })
 
-      if (_.isEmpty(pulledlogs)) {
-        continue
-      }
+      if (_.isEmpty(pulledlogs)) { continue }
 
       const notConsumedLogs = _.pickBy(pulledlogs, (data, requestId) => {
         return !_.includes(consumedTimeStamps, data.timestamp)
       })
 
-      if (_.isEmpty(notConsumedLogs)) {
-        continue
-      }
+      if (_.isEmpty(notConsumedLogs)) { continue }
 
       const replaceLogs = this.replaceLineBreak(notConsumedLogs)
 
