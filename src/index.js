@@ -10,8 +10,10 @@ const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 
 const { green, yellow } = require('colors')
+const fse = require('fs-extra');
+const yaml = require('js-yaml')
 const { Component } = require('@serverless-devs/s-core')
-const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote } = require('./utils/fc')
+const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote, Sync } = require('./utils/fc')
 const { execSync } = require('child_process')
 
 const DEFAULT = {
@@ -252,46 +254,41 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = args
-    let removeType = 'all'
-    const removeArr = ['tags', 'function', 'trigger', 'domain', 'service'].filter(item => parameters.hasOwnProperty(item))
-
-    let isDeployAll = false
-    if (removeArr.length > 1) {
-      throw new Error('Parameters error: \'tags、function、trigger、domain、service\' can only choose one')
-    } else if (removeArr.length === 0) {
-      isDeployAll = true
-    } else {
-      removeType = removeArr[0]
+    const removeType = commands[0]
+    
+    let isRemoveAll = false
+    if (commands.length === 0) {
+      isRemoveAll = true
     }
 
     // 解绑标签
-    if (removeType === 'tags' || isDeployAll) {
+    if (removeType === 'tags' || isRemoveAll) {
       // TODO 指定删除标签
       const tag = new TAG(credentials, region)
       const serviceArn = 'services/' + serviceName
       await tag.remove(serviceArn, parameters)
     }
 
-    if (removeType === 'domain' || isDeployAll) {
-      await this.domain(inputs, true)
+    if (removeType === 'domain' || isRemoveAll) {
+      await this.domain(inputs, true);
     }
 
     // 单独删除触发器
-    if (removeType === 'trigger' || isDeployAll) {
+    if (removeType === 'trigger' || isRemoveAll) {
       // TODO 指定删除特定触发器
       const fcTrigger = new Trigger(credentials, region)
       await fcTrigger.remove(serviceName, functionName, parameters)
     }
 
     // 单独删除函数
-    if (removeType === 'function' || isDeployAll) {
+    if (removeType === 'function' || isRemoveAll) {
       const fcFunction = new FcFunction(credentials, region)
       await fcFunction.remove(serviceName, functionName)
     }
 
     // 单独删除服务
     // TODO 服务是全局的，当前组件如何判断是否要删除服务？
-    if (removeType === 'service' || isDeployAll) {
+    if (removeType === 'service' || isRemoveAll) {
       const fcService = new Service(credentials, region)
       await fcService.remove(serviceName)
     }
@@ -299,29 +296,36 @@ class FcComponent extends Component {
 
   // 触发
   async invoke (inputs) {
-    const { credentials, type = '', args, functionName, serviceName, region } = this.handlerInputs(
-      inputs
-    )
+    const { credentials, args, functionName, serviceName, region } = this.handlerInputs(inputs)
+    const { Commands: commands = [], Parameters: parameters } = args
+    const invokeCommand = commands[0];
+    if (!invokeCommand || !parameters.type) {
+      throw new Error(`Invoke command error,example: s invoke remote --type event/http`)
+    }
 
-    const invokeType = type.toLocaleUpperCase()
+    const invokeType = parameters.type.toLocaleUpperCase()
     if (invokeType !== 'EVENT' && invokeType !== 'HTTP') {
       throw new Error('Need to specify the function execution type: event or http')
     }
 
-    const invokeRemote = new InvokeRemote(credentials, region)
+    let invokeClient;
+    if (invokeCommand === 'remote') {
+      invokeClient = new InvokeRemote(credentials, region)
+    }
+
     if (invokeType === 'EVENT') {
-      await invokeRemote.invokeEvent(
+      await invokeClient.invokeEvent(
         serviceName,
         functionName,
-        { eventFilePath: args.eventFilePath, event: args.event },
-        args.qualifier
+        { eventFilePath: parameters.eventFilePath, event: parameters.event },
+        parameters.qualifier
       )
     } else {
-      await invokeRemote.invokeHttp(
+      await invokeClient.invokeHttp(
         serviceName,
         functionName,
-        { eventFilePath: args.eventFilePath },
-        args.qualifier
+        { eventFilePath: parameters.eventFilePath },
+        parameters.qualifier
       )
     }
   }
@@ -465,6 +469,49 @@ class FcComponent extends Component {
     } else {
       throw new Error(`${unPublishType} command not found.`)
     }
+  }
+
+  // 同步
+  async sync (inputs) {
+    const {
+      credentials,
+      properties,
+      serviceProp,
+      functionProp,
+      args = {},
+      region
+    } = this.handlerInputs(inputs);
+
+    const serviceName = serviceProp.Name;
+    const functionName = functionProp.Name;
+    const { Commands: commands } = args;
+    if (commands.length > 1) {
+      throw new Error('Commands error.');
+    }
+    const syncAllFlag = commands.length === 0;
+    const onlySyncType = commands[0];
+    
+    const syncClient = new Sync(credentials, region);
+    const pro = await syncClient.sync({
+      syncAllFlag,
+      onlySyncType,
+      serviceName,
+      functionName,
+      properties
+    });
+
+    const project = _.cloneDeepWith(inputs.Project);
+    const projectName = project.ProjectName;
+    delete project.ProjectName;
+    const yData = yaml.dump({
+      [projectName]: {
+        ...project,
+        Properties: pro,
+        // ...(_.assign(properties, pro)),
+      }
+    })
+    await fse.outputFile('./template.yaml', yData)
+    
   }
 
   // 打包
