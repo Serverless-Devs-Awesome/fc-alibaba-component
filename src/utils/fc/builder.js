@@ -19,12 +19,8 @@ class Builder {
     const baseDir = process.cwd()
     const runtime = functionProps.Runtime
 
-    if (!this.codeUriCanBuild(codeUri)) {
-      return
-    }
-
-    if (!await this.codeNeedBuild(baseDir, codeUri, runtime)) {
-      return
+    if (! await this.codeNeedBuild(baseDir, codeUri, runtime)) {
+      return;
     }
 
     this.initBuildCodeDir(baseDir, serviceName, functionName)
@@ -44,7 +40,7 @@ class Builder {
     await this.collectArtifact(functionProps.Runtime, artifactPath)
   }
 
-  async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
+async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
     const stages = ['install', 'build']
     const nasProps = {}
     const preferredImage = undefined
@@ -66,7 +62,6 @@ class Builder {
     if (!preferredImage) {
       await docker.pullImageIfNeed(usedImage)
     }
-
     console.log('\nbuild function using image: ' + usedImage)
 
     // todo: 1. create container, copy source code to container
@@ -180,19 +175,38 @@ class Builder {
     if (!runtime || typeof runtime !== 'string') {
       return false
     }
-
-    return runtime.includes('java')
+    return runtime.includes('java');
   }
 
   async codeNeedBuild (baseDir, codeUri, runtime) {
-    const Builder = fcBuilders.Builder
-    const absCodeUri = path.resolve(baseDir, codeUri)
-    const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri)
-    if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
-      console.log('No need build for this project.')
-      return false
+    //check codeUri
+    if (!codeUri) {
+      console.warn('No code uri configured, skip building.');
+      return false;
+    }
+    if (typeof codeUri == 'string') {
+      if (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
+        console.log('Artifact configured, skip building.');
+        return false;
+      }
+    } else {
+      if (!codeUri.Src) {
+        console.log('No Src configured, skip building.');
+        return false;
+      }
+      if (codeUri.Src.endsWith('.zip') || codeUri.Src.endsWith('.jar') || codeUri.Src.endsWith('.war')) {
+        console.log('Artifact configured, skip building.');
+        return false;
+      }
     }
 
+    const Builder = fcBuilders.Builder;
+    const absCodeUri = path.resolve(baseDir, codeUri);
+    const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri);
+    if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
+        console.log("No need build for this project.");
+        return false;
+    }
     return true
   }
 
