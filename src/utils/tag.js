@@ -75,16 +75,16 @@ class TAG {
     }
 
     // 删除标签
-    const untagResourceKeys = []
-    for (const item in tagsAttr) {
-      if (!(_.has(tags, item) && tags[item] === tagsAttr[item])) {
-        untagResourceKeys.push(item)
-      }
-    }
-    if (untagResourceKeys.length > 0) {
-      console.log('Tags: untag resource: ', untagResourceKeys)
-      await this.fcClient.untagResource(resourceArn, untagResourceKeys)
-    }
+    // const untagResourceKeys = []
+    // for (const item in tagsAttr) {
+    //   if (!(_.has(tags, item) && tags[item] === tagsAttr[item])) {
+    //     untagResourceKeys.push(item)
+    //   }
+    // }
+    // if (untagResourceKeys.length > 0) {
+    //   console.log('Tags: untag resource: ', untagResourceKeys)
+    //   await this.fcClient.untagResource(resourceArn, untagResourceKeys)
+    // }
 
     // 打标签
     console.log('Tags: tagging resource ...')

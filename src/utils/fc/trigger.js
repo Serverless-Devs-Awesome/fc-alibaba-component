@@ -346,7 +346,7 @@ class Trigger {
     } else if (triggerType === 'Log') {
       parameters.triggerConfig = {
         sourceConfig: {
-          logstore: triggerParameters.SourceConfig.Logstore
+          logstore: triggerParameters.SourceConfig.LogStore
         },
         jobConfig: {
           maxRetryTime: triggerParameters.JobConfig.MaxRetryTime,
@@ -354,7 +354,7 @@ class Trigger {
         },
         logConfig: {
           project: triggerParameters.LogConfig.Project,
-          logstore: triggerParameters.LogConfig.Logstore
+          logstore: triggerParameters.LogConfig.LogStore
         },
         functionParameter: triggerParameters.FunctionParameter || {},
         Enable: triggerParameters.Enable ? triggerParameters.Enable : true
