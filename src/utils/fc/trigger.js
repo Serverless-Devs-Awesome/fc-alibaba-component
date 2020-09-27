@@ -498,11 +498,11 @@ class Trigger {
    * @param {*} triggerList : will delete all triggers if not specified
    */
   async remove (serviceName, functionName, parameters) {
-    const onlyRemoveTriggerName = !!parameters ? (parameters.n || parameters.name) : false;
-    const triggerList = [];
-    
+    const onlyRemoveTriggerName = parameters ? (parameters.n || parameters.name) : false
+    const triggerList = []
+
     if (onlyRemoveTriggerName) {
-      triggerList.push(onlyRemoveTriggerName);
+      triggerList.push(onlyRemoveTriggerName)
     } else {
       try {
         const listTriggers = await this.fcClient.listTriggers(serviceName, functionName)
@@ -522,24 +522,19 @@ class Trigger {
       console.log(`Deleting trigger: ${triggerList[i]}`)
       try {
         await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
-      } catch(e) {
+      } catch (ex) {
         throw new Error(`Unable to deleting trigger: ${ex.message}`)
       }
-      
+
       console.log(`Delete trigger successfully: ${triggerList[i]}`)
     }
   }
 
-  async deploy (properties, serviceName, functionName, commands = [], parameters = {}) {
-    const isOnlyDeployTrigger = _.isArray(commands) && commands[0] === 'trigger'
-    let onlyDeployTriggerName
-    if (isOnlyDeployTrigger && (parameters.n || parameters.name)) {
-      onlyDeployTriggerName = parameters.n || parameters.name
-    }
-
+  async deploy (properties, serviceName, functionName, triggerName, onlyDeployTrigger) {
     const triggerOutput = []
     const releaseTriggerList = []
     const thisTriggerList = []
+
     try {
       const tempTriggerList = await this.fcClient.listTriggers(serviceName, functionName)
       const data = tempTriggerList.data.triggers
@@ -555,7 +550,7 @@ class Trigger {
           `Trigger: ${serviceName}@${functionName}${deployTriggerName} deploying ...`
         )
         triggerOutput.push(
-          await this.deployTrigger(serviceName, functionName, deployTriggerConfig, isOnlyDeployTrigger)
+          await this.deployTrigger(serviceName, functionName, deployTriggerConfig, onlyDeployTrigger)
         )
         thisTriggerList.push(deployTriggerName)
         console.log(
@@ -563,15 +558,15 @@ class Trigger {
         )
       }
 
-      if (onlyDeployTriggerName) {
-        const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === onlyDeployTriggerName)
+      if (triggerName) {
+        const onlyDeployTriggerConfig = _.filter(properties.Function.Triggers, ({ Name }) => Name === triggerName)
         if (onlyDeployTriggerConfig.length < 1) {
-          throw new Error(`${onlyDeployTriggerName} not found.`)
+          throw new Error(`${triggerName} not found.`)
         }
         if (onlyDeployTriggerConfig.length > 1) {
-          throw new Error(`${onlyDeployTriggerName} repeated statement.`)
+          throw new Error(`${triggerName} repeated statement.`)
         }
-        await handlerDeployTrigger(onlyDeployTriggerConfig[0], onlyDeployTriggerName)
+        await handlerDeployTrigger(onlyDeployTriggerConfig[0], triggerName)
       } else {
         for (let i = 0; i < properties.Function.Triggers.length; i++) {
           const deployTriggerName = properties.Function.Triggers[i].Name

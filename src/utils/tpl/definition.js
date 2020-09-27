@@ -1,14 +1,14 @@
-'use strict';
+'use strict'
 
-const debug = require('debug')('fun:common');
+const debug = require('debug')('fun:common')
 
-const { green, red } = require('colors');
+const { green, red } = require('colors')
 
-const SERVICE_RESOURCE = 'Aliyun::Serverless::Service';
-const FUNCTION_RESOURCE = 'Aliyun::Serverless::Function';
-const FLOW_RESOURCE = 'Aliyun::Serverless::Flow';
+const SERVICE_RESOURCE = 'Aliyun::Serverless::Service'
+const FUNCTION_RESOURCE = 'Aliyun::Serverless::Function'
+const FLOW_RESOURCE = 'Aliyun::Serverless::Flow'
 
-const _ = require('lodash');
+const _ = require('lodash')
 
 /* eslint-disable */
 function iterateResources(resources, resType, callback) {
@@ -23,34 +23,33 @@ function iterateResources(resources, resType, callback) {
 }
 /* eslint-enable */
 
-function findResourceByName(resources, resourceName) {
+function findResourceByName (resources, resourceName) {
   for (const [name, res] of Object.entries(resources)) {
     if (name === resourceName) {
       return {
         resourceName,
         resourceRes: res
-      };
+      }
     }
   }
-  return;
 }
 
-function findServices(resources) {
-  const services = [];
+function findServices (resources) {
+  const services = []
 
   iterateResources(resources, SERVICE_RESOURCE, (serviceName, serviceRes) => {
     services.push({
       serviceName,
       serviceRes
-    });
-  });
+    })
+  })
 
-  return services;
+  return services
 }
 
-function iterateFunctions(tplContent, callback) {
+function iterateFunctions (tplContent, callback) {
   if (tplContent.Resources) {
-    const resources = tplContent.Resources;
+    const resources = tplContent.Resources
 
     iterateResources(resources, SERVICE_RESOURCE, (serviceName, serviceRes) => {
       iterateResources(serviceRes, FUNCTION_RESOURCE, (functionName, functionRes) => {
@@ -59,54 +58,53 @@ function iterateFunctions(tplContent, callback) {
           serviceRes,
           functionName,
           functionRes
-        );
-      });
-    });
+        )
+      })
+    })
   }
 }
 
-function findFunctions(serviceRes) {
-
-  const functions = [];
+function findFunctions (serviceRes) {
+  const functions = []
 
   iterateResources(serviceRes, FUNCTION_RESOURCE, (functionName, functionRes) => {
     functions.push({
       functionName,
       functionRes
-    });
-  });
+    })
+  })
 
-  return functions;
+  return functions
 }
 
-function findHttpTriggersInFunction(functionRes) {
-  const triggers = [];
+function findHttpTriggersInFunction (functionRes) {
+  const triggers = []
 
   if (functionRes.Events) {
     iterateResources(functionRes.Events, 'HTTP', (triggerName, triggerRes) => {
       triggers.push({
         triggerName,
         triggerRes
-      });
-    });
+      })
+    })
   }
 
-  return triggers;
+  return triggers
 }
 
-function findFunctionByServiceAndFunctionName(resources, serviceName, functionName) {
-  debug('begin search serviceName and functionName');
+function findFunctionByServiceAndFunctionName (resources, serviceName, functionName) {
+  debug('begin search serviceName and functionName')
 
-  let serviceRes = resources[serviceName];
+  const serviceRes = resources[serviceName]
 
   if (!serviceRes || !serviceName || serviceRes.Type !== SERVICE_RESOURCE) {
-    throw new Error(`could not found service: ${serviceName}`);
+    throw new Error(`could not found service: ${serviceName}`)
   }
 
-  let functionRes = serviceRes[functionName];
+  let functionRes = serviceRes[functionName]
 
   if (functionRes && functionRes.Type !== FUNCTION_RESOURCE) {
-    functionRes = null;
+    functionRes = null
   }
 
   return {
@@ -114,28 +112,27 @@ function findFunctionByServiceAndFunctionName(resources, serviceName, functionNa
     serviceRes,
     functionName,
     functionRes
-  };
+  }
 }
 
-function findFunctionInService(funcName, serviceRes) {
-
-  debug('find function ' + funcName + ' definition in service: ' + JSON.stringify(serviceRes));
-  for (let { functionName, functionRes } of findFunctions(serviceRes)) {
-    debug(`functionName is ${functionName}, compare with ${functionName}`);
+function findFunctionInService (funcName, serviceRes) {
+  debug('find function ' + funcName + ' definition in service: ' + JSON.stringify(serviceRes))
+  for (const { functionName, functionRes } of findFunctions(serviceRes)) {
+    debug(`functionName is ${functionName}, compare with ${functionName}`)
     if (functionName === funcName) {
-      debug(`found function ${functionName}, functionRes is ${functionRes}`);
-      return functionRes;
+      debug(`found function ${functionName}, functionRes is ${functionRes}`)
+      return functionRes
     }
   }
 
-  return null;
+  return null
 }
 
-function findFunctionByFunctionName(resources, functionName) {
+function findFunctionByFunctionName (resources, functionName) {
   // iterator all services and functions
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-    debug('servicename: ' + serviceName);
-    const functionRes = findFunctionInService(functionName, serviceRes);
+  for (const { serviceName, serviceRes } of findServices(resources)) {
+    debug('servicename: ' + serviceName)
+    const functionRes = findFunctionInService(functionName, serviceRes)
 
     if (functionRes) {
       return {
@@ -143,108 +140,106 @@ function findFunctionByFunctionName(resources, functionName) {
         serviceRes,
         functionName,
         functionRes
-      };
+      }
     }
   }
 
-  return {};
+  return {}
 }
 
-function parseDomainRoutePath(domainRoutePath) {
-  let domainName = null;
-  let routePath = null;
+function parseDomainRoutePath (domainRoutePath) {
+  let domainName = null
+  let routePath = null
 
-  if (!domainRoutePath) { return []; }
+  if (!domainRoutePath) { return [] }
 
-  const index = domainRoutePath.indexOf('/');
+  const index = domainRoutePath.indexOf('/')
   if (index < 0) {
-    domainName = domainRoutePath;
+    domainName = domainRoutePath
   } else {
-    domainName = domainRoutePath.substring(0, index);
-    routePath = domainRoutePath.substring(index);
+    domainName = domainRoutePath.substring(0, index)
+    routePath = domainRoutePath.substring(index)
   }
-  return [domainName, routePath];
+  return [domainName, routePath]
 }
 
-function parseFunctionPath(funcPath) {
-  let serviceName = null;
-  let functionName = null;
+function parseFunctionPath (funcPath) {
+  let serviceName = null
+  let functionName = null
 
-  if (!funcPath) { return []; }
+  if (!funcPath) { return [] }
 
-  const index = funcPath.indexOf('/');
+  const index = funcPath.indexOf('/')
   if (index < 0) {
-    functionName = funcPath;
+    functionName = funcPath
   } else {
-    serviceName = funcPath.substring(0, index);
-    functionName = funcPath.substring(index + 1);
+    serviceName = funcPath.substring(0, index)
+    functionName = funcPath.substring(index + 1)
   }
-  debug(`invoke service: ${serviceName}`);
-  debug(`invoke function: ${functionName}`);
-  return [serviceName, functionName];
+  debug(`invoke service: ${serviceName}`)
+  debug(`invoke function: ${functionName}`)
+  return [serviceName, functionName]
 }
 
 /**
  * funcPath : functionName or serviceName/functionName
  */
-function findFunctionInTpl(funcPath, tpl) {
-  const [serviceName, functionName] = parseFunctionPath(funcPath);
-  return doFindFunctionInTpl(serviceName, functionName, tpl);
+function findFunctionInTpl (funcPath, tpl) {
+  const [serviceName, functionName] = parseFunctionPath(funcPath)
+  return doFindFunctionInTpl(serviceName, functionName, tpl)
 }
 
 // return first if only provide functionName
-function doFindFunctionInTpl(serviceName, functionName, tpl) {
-
-  const resources = tpl.Resources;
+function doFindFunctionInTpl (serviceName, functionName, tpl) {
+  const resources = tpl.Resources
 
   if (serviceName) {
     // invokeName is serviceName/functionName
-    return findFunctionByServiceAndFunctionName(resources, serviceName, functionName);
+    return findFunctionByServiceAndFunctionName(resources, serviceName, functionName)
   }
   //  invokeName is functionName
-  return findFunctionByFunctionName(resources, functionName);
+  return findFunctionByFunctionName(resources, functionName)
 }
 
-function findFunctionsInTpl(tpl, filter) {
-  const functions = [];
+function findFunctionsInTpl (tpl, filter) {
+  const functions = []
 
-  const resources = tpl.Resources;
+  const resources = tpl.Resources
 
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-    for (let { functionName, functionRes } of findFunctions(serviceRes)) {
-
-      if (filter && !filter(functionName, functionRes)) { continue; }
+  for (const { serviceName, serviceRes } of findServices(resources)) {
+    for (const { functionName, functionRes } of findFunctions(serviceRes)) {
+      if (filter && !filter(functionName, functionRes)) { continue }
 
       functions.push({
         serviceName,
         serviceRes,
         functionName,
         functionRes
-      });
+      })
     }
   }
 
-  return functions;
+  return functions
 }
 
-function findNasConfigInService(serviceRes) {
-  if (!serviceRes) { return null; }
+function findNasConfigInService (serviceRes) {
+  if (!serviceRes) { return null }
 
-  const serviceProps = serviceRes.Properties;
+  const serviceProps = serviceRes.Properties
 
-  if (!serviceProps) { return null; }
+  if (!serviceProps) { return null }
 
-  return serviceProps.NasConfig;
+  return serviceProps.NasConfig
 }
 
-function findHttpTriggersInTpl(tpl) {
-  const resources = tpl.Resources;
+function findHttpTriggersInTpl (tpl) {
+  const resources = tpl.Resources
 
-  const httpTriggers = [];
+  const httpTriggers = []
 
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-    for (let { functionName, functionRes } of findFunctions(serviceRes)) {
-      for (let { triggerName, triggerRes } of findHttpTriggersInFunction(functionRes)) {
+  for (const { serviceName, serviceRes } of findServices(resources)) {
+    for (const { functionName, functionRes } of findFunctions(serviceRes)) {
+      for (const { triggerName, triggerRes } of findHttpTriggersInFunction(functionRes)) {
         httpTriggers.push({
           serviceName,
           serviceRes,
@@ -252,240 +247,251 @@ function findHttpTriggersInTpl(tpl) {
           functionRes,
           triggerName,
           triggerRes
-        });
+        })
       }
     }
   }
 
-  return httpTriggers;
+  return httpTriggers
 }
 
-function findFirstFunctionName(tpl) {
-  const resources = tpl.Resources;
+function findFirstFunctionName (tpl) {
+  const resources = tpl.Resources
 
-  var firstInvokeName;
+  var firstInvokeName
 
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-    for (let { functionName } of findFunctions(serviceRes)) {
-      firstInvokeName = serviceName + '/' + functionName;
-      break;
+  for (const { serviceName, serviceRes } of findServices(resources)) {
+    for (const { functionName } of findFunctions(serviceRes)) {
+      firstInvokeName = serviceName + '/' + functionName
+      break
     }
   }
 
   if (!firstInvokeName) {
-    throw new Error(red(`Missing function definition in template.yml`)); 
+    throw new Error(red('Missing function definition in template.yml'))
   }
-  return firstInvokeName;
+  return firstInvokeName
 }
 
 // find the first service in resoueces
 function findServiceByServiceName (resources, name) {
-
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-
+  for (const { serviceName, serviceRes } of findServices(resources)) {
     if (serviceName === name) {
       return {
         serviceName,
         serviceRes
-      };
+      }
     }
   }
-  return {};
+  return {}
 }
 
-function findAllFunctionsByFunctionName(resources, functionName) {
+function findAllFunctionsByFunctionName (resources, functionName) {
+  const functions = []
 
-  let functions = [];
-
-  for (let { serviceName, serviceRes } of findServices(resources)) {
-    debug('servicename: ' + serviceName);
-    const functionRes = findFunctionInService(functionName, serviceRes);
+  for (const { serviceName, serviceRes } of findServices(resources)) {
+    debug('servicename: ' + serviceName)
+    const functionRes = findFunctionInService(functionName, serviceRes)
 
     if (functionRes) {
-
       functions.push({
         serviceName,
         serviceRes,
         functionName,
         functionRes
-      });
+      })
     }
   }
-  return functions;
+  return functions
 }
 
-async function matchingResourceBySourceName(resources, sourceName) {
-
-  const resourceObj = findResourceByName(resources, sourceName);
+async function matchingResourceBySourceName (resources, sourceName) {
+  const resourceObj = findResourceByName(resources, sourceName)
 
   if (!_.isEmpty(resourceObj)) {
-    return resourceObj;
+    return resourceObj
   }
 
-  const functions = findAllFunctionsByFunctionName(resources, sourceName);
+  const functions = findAllFunctionsByFunctionName(resources, sourceName)
 
   if (functions.length === 0) {
-
-    throw new Error(`could not found sourceName: ${sourceName}`);
+    throw new Error(`could not found sourceName: ${sourceName}`)
   } else if (functions.length > 1) {
-
     // TODO nahai 引用太多，这里先注释掉
     // const { serviceName, functionName } = await promptForFunctionSelection(functions);
 
     const selectionFunction = functions.find(funcObj => {
-
-      return funcObj.serviceName === serviceName && funcObj.functionName === functionName;
-    });
+      return funcObj.serviceName === serviceName && funcObj.functionName === functionName
+    })
     // delete unmatch functions under a serviceRes
-    const serviceRes = deleteUnmatchFunctionsUnderServiceRes(selectionFunction);
+    const serviceRes = deleteUnmatchFunctionsUnderServiceRes(selectionFunction)
 
     return {
       resourceName: selectionFunction.serviceName,
       resourceRes: serviceRes
-    };
+    }
   }
 
-  const serviceName = _.first(functions).serviceName;
-  let serviceRes = _.first(functions).serviceRes;
+  const serviceName = _.first(functions).serviceName
+  let serviceRes = _.first(functions).serviceRes
 
   serviceRes = deleteUnmatchFunctionsUnderServiceRes({
     serviceName,
     serviceRes,
     functionName: sourceName
-  });
+  })
 
   return {
     resourceName: serviceName,
     resourceRes: serviceRes
-  };
+  }
 }
 
 // delete unmatch functions under a serviceRes
-function deleteUnmatchFunctionsUnderServiceRes({
+function deleteUnmatchFunctionsUnderServiceRes ({
   serviceName,
   serviceRes,
   functionName
 }) {
   const functionNamesInService = findFunctions(serviceRes).map(funRes => {
-    return funRes.functionName;
-  });
+    return funRes.functionName
+  })
 
   if (!_.includes(functionNamesInService, functionName)) {
-    throw new Error(`could not found service/function：` + green(`${serviceName}`) + `/` + red(`${functionName}`));
+    throw new Error('could not found service/function：' + green(`${serviceName}`) + '/' + red(`${functionName}`))
   }
 
-  for (let functions of findFunctions(serviceRes)) {
+  for (const functions of findFunctions(serviceRes)) {
     if (functions.functionName !== functionName) {
-      serviceRes = _.omit(serviceRes, functions.functionName);
+      serviceRes = _.omit(serviceRes, functions.functionName)
     }
   }
 
-  return serviceRes;
+  return serviceRes
 }
 
-function findServiceByCertainServiceAndFunctionName(resources, certainServiceName, certainFunctionName) {
+function findServiceByCertainServiceAndFunctionName (resources, certainServiceName, certainFunctionName) {
   for (let { serviceName, serviceRes } of findServices(resources)) {
     if (serviceName === certainServiceName) {
       serviceRes = deleteUnmatchFunctionsUnderServiceRes({
         serviceName,
         serviceRes,
         functionName: certainFunctionName
-      });
+      })
 
       return {
         serviceName,
         serviceRes
-      };
+      }
     }
   }
-  throw new Error(`could not found service: ${certainServiceName}`);
+  throw new Error(`could not found service: ${certainServiceName}`)
 }
 
-function ensureNasParams(nasConfig) {
-  const propsRequired = ['Auto', 'UserId', 'GroupId'];
+function ensureNasParams (nasConfig) {
+  const propsRequired = ['Auto', 'UserId', 'GroupId']
 
   const notExistParams = propsRequired.filter(paramter => {
-    return !nasConfig.hasOwnProperty(paramter);
-  });
+    return !nasConfig.hasOwnProperty(paramter)
+  })
 
   if (!_.isEmpty(notExistParams)) {
-    console.error(red(''));
-    throw new Error(red(`Missing '${notExistParams.join(', ')}' in NasConfig.`));
+    console.error(red(''))
+    throw new Error(red(`Missing '${notExistParams.join(', ')}' in NasConfig.`))
   }
   if (!_.isEmpty(nasConfig.MountPoints)) {
-    console.error(red(''));
-    throw new Error(red(`Additional properties: 'MountPoints' in NasConfig.`));
+    console.error(red(''))
+    throw new Error(red('Additional properties: \'MountPoints\' in NasConfig.'))
   }
 }
 
-function isNasAutoConfig(nasConfig) {
-  if (nasConfig === 'Auto') { return true; }
+function isNasAutoConfig (nasConfig) {
+  if (nasConfig === 'Auto') { return true }
 
   if ((nasConfig || {}).Auto) {
-    ensureNasParams(nasConfig);
-    return true;
+    ensureNasParams(nasConfig)
+    return true
   }
-  return false;
+  return false
 }
 
-function isLogConfigAuto(logConfig) {
-  return logConfig === 'Auto';
+function isLogConfigAuto (logConfig) {
+  return logConfig === 'Auto'
 }
 
-function getUserIdAndGroupId(nasConfig) {
-  if (_.isEmpty(nasConfig)) { return {}; }
+function getUserIdAndGroupId (nasConfig) {
+  if (_.isEmpty(nasConfig)) { return {} }
 
   if (nasConfig === 'Auto') {
     return {
       userId: 10003,
       groupId: 10003
-    };
+    }
   }
   return {
     userId: nasConfig.UserId,
     groupId: nasConfig.GroupId
-  };
+  }
 }
 
-function isVpcAutoConfig(vpcConfig) {
-  if (vpcConfig === 'Auto') { return true; }
-  return false;
+function isVpcAutoConfig (vpcConfig) {
+  if (vpcConfig === 'Auto') { return true }
+  return false
 }
 
 // except Auto
-function onlyOneNASExists(nasConfig) {
-  const isNasAuto = isNasAutoConfig(nasConfig);
+function onlyOneNASExists (nasConfig) {
+  const isNasAuto = isNasAutoConfig(nasConfig)
 
   if (_.isEmpty(nasConfig || isNasAuto)) {
-    return false;
+    return false
   }
-  const mountPoints = nasConfig.MountPoints || [];
-  return mountPoints.length === 1;
+  const mountPoints = nasConfig.MountPoints || []
+  return mountPoints.length === 1
 }
 
-function validateNasAndVpcConfig(resources) {
-  if (_.isEmpty(resources)) { return; }
+function validateNasAndVpcConfig (resources) {
+  if (_.isEmpty(resources)) { return }
 
   for (const [name, resource] of Object.entries(resources)) {
     if (resource.Type === SERVICE_RESOURCE) {
-      const serviceprop = (resource.Properties || {});
-      const vpcConfig = serviceprop.VpcConfig;
-      const nasConfig = serviceprop.NasConfig;
+      const serviceprop = (resource.Properties || {})
+      const vpcConfig = serviceprop.VpcConfig
+      const nasConfig = serviceprop.NasConfig
 
       if (isNasAutoConfig(nasConfig) && !_.isEmpty(vpcConfig) && !isVpcAutoConfig(vpcConfig)) {
-        throw new Error(`\nVpcConfig is not supported by 'NasConfig:Auto' in service: ${name}`);
+        throw new Error(`\nVpcConfig is not supported by 'NasConfig:Auto' in service: ${name}`)
       }
     }
   }
 }
 
 module.exports = {
-  findFunctionInTpl, findHttpTriggersInTpl,
-  findFunctionsInTpl, findNasConfigInService, iterateResources,
-  findHttpTriggersInFunction, findServices, findResourceByName,
-  findFunctions, findFirstFunctionName, matchingResourceBySourceName,
-  findServiceByCertainServiceAndFunctionName, deleteUnmatchFunctionsUnderServiceRes,
-  isNasAutoConfig, isVpcAutoConfig, parseFunctionPath, iterateFunctions, parseDomainRoutePath,
-  onlyOneNASExists, findServiceByServiceName, findFunctionByServiceAndFunctionName, getUserIdAndGroupId,
-  SERVICE_RESOURCE, FUNCTION_RESOURCE, FLOW_RESOURCE, validateNasAndVpcConfig, isLogConfigAuto
-};
+  findFunctionInTpl,
+  findHttpTriggersInTpl,
+  findFunctionsInTpl,
+  findNasConfigInService,
+  iterateResources,
+  findHttpTriggersInFunction,
+  findServices,
+  findResourceByName,
+  findFunctions,
+  findFirstFunctionName,
+  matchingResourceBySourceName,
+  findServiceByCertainServiceAndFunctionName,
+  deleteUnmatchFunctionsUnderServiceRes,
+  isNasAutoConfig,
+  isVpcAutoConfig,
+  parseFunctionPath,
+  iterateFunctions,
+  parseDomainRoutePath,
+  onlyOneNASExists,
+  findServiceByServiceName,
+  findFunctionByServiceAndFunctionName,
+  getUserIdAndGroupId,
+  SERVICE_RESOURCE,
+  FUNCTION_RESOURCE,
+  FLOW_RESOURCE,
+  validateNasAndVpcConfig,
+  isLogConfigAuto
+}

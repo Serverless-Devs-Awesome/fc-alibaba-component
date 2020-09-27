@@ -21,9 +21,9 @@ class TAG {
    * @param {*} tags : Will delete all tags if not specified
    */
   async remove (resourceArn, parameters) {
-    const onlyRemoveTagName = !!parameters ? (parameters.k || parameters.key) : false;
-    const tagKeys = [];
-    
+    const onlyRemoveTagName = parameters ? (parameters.k || parameters.key) : false
+    const tagKeys = []
+
     if (onlyRemoveTagName) {
       tagKeys.push(onlyRemoveTagName)
     } else {
@@ -40,20 +40,16 @@ class TAG {
       }
     }
     if (tagKeys.length !== 0) {
-      console.log('Tags: untag resource: ', tagKeys);
-      await this.fcClient.untagResource(resourceArn, tagKeys);
+      console.log('Tags: untag resource: ', tagKeys)
+      await this.fcClient.untagResource(resourceArn, tagKeys)
       console.log('Tags: untag resource successfully: ', tagKeys)
     } else {
-      console.log('tags length is 0, skip deleting.');
+      console.log('tags length is 0, skip deleting.')
     }
   }
 
-  async deploy (resourceArn, tagsInput, commands, parameters) {
-    const isOnlyDeployTags = _.isArray(commands) && commands[0] === 'tags'
-    let onlyDeployTagName
-    if (isOnlyDeployTags && (parameters.k || parameters.key)) {
-      onlyDeployTagName = parameters.k || parameters.key
-    }
+  async deploy (resourceArn, tagsInput, tagName) {
+    if (_.isEmpty(tagsInput)) { return }
     let tags = {}
     // tags格式化
     tagsInput.forEach(({ Key, Value }) => {
@@ -61,12 +57,12 @@ class TAG {
         tags[Key] = Value
       }
     })
-    if (onlyDeployTagName) {
-      if (!_.has(tags, onlyDeployTagName)) {
-        throw new Error(`${onlyDeployTagName} not found.`)
+    if (tagName) {
+      if (!_.has(tags, tagName)) {
+        throw new Error(`${tagName} not found.`)
       }
       tags = {
-        [onlyDeployTagName]: tags[onlyDeployTagName]
+        [tagName]: tags[tagName]
       }
     }
 
