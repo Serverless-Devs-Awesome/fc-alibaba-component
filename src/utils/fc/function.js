@@ -39,7 +39,7 @@ class Function {
     const zipPath = path.join(cachePath, `${projectName}.zip`);
     const singlePathConfigued = typeof code === 'string';
     const codeUri = singlePathConfigued ? code : code.Src;
-    const artifactConfigured = codeUri && (codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'));
+    const artifactConfigured = codeUri && (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'));
 
     // check if configured valid
     if (!singlePathConfigued) {
