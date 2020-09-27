@@ -27,8 +27,8 @@ const conf = new Conf({
 })
 
 process.on('unhandledRejection', error => {
-  require('../lib/exception-handler')(error)
-})
+  require('../lib/exception-handler')(error);
+});
 
 var fake = {
   pageview: () => {
