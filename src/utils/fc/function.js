@@ -7,6 +7,7 @@ const { DEFAULT } = require('./static')
 const { packTo } = require('@serverless-devs/s-zip')
 const OSS = require('../oss')
 const { execSync } = require('child_process')
+const { addEnv } = require('../install/env');
 
 const Builder = require('./builder')
 const util = require('util')
@@ -79,7 +80,7 @@ class Function {
         console.log(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`)
         await ncpAsync(packToParame.codeUri, buildArtifactPath, {
           filter: (source) => {
-            if (source.endsWith('.s') || source.endsWith('.fun') || source.endsWith('.git')) {
+            if (source.endsWith('.s') || source.endsWith('.fc') || source.endsWith('.git')) {
               return false
             }
             return true
@@ -165,6 +166,10 @@ class Function {
       }
       functionProperties.environmentVariables = EnvironmentAttr
     }
+    
+    // Add env
+    functionProperties.environmentVariables = addEnv(functionProperties.environmentVariables, undefined);// TODO nahai handle nas
+    
     return functionProperties
   }
 
@@ -182,6 +187,7 @@ class Function {
       if (!functionInput.CustomContainer.CrAccount) {
         throw new Error('No CustomContainerConfig.CrAccount found for container runtime')
       }
+      //TODO 如果没有User和Password，那么不做login
       if (!functionInput.CustomContainer.CrAccount.User) {
         throw new Error('No CustomContainerConfig.CrAccount.User found for container runtime')
       }

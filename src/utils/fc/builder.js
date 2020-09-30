@@ -8,6 +8,8 @@ const ncp = require('../ncp')
 const util = require('util')
 const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
+const { yellow } = require('colors')
+const Install = require('./install')
 
 class Builder {
   constructor () {
@@ -30,20 +32,28 @@ class Builder {
 
     if (useDocker) {
       // serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose
-      const codeRelativePath = this.getCodeRelativePath(serviceName, functionName)
+      const codeRelativePath = this.getBuildCodeRelativePath(serviceName, functionName)
       await this.buildInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, codeRelativePath, artifactPath, verbose)
     } else {
-      const codePath = this.getCodeAbsPath(baseDir, serviceName, functionName)
+      const codePath = this.getBuildCodeAbsPath(baseDir, serviceName, functionName)
       await this.buildArtifact(serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose)
     }
 
-    await this.collectArtifact(functionProps.Runtime, artifactPath)
+    //await this.collectArtifact(functionProps.Runtime, artifactPath)
   }
 
 async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
     const stages = ['install', 'build']
     const nasProps = {}
-    const preferredImage = undefined
+    const runtime = functionProps.Runtime;
+
+    let imageTag;
+    const funfilePath = path.resolve(baseDir, codeUri, 'fcfile');
+    if (fs.existsSync(funfilePath)) {
+      console.log(yellow('Found fcfile in your codrUri directory.'));
+      const installer = new Install();
+      imageTag = await installer.processFunfile(serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName);
+    }
 
     const opts = await buildOpts.generateBuildContainerBuildOpts(serviceName,
       serviceProps,
@@ -54,12 +64,12 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
       codeUri,
       funcArtifactDir,
       verbose,
-      preferredImage,
+      imageTag,
       stages)
 
     const usedImage = opts.Image
 
-    if (!preferredImage) {
+    if (!imageTag) {
       await docker.pullImageIfNeed(usedImage)
     }
     console.log('\nbuild function using image: ' + usedImage)
@@ -117,7 +127,7 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
   }
 
   initBuildCodeDir (baseDir, serviceName, functionName) {
-    const codePath = this.getCodeAbsPath(baseDir, serviceName, functionName)
+    const codePath = this.getBuildCodeAbsPath(baseDir, serviceName, functionName)
     if (fs.pathExistsSync(codePath)) {
       fs.rmdirSync(codePath, { recursive: true })
     }
@@ -132,38 +142,38 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
     fs.mkdirpSync(artifactPath)
   }
 
-  async collectArtifact (runtime, funcArtifactDir) {
-    if (!fs.pathExistsSync(funcArtifactDir)) {
-      return
-    }
+  // async collectArtifact (runtime, funcArtifactDir) {
+  //   if (!fs.pathExistsSync(funcArtifactDir)) {
+  //     return
+  //   }
 
-    if (runtime.includes('python')) {
-      // copy dependency to the root dir for deploy/package later
-      let source
-      const pythonLibDir = path.join(funcArtifactDir, '.fun', 'python', 'lib')
-      if (!fs.pathExistsSync(pythonLibDir)) {
-        return
-      }
-      const libs = fs.readdirSync(pythonLibDir)
-      if (libs.length == 1) {
-        source = path.join(pythonLibDir, libs[0], 'site-packages')
-      } else {
-        source = path.join(pythonLibDir, 'python', 'site-packages')
-        libs.forEach(dir => {
-          if (runtime === 'python3' && dir === 'python3.6') {
-            source = path.join(pythonLibDir, 'python3.6', 'site-packages')
-          } else if (runtime === 'python2.7' && dir === 'python2.7') {
-            source = path.join(pythonLibDir, 'python2.7', 'site-packages')
-          }
-        })
-      }
+  //   if (runtime.includes('python')) {
+  //     // copy dependency to the root dir for deploy/package later
+  //     let source
+  //     const pythonLibDir = path.join(funcArtifactDir, '.fun', 'python', 'lib')
+  //     if (!fs.pathExistsSync(pythonLibDir)) {
+  //       return
+  //     }
+  //     const libs = fs.readdirSync(pythonLibDir)
+  //     if (libs.length == 1) {
+  //       source = path.join(pythonLibDir, libs[0], 'site-packages')
+  //     } else {
+  //       source = path.join(pythonLibDir, 'python', 'site-packages')
+  //       libs.forEach(dir => {
+  //         if (runtime === 'python3' && dir === 'python3.6') {
+  //           source = path.join(pythonLibDir, 'python3.6', 'site-packages')
+  //         } else if (runtime === 'python2.7' && dir === 'python2.7') {
+  //           source = path.join(pythonLibDir, 'python2.7', 'site-packages')
+  //         }
+  //       })
+  //     }
 
-      await ncpAsync(source, funcArtifactDir)
-    }
+  //     await ncpAsync(source, funcArtifactDir)
+  //   }
 
-    // remove the unecessary directory
-    fs.rmdirSync(path.join(funcArtifactDir, '.fun'), { recursive: true })
-  }
+  //   // remove the unecessary directory
+  //   fs.rmdirSync(path.join(funcArtifactDir, '.fun'), { recursive: true })
+  // }
 
   isOnlyDefaultTaskFlow (taskFlows) {
     if (taskFlows.length !== 1) { return false }
@@ -212,11 +222,11 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
 
   async copyCodeForBuild (baseDir, codeUri, serviceName, functionName) {
     const absCodeUri = path.resolve(baseDir, codeUri)
-    const codePath = this.getCodeAbsPath(baseDir, serviceName, functionName)
+    const buildCodePath = this.getBuildCodeAbsPath(baseDir, serviceName, functionName)
     try {
-      await ncpAsync(absCodeUri, codePath, {
+      await ncpAsync(absCodeUri, buildCodePath, {
         filter: (source) => {
-          if (source.endsWith('.s') || source.endsWith('.fun') || source.endsWith('.git') ||
+          if (source.endsWith('.s') || source.endsWith('.fc') || source.endsWith('.git') ||
                 source == 'vendor' || source == 'node_modules') {
             return false
           }
@@ -260,16 +270,16 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
   }
 
   getArtifactPath (baseDir, serviceName, functionName) {
-    const rootArtifact = path.join(baseDir, '.s', 'build', 'artifacts')
+    const rootArtifact = path.join(baseDir, '.fc', 'build', 'artifacts')
     return path.join(rootArtifact, serviceName, functionName)
   }
 
-  getCodeAbsPath (baseDir, serviceName, functionName) {
-    return path.join(baseDir, this.getCodeRelativePath(serviceName, functionName))
+  getBuildCodeAbsPath (baseDir, serviceName, functionName) {
+    return path.join(baseDir, this.getBuildCodeRelativePath(serviceName, functionName))
   }
 
-  getCodeRelativePath (serviceName, functionName) {
-    return path.join('.s', 'build', 'code', serviceName, functionName)
+  getBuildCodeRelativePath (serviceName, functionName) {
+    return path.join('.fc', 'build', 'code', serviceName, functionName)
   }
 }
 

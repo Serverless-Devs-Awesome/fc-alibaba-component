@@ -65,6 +65,8 @@ real.set('cd3', appVersion)
 var visitor
 
 async function getVisitor (returnFakeIfMissingConfig = false) {
+  //TODO nahai send method block, so use fake here
+  return fakeMocha;
   if (!visitor) {
     const profile = await getProfileFromFile()
 

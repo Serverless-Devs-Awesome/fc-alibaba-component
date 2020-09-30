@@ -9,12 +9,13 @@ const TAG = require('./utils/tag')
 const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 
-const { green, yellow } = require('colors')
+const { green, yellow, red } = require('colors')
 const fse = require('fs-extra');
 const yaml = require('js-yaml')
 const { Component } = require('@serverless-devs/s-core')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote, Sync } = require('./utils/fc')
 const { execSync } = require('child_process')
+const path = require('path')
 
 const DEFAULT = {
   Region: 'cn-hangzhou',
@@ -379,7 +380,92 @@ class FcComponent extends Component {
 
   // 安装
   async install (inputs) {
-    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args)
+      this.help(inputs, {
+        "description": `Usage: s install [command] [packageNames...] [-r|--runtime <runtime>] [-p|--package-type <type>] [--save] [-e|--env key=val ...]
+
+        install dependencies for your project.`,
+        "commands": [{
+              "name": "docker",
+              "desc": "use docker to install dependencies.",
+        }],
+        "args": [{
+              "name": "-e, --env <env>",
+              "desc": "environment variable, ex. -e PATH=/code/bin (default: [])",
+            },{
+              "name": "-r, --runtime <runtime>",
+              "desc": "function runtime, avaliable choice is: nodejs6, nodejs8, nodejs10, nodejs12, python2.7, python3, java8, php7.2, dotnetcore2.1, custom, custom-container.",
+            },{
+              "name": "-p, --package-type <type>",
+              "desc": "avaliable package type option: pip, apt, npm.",
+            },{
+              "name": "--url",
+              "desc": "for nodejs this can be configured as custom registry, for python this should be Base URL of Python Package Index (default https://pypi.org/simple).",
+            },{
+              "name": "--save",
+              "desc": "save install command to fcfile.",
+            },{
+              "name": "-f, --file",
+              "desc": "use fcfile before installing, this path should be relative to your codeUri.",
+            }
+        ],
+    })
+    
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, ['i', 'interactive', 'save']);
+    const {e, env, r, runtime, p, packageType, url, c, cmd, f, file , i, interactive} = parameters;
+    const installer = new Install();
+
+    if (commands.length == 0) {
+      console.log(red(`input error, use 's install --help' for info.`));
+      throw new Error('input error.');
+    }
+
+    const installCommand = commands[0];
+    if (!_.includes(['docker'], installCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${installCommand}', example: s install docker`));
+      throw new Error('Input error.');
+    }
+
+    //commands
+    const useDocker = installCommand == 'docker';
+    let installAll = true, packages = [];
+    // console.log(commands);
+    if (commands.length > 1) {
+      packages = commands.slice(1);
+      installAll = false;
+    }
+    const cmdArgs = {
+      env: [].concat(e || env || []),
+      runtime: r || runtime,
+      packageType: p || packageType,
+      registryUrl: url,
+      cmd: c || cmd,
+      interactive: parameters.hasOwnProperty('i') || parameters.hasOwnProperty('interactive'),
+      save: parameters.hasOwnProperty('save'),
+      fcFile: f || file || 'fcfile',
+      url: url,
+      installAll: installAll,
+      packages: packages
+    };
+
+    if (cmdArgs.save && installAll) {
+      console.log(red(`--save should be use with packages, such as 's install docker hexo --save'`));
+      throw new Error('Input error.');
+    }
+
+    if (cmdArgs.interactive && cmdArgs.cmd) {
+      console.log(red(`'--interactive' should not be used with '--cmd'`));
+      throw new Error('Input error.');
+    }
+
+    if (cmdArgs.packageType && cmdArgs.installAll) {
+      console.log(red(`'--package-type' should be used to install packages, but no packageName specified.`));
+      throw new Error('Input error.');
+    }
+
+    if (cmdArgs.save && cmdArgs.installAll) {
+      console.log(red(`'--save' should be used to record installing packages, but no packageName specified.`));
+      throw new Error('Input error.');
+    }
 
     console.log('Start to install dependency.');
     const properties = inputs.Properties
@@ -395,23 +481,40 @@ class FcComponent extends Component {
     const functionInput = properties.Function;
     const functionName = functionInput.Name
 
-    const interactive = parameters.hasOwnProperty('i');
-    const useDocker = parameters.hasOwnProperty('d');
     if (useDocker) {
       console.log('Start installing functions using docker.');
+      await installer.installInDocker({serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs});
+      return;
     }
-    const installer = new Install();
-    await installer.installAll(serviceName, serviceInput, functionName, functionInput, interactive, useDocker, false);
+
+    if (installAll) {
+      await installer.installAll(serviceName, serviceInput, functionName, functionInput, interactive, useDocker, false);
+    }
 
     console.log('Install artifact successfully.');
   }
 
   // 构建
   async build (inputs) {
+    this.help(inputs, {
+      "description": `Usage: s build [command]
+
+      Build the dependencies.`,
+      "commands": [{
+            "name": "docker",
+            "desc": "use docker to build dependencies.",
+          },{
+            "name": "local",
+            "desc": "build dependencies directly.",
+          },{
+            "name": "image",
+            "desc": "build image for custom-runtime project.",
+          }]
+    })
     console.log('Start to build artifact.')
     const properties = inputs.Properties
     const state = inputs.State || {}
-    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args)
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
     const serviceInput = properties.Service || {}
     const serviceState = state.Service || {}
     const serviceName = serviceInput.Name
@@ -422,15 +525,29 @@ class FcComponent extends Component {
     const functionInput = properties.Function
     const functionName = functionInput.Name
 
+    if (commands.length == 0) {
+      console.log(red(`input error, use 's build --help' for info.`));
+      throw new Error('input error.');
+    }
+    const buildCommand = commands[0];
+    if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`));
+      throw new Error('Input error.');
+    }
+
     const builder = new Builder()
-    const buildImage = functionInput.Runtime === 'custom-container'
+    const buildImage = buildCommand === 'image'
     if (buildImage) {
+      if (functionInput.Runtime != 'custom-container') {
+        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionInput.Runtime}`));
+        throw new Error('Input error.');
+      }
       await builder.buildImage()
       return
     }
 
     // serviceName, serviceProps, functionName, functionProps, useDocker, verbose
-    const useDocker = parameters.hasOwnProperty('d')
+    const useDocker = buildCommand === 'docker'
     if (useDocker) {
       console.log('Use docker for building.')
     }
