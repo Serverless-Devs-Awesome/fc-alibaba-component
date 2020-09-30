@@ -42,7 +42,7 @@
     "@alicloud/mns": "^1.0.0",
     "@alicloud/pop-core": "^1.7.9",
     "@alicloud/ram": "^1.0.0",
-    "@serverless-devs/s-core": "0.0.7",
+    "@serverless-devs/s-core": "^0.0.10",
     "@serverless-devs/s-zip": "0.0.8",
     "ali-oss": "^6.10.0",
     "aliyun-sdk": "^1.12.3",
@@ -82,7 +82,8 @@
     "util": "^0.12.3",
     "uuid-by-string": "^3.0.2",
     "walkdir": "^0.4.1",
-    "zip-local": "^0.3.4"
+    "zip-local": "^0.3.4",
+    "dockerfile-ast": "0.0.16"
   },
   "devDependencies": {
     "standard": "^14.3.4"
