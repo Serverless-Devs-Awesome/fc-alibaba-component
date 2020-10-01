@@ -19,7 +19,7 @@ class Client {
   }
 
   buildFcClient () {
-    return new FC(this.accessKeyID, {
+    return new FC(this.accountId, {
       accessKeyID: this.accessKeyID,
       accessKeySecret: this.accessKeySecret,
       securityToken: this.stsToken,
