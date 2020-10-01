@@ -1,20 +1,14 @@
-const FC = require('@alicloud/fc2')
-const fs = require('fs')
-const requestP = require('request-promise')
+
 const _ = require('lodash')
 
-class CustomDomain {
+const fs = require('fs')
+const requestP = require('request-promise')
+const Client = require('./client')
+
+class CustomDomain extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   async deployDomain (domain, ServiceName, FunctionName) {
@@ -46,12 +40,7 @@ class CustomDomain {
     }
 
     if (domainName.toLocaleUpperCase() === 'AUTO') {
-      const getAutoDomain = new GetAutoDomain(
-        this.accountId,
-        this.accessKeyID,
-        this.accessKeySecret,
-        this.region
-      )
+      const getAutoDomain = new GetAutoDomain()
       const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName, true)
       domainName = autoDomain.domainName
       options.protocol = 'HTTP'
@@ -142,12 +131,7 @@ class CustomDomain {
     }
     for (const { Domain } of domains) {
       if (Domain.toLocaleUpperCase() === 'AUTO') {
-        const getAutoDomain = new GetAutoDomain(
-          this.accountId,
-          this.accessKeyID,
-          this.accessKeySecret,
-          this.region
-        )
+        const getAutoDomain = new GetAutoDomain()
         const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName)
         await deleteDomain(autoDomain)
       } else {
@@ -157,20 +141,7 @@ class CustomDomain {
   }
 }
 
-class GetAutoDomain {
-  constructor (accountId, accessKeyID, accessKeySecret, region) {
-    this.accountId = accountId
-    this.accessKeyID = accessKeyID
-    this.accessKeySecret = accessKeySecret
-    this.region = region
-    this.fcClient = new FC(accountId, {
-      accessKeyID: accessKeyID,
-      accessKeySecret: accessKeySecret,
-      region: region,
-      timeout: 60000
-    })
-  }
-
+class GetAutoDomain extends CustomDomain {
   async deleteFcUtilsFunctionTmpDomain ({ tmpServiceName, tmpFunctionName, tmpTriggerName }) {
     try {
       await this.fcClient.deleteTrigger(tmpServiceName, tmpFunctionName, tmpTriggerName)

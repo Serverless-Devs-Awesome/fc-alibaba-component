@@ -3,23 +3,15 @@
 const _ = require('lodash')
 
 const debug = require('debug')('fun:ram')
-const Ram = require('@alicloud/ram')
+const Client = require('./fc/client')
 
 const { red } = require('colors')
 const { promiseRetry } = require('./common')
 
-class RAM {
+class RAM extends Client {
   constructor (credentials) {
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.ramClient = new Ram({
-      accessKeyId: this.accessKeyID,
-      accessKeySecret: this.accessKeySecret,
-      endpoint: 'https://ram.aliyuncs.com',
-      opts: {
-        timeout: 60000
-      }
-    })
+    super(credentials)
+    this.ramClient = this.buildRamClient()
   }
 
   normalizeRoleOrPoliceName (roleName) {
@@ -184,23 +176,6 @@ class RAM {
     debug('begin attachPolicyToRole')
     await this.attachPolicyToRole(policyName, roleName, 'Custom')
   }
-
-  // async existsRole (roleName) {
-  //   try {
-  //     const role = await this.ramClient.getRole({ RoleName: roleName })
-  //     if (role) {
-  //       return true
-  //     }
-  //   } catch (e) {
-  //     if (!e.code) {
-  //       throw e
-  //     }
-  //     const notExists = e.code.indexOf('EntityNotExist') >= 0
-  //     return !notExists
-  //   }
-
-  //   return false
-  // }
 }
 
 module.exports = RAM

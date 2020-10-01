@@ -4,38 +4,20 @@ const _ = require('lodash')
 
 const debug = require('debug')('fun:deploy')
 const getUuid = require('uuid-by-string')
+const Client = require('./fc/client')
 const moment = require('moment')
 const definition = require('./tpl/definition')
-const Log = require('@alicloud/log')
 
-const { SLS } = require('aliyun-sdk')
 const { promiseRetry } = require('./common')
 const { red, green } = require('colors')
 
 const FIVE_SPACES = '     '
 const TEN_SPACES = '          '
 
-class Logs {
+class Logs extends Client {
   constructor (credentials, region, useAliyunSdk = true) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-
-    if (useAliyunSdk) {
-      this.slsClient = new SLS({
-        accessKeyId: this.accessKeyID,
-        secretAccessKey: this.accessKeySecret,
-        endpoint: `http://${this.region}.sls.aliyuncs.com`,
-        apiVersion: '2015-06-01'
-      })
-    } else {
-      this.slsClient = new Log({
-        region: this.region,
-        accessKeyId: this.accessKeyID,
-        accessKeySecret: this.accessKeySecret
-      })
-    }
+    super(credentials, region)
+    this.slsClient = this.buildSlsClient(useAliyunSdk)
   }
 
   sleep (ms) {
@@ -261,8 +243,7 @@ class Logs {
         if (ex.code === 'Unauthorized') {
           throw new Error(red(`Log Service '${projectName}' may create by others, you should use a unique project name.`))
         } else if (ex.code !== 'ProjectNotExist') {
-          // TODO:
-          console.log('error when getProject, projectName is %s, error is: \n%O', projectName, ex)
+          debug('error when getProject, projectName is %s, error is: \n%O', projectName, ex)
           console.log(red(`\tretry ${times} times`))
           retry(ex)
         } else { projectExist = false }
@@ -299,11 +280,8 @@ class Logs {
         await this.slsClient.getLogStore(projectName, logStoreName)
       } catch (ex) {
         if (ex.code !== 'LogStoreNotExist') {
-          // TODO:
-          console.log('error when getLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
-
+          debug('error when getLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
           console.log(red(`\t\tretry ${times} times`))
-
           retry(ex)
         } else { exists = false }
       }
@@ -320,8 +298,7 @@ class Logs {
           if (ex.code === 'Unauthorized') {
             throw ex
           }
-          // TODO:
-          console.log('error when createLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
+          debug('error when createLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
           console.log(red(`\t\tretry ${times} times`))
           retry(ex)
         }
@@ -334,8 +311,7 @@ class Logs {
             shardCount
           })
         } catch (ex) {
-          // TODO:
-          console.log('error when updateLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
+          debug('error when updateLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
           if (ex.code === 'Unauthorized') {
             throw ex
           }

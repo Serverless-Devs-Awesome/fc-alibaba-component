@@ -10,8 +10,8 @@ function composeStringToSign (method, path, headers, queries) {
   var u
   try {
     u = new URL(path)
-  } catch(e) {
-    u = url.parse(path);
+  } catch (e) {
+    u = url.parse(path)
   }
   var pathUnescaped = decodeURIComponent(u.pathname)
   var str = `${method}\n${contentMD5}\n${contentType}\n${date}\n${signHeaders}${pathUnescaped}`

@@ -4,13 +4,13 @@ const _ = require('lodash')
 
 const fs = require('fs-extra')
 const path = require('path')
-const FC = require('@alicloud/fc2')
-const RAM = require('../ram')
-const Logs = require('../logs')
 const debug = require('debug')('fun:deploy')
 const zip = require('../zip')
 const vpc = require('../vpc')
 const nas = require('../nas/nas')
+const RAM = require('../ram')
+const Logs = require('../logs')
+const Client = require('./client')
 const definition = require('../tpl/definition')
 
 const { sleep } = require('../common')
@@ -21,21 +21,10 @@ const { DEFAULT_VPC_CONFIG, DEFAULT_NAS_CONFIG, FUN_GENERATED_SERVICE } = requir
 const FIVE_SPACES = '     '
 const EXTREME_PATH_PREFIX = '/share'
 
-class Service {
+class Service extends Client {
   constructor (credentials, region) {
-    this.credentials = credentials
-
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-
-    this.fcClient = new FC(this.accountId, {
-      accessKeyID: this.accessKeyID,
-      accessKeySecret: this.accessKeySecret,
-      region: this.region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
     this.ram = new RAM(credentials)
   }
 

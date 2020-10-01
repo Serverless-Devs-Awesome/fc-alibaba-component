@@ -16,7 +16,7 @@ async function generateBuildContainerBuildOpts (
 
   const envs = await docker.generateDockerEnvs(baseDir, serviceName, serviceProps, functionName, functionProps, null, null)
   if (custom.Env) {
-    Object.assign(envs, custom.Env);
+    Object.assign(envs, custom.Env)
   }
 
   const codeMount = await docker.resolveCodeUriToMount(path.resolve(baseDir, codeUri), false)

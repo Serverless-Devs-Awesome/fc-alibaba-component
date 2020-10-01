@@ -1,21 +1,16 @@
-const FC = require('@alicloud/fc2')
+'use strict'
+
 const fs = require('fs')
 const path = require('path')
 const kitx = require('kitx')
+const Client = require('./client')
+
 const { composeStringToSign, signString } = require('./signature')
 
-class InvokeRemote {
+class InvokeRemote extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   async invokeEvent (serviceName, functionName, eventConfig = {}, qualifier) {

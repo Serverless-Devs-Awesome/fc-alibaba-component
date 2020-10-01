@@ -1,32 +1,27 @@
-const FC = require('@alicloud/fc2')
-const moment = require('moment')
+'use strict'
+
 const fs = require('fs')
 const fse = require('fs-extra')
 const path = require('path')
-const { DEFAULT } = require('./static')
-const { packTo } = require('@serverless-devs/s-zip')
-const OSS = require('../oss')
-const { execSync } = require('child_process')
-const { addEnv } = require('../install/env');
 
-const Builder = require('./builder')
 const util = require('util')
 const ncp = require('../ncp')
+const moment = require('moment')
 const ncpAsync = util.promisify(ncp)
 
-class Function {
+const OSS = require('../oss')
+const Client = require('./client')
+const Builder = require('./builder')
+
+const { DEFAULT } = require('./static')
+const { packTo } = require('@serverless-devs/s-zip')
+const { execSync } = require('child_process')
+const { addEnv } = require('../install/env')
+
+class Function extends Client {
   constructor (credentials, region) {
-    this.credentials = credentials
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 6000000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   async makeCacheDir (path) {
@@ -166,10 +161,10 @@ class Function {
       }
       functionProperties.environmentVariables = EnvironmentAttr
     }
-    
+
     // Add env
-    functionProperties.environmentVariables = addEnv(functionProperties.environmentVariables, undefined);// TODO nahai handle nas
-    
+    functionProperties.environmentVariables = addEnv(functionProperties.environmentVariables, undefined)// TODO nahai handle nas
+
     return functionProperties
   }
 
@@ -187,7 +182,7 @@ class Function {
       if (!functionInput.CustomContainer.CrAccount) {
         throw new Error('No CustomContainerConfig.CrAccount found for container runtime')
       }
-      //TODO 如果没有User和Password，那么不做login
+      // TODO 如果没有User和Password，那么不做login
       if (!functionInput.CustomContainer.CrAccount.User) {
         throw new Error('No CustomContainerConfig.CrAccount.User found for container runtime')
       }

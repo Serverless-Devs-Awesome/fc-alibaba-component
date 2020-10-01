@@ -1,18 +1,11 @@
-const FC = require('@alicloud/fc2')
+'use strict'
 const _ = require('lodash')
+const Client = require('./fc/client')
 
-class TAG {
+class TAG extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   /**

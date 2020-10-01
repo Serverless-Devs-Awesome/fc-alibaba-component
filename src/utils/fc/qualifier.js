@@ -1,18 +1,11 @@
-const FC = require('@alicloud/fc2')
+'use strict'
 
-class Alias {
+const Client = require('./client')
+
+class Alias extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
-    // this.fcClient
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   async publish (alias, serviceName) {
@@ -86,18 +79,10 @@ class Alias {
   }
 }
 
-class Version {
+class Version extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   async publish (serviceName, description) {

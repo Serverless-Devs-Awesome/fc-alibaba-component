@@ -24,6 +24,19 @@ function sleep (ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+async function asyncFind (pathArrays, filter) {
+  for (const path of pathArrays) {
+    if (await filter(path)) {
+      return path
+    }
+  }
+  return null
+}
+
+function hasOwnProperty (obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key)
+}
+
 module.exports = {
-  sleep, promiseRetry
+  sleep, promiseRetry, asyncFind, hasOwnProperty
 }

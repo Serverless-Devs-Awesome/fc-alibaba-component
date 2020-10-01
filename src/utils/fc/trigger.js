@@ -1,9 +1,13 @@
-const FC = require('@alicloud/fc2')
+'use strict'
+
+const _ = require('lodash')
+
 const util = require('util')
 const http = require('http')
 const RAM = require('../ram')
+const Client = require('./client')
+
 const { CustomDomain } = require('./customDomain')
-const _ = require('lodash')
 
 const triggerTypeMapping = {
   Datahub: 'datahub',
@@ -26,19 +30,10 @@ function displayDomainInfo (domainName, triggerName, triggerProperties, EndPoint
   console.log(`\tEndPoint: ${EndPoint}`)
 }
 
-class Trigger {
+class Trigger extends Client {
   constructor (credentials, region) {
-    this.credentials = credentials
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
   sleep (ms) {

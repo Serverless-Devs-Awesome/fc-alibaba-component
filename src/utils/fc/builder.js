@@ -21,8 +21,8 @@ class Builder {
     const baseDir = process.cwd()
     const runtime = functionProps.Runtime
 
-    if (! await this.codeNeedBuild(baseDir, codeUri, runtime)) {
-      return;
+    if (!await this.codeNeedBuild(baseDir, codeUri, runtime)) {
+      return
     }
 
     this.initBuildCodeDir(baseDir, serviceName, functionName)
@@ -39,20 +39,20 @@ class Builder {
       await this.buildArtifact(serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose)
     }
 
-    //await this.collectArtifact(functionProps.Runtime, artifactPath)
+    // await this.collectArtifact(functionProps.Runtime, artifactPath)
   }
 
-async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
+  async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
     const stages = ['install', 'build']
     const nasProps = {}
-    const runtime = functionProps.Runtime;
+    const runtime = functionProps.Runtime
 
-    let imageTag;
-    const funfilePath = path.resolve(baseDir, codeUri, 'fcfile');
+    let imageTag
+    const funfilePath = path.resolve(baseDir, codeUri, 'fcfile')
     if (fs.existsSync(funfilePath)) {
-      console.log(yellow('Found fcfile in your codrUri directory.'));
-      const installer = new Install();
-      imageTag = await installer.processFunfile(serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName);
+      console.log(yellow('Found fcfile in your codrUri directory.'))
+      const installer = new Install()
+      imageTag = await installer.processFunfile(serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName)
     }
 
     const opts = await buildOpts.generateBuildContainerBuildOpts(serviceName,
@@ -185,37 +185,37 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
     if (!runtime || typeof runtime !== 'string') {
       return false
     }
-    return runtime.includes('java');
+    return runtime.includes('java')
   }
 
   async codeNeedBuild (baseDir, codeUri, runtime) {
-    //check codeUri
+    // check codeUri
     if (!codeUri) {
-      console.warn('No code uri configured, skip building.');
-      return false;
+      console.warn('No code uri configured, skip building.')
+      return false
     }
-    if (typeof codeUri == 'string') {
+    if (typeof codeUri === 'string') {
       if (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
-        console.log('Artifact configured, skip building.');
-        return false;
+        console.log('Artifact configured, skip building.')
+        return false
       }
     } else {
       if (!codeUri.Src) {
-        console.log('No Src configured, skip building.');
-        return false;
+        console.log('No Src configured, skip building.')
+        return false
       }
       if (codeUri.Src.endsWith('.zip') || codeUri.Src.endsWith('.jar') || codeUri.Src.endsWith('.war')) {
-        console.log('Artifact configured, skip building.');
-        return false;
+        console.log('Artifact configured, skip building.')
+        return false
       }
     }
 
-    const Builder = fcBuilders.Builder;
-    const absCodeUri = path.resolve(baseDir, codeUri);
-    const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri);
+    const Builder = fcBuilders.Builder
+    const absCodeUri = path.resolve(baseDir, codeUri)
+    const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri)
     if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
-        console.log("No need build for this project.");
-        return false;
+      console.log('No need build for this project.')
+      return false
     }
     return true
   }
