@@ -293,39 +293,37 @@ class FcComponent extends Component {
     }
   }
 
-  // 触发
+  /**
+   * s invoke remote options:
+   *   -e or --event
+   *   -f or --event-file <path>
+   *   -s or --event-stdin
+   *   -q or qualifier
+   *
+   * @param {*} inputs
+   */
   async invoke (inputs) {
-    const { credentials, args, functionName, serviceName, region } = this.handlerInputs(inputs)
-    const { Commands: commands = [], Parameters: parameters } = args
-    const invokeCommand = commands[0]
-    if (!invokeCommand || !parameters.type) {
-      throw new Error('Invoke command error,example: s invoke remote --type event/http')
-    }
+    const {
+      credentials,
+      serviceName,
+      functionName,
+      args: {
+        Commands: commands,
+        Parameters: parameters
+      }, region
+    } = this.handlerInputs(inputs)
 
-    const invokeType = parameters.type.toLocaleUpperCase()
-    if (invokeType !== 'EVENT' && invokeType !== 'HTTP') {
-      throw new Error('Need to specify the function execution type: event or http')
-    }
+    if (commands[0] === 'remote') {
+      const invokeRemote = new InvokeRemote(credentials, region)
 
-    let invokeClient
-    if (invokeCommand === 'remote') {
-      invokeClient = new InvokeRemote(credentials, region)
-    }
+      const event = parameters.e || parameters.event || ''
+      const eventFile = parameters.f || parameters.eventFile
+      const eventStdin = parameters.s || parameters.eventStdin
 
-    if (invokeType === 'EVENT') {
-      await invokeClient.invokeEvent(
-        serviceName,
-        functionName,
-        { eventFilePath: parameters.eventFilePath, event: parameters.event },
-        parameters.qualifier
-      )
-    } else {
-      await invokeClient.invokeHttp(
-        serviceName,
-        functionName,
-        { eventFilePath: parameters.eventFilePath },
-        parameters.qualifier
-      )
+      const qualifier = parameters.q || parameters.qualifier || 'LATEST'
+      const invocationType = parameters.t || parameters.invocationType || 'sync'
+
+      await invokeRemote.doInvoke(serviceName, functionName, invocationType, qualifier, { event, eventFile, eventStdin })
     }
   }
 
