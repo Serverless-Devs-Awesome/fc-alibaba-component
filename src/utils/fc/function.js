@@ -187,13 +187,6 @@ class Function {
       if (!functionInput.CustomContainer.CrAccount) {
         throw new Error('No CustomContainerConfig.CrAccount found for container runtime')
       }
-      //TODO 如果没有User和Password，那么不做login
-      if (!functionInput.CustomContainer.CrAccount.User) {
-        throw new Error('No CustomContainerConfig.CrAccount.User found for container runtime')
-      }
-      if (!functionInput.CustomContainer.CrAccount.Password) {
-        throw new Error('No CustomContainerConfig.CrAccount.Password found for container runtime')
-      }
       // code和customContainerConfig不能同时存在
       functionProperties.code = undefined
       functionProperties.customContainerConfig = {
@@ -278,9 +271,12 @@ class Function {
   async pushImage (userName, password, imageName) {
     try {
       const registry = imageName.split('/')[0]
-      execSync(`docker login --username=${userName} ${registry} --password-stdin`, {
-        input: password
-      })
+      if (userName && password) {
+        console.log('Login to the registry...')
+        execSync(`docker login --username=${userName} ${registry} --password-stdin`, {
+          input: password
+        })
+      }
 
       execSync(`docker push ${imageName}`, {
         stdio: 'inherit'
