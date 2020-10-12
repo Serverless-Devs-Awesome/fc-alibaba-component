@@ -226,16 +226,16 @@ Properties:
                     Description: 本地路径
                     Type:
                       - <String>List
+          CAPort:
+            Required: false
+            Description: CustomContainer/Runtime指定端口
+            Type:
+              - String
           CustomContainer:
             Required: false
             Description: 自定义镜像配置
             Type:
               - Struct:
-                  CAPort:
-                    Required: false
-                    Description: 指定端口
-                    Type:
-                      - String
                   CrAccount:
                     Required: false
                     Description: 账号信息
