@@ -50,7 +50,6 @@ Properties:
           - us-west-1
           - us-east-1
           - ap-south-1
-          - cn-zhangjiakou-na62-a01
   Service:
     Description: 服务
     Required: true
