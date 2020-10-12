@@ -1,0 +1,643 @@
+Type: Component
+Name: fc
+Provider:
+  - Alibaba
+Version: 0.0.13
+Description: 阿里云函数计算组件，可以快速部署阿里云FC
+HomePage: https://www.aliyun.com/
+Tags:
+  - 函数计算
+Category: 基础云服务
+Commands:
+  deploy: 部署函数
+  invoke: 调用函数
+  remove: 移除函数
+  logs: 查看日志
+  metrics: 查看指标
+  install: 安装依赖
+  build: 构建项目
+  publish: 发布版本/别名
+  package: 打包代码包
+  nas: 操作NAS文件系统
+  sync: 线上资源同步到本地
+Service:
+  函数计算:
+    Authorities:
+      - 创建函数
+      - 删除函数
+Properties:
+  Region:
+    Description: 地域
+    Required: true
+    Type:
+      - Enum:
+          - cn-beijing
+          - cn-hangzhou
+          - cn-shanghai
+          - cn-qingdao
+          - cn-zhangjiakou
+          - cn-huhehaote
+          - cn-shenzhen
+          - cn-chengdu
+          - cn-hongkong
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-5
+          - ap-northeast-1
+          - eu-central-1
+          - eu-west-1
+          - us-west-1
+          - us-east-1
+          - ap-south-1
+          - cn-zhangjiakou-na62-a01
+  Service:
+    Description: 服务
+    Required: true
+    Type:
+      - Struct:
+          Name:
+            Required: true
+            Description: service名称
+            Type:
+              - String
+          Description:
+            Required: true
+            Description: service的简短描述
+            Type:
+              - String
+          InternetAccess:
+            Required: false
+            Description: 设为true让function可以访问公网
+            Type:
+              - Boolean
+          Log:
+            Required: false
+            Description: log配置，function产生的log会写入这里配置的logstore
+            Type:
+              - Struct:
+                  LogStore:
+                    Required: false
+                    Description: loghub中的logstore名称
+                    Type:
+                      - String
+                  Project:
+                    Required: false
+                    Description: loghub中的project名称
+                    Type:
+                      - String
+          Role:
+            Required: false
+            Description: 授予函数计算所需权限的RAM role, 使用场景包含 1. 把 function产生的 log 发送到用户的 logstore 中 2. 为function 在执行中访问其它云资源生成 token
+            Example: "acs:ram::1234567890:role/fc-test"
+            Type:
+              - String
+          Vpc:
+            Required: false
+            Description: vpc配置, 配置后function可以访问指定VPC
+            Type:
+              - Struct:
+                  SecurityGroupId:
+                    Required: false
+                    Description: 安全组ID
+                    Type:
+                      - String
+                  VSwitchIds:
+                    Required: false
+                    Description: 一个或多个VSwitch ID
+                    Type:
+                      - <String>List
+                  VpcId:
+                    Required: false
+                    Description: VPC ID
+                    Type:
+                      - String
+          Nas:
+            Required: false
+            Description: NAS配置, 配置后function可以访问指定NAS
+            Type:
+              - Struct:
+                  UserId:
+                    Required: false
+                    Description: userID
+                    Type:
+                      - String
+                  GroupId:
+                    Required: false
+                    Description: groupID
+                    Type:
+                      - String
+                  MountPoints:
+                    Required: false
+                    Description: 挂载点
+                    Type:
+                      - <Struct>List:
+                          ServerAddr:
+                            Required: false
+                            Description: NAS 服务器地址
+                            Type:
+                              - String
+                          MountDir:
+                            Required: false
+                            Description: 本地挂载目录
+                            Type:
+                              - String
+          Tag:
+            Required: false
+            Description: NAS配置, 配置后function可以访问指定NAS
+            Type:
+              - <Struct>List:
+                  Key: 标签名
+                  Value: 标签值
+  Function:
+    Description: 函数
+    Required: true
+    Type:
+      - Struct:
+          Name:
+            Required: true
+            Description: function名称
+            Type:
+              - String
+          Description:
+            Required: false
+            Description: function的简短描述
+            Type:
+              - String
+          CodeUri:
+            Required: false
+            Default: ./
+            Description: 代码位置
+            Type:
+              - String
+              - Struct:
+                  Bucket:
+                    Required: false
+                    Description: function code包的bucket name
+                    Type:
+                      - String
+                  Object:
+                    Required: false
+                    Description: code zip包的object name
+                    Type:
+                      - String
+              - Struct:
+                  Bucket:
+                    Required: false
+                    Description: function code包的bucket name
+                    Type:
+                      - String
+                  Src:
+                    Required: false
+                    Description: 本地路径
+                    Type:
+                      - String
+          Handler:
+            Required: false
+            Default: index.handler
+            Description: function执行的入口，具体格式和语言相关
+            Type:
+              - String
+          MemorySize:
+            Required: false
+            Default: 512
+            Description: function的内存规格
+            Type:
+              - String
+          Runtime:
+            Required: false
+            Default: Nodejs10
+            Description: function的内存规格
+            Type:
+              - String
+          Timeout:
+            Required: false
+            Default: 60
+            Description: function运行的超时时间
+            Type:
+              - String
+          Environment:
+            Required: false
+            Description: 环境变量
+            Example: 'key: value'
+            Type:
+              - Struct
+          Initializer:
+            Required: false
+            Description: 初始化方法
+            Type:
+              - Struct:
+                  Handler:
+                    Required: false
+                    Description: 初始化 function 执行的入口，具体格式和语言相关
+                    Type:
+                      - String
+                  Timeout:
+                    Required: false
+                    Description: 初始化 function 运行的超时时间
+                    Type:
+                      - String
+          Triggers:
+            Required: false
+            Description: 触发器
+            Type:
+              - <Struct>List:
+                  Name:
+                    Required: true
+                    Description: 触发器名称
+                    Type:
+                      - String
+                  Type:
+                    Required: true
+                    Description: 触发器类型
+                    Type:
+                      - Enum:
+                          - OSS
+                          - Timer
+                          - HTTP
+                          - Log
+                          - RDS
+                          - MNSTopic
+                          - TableStore
+                          - CDN
+                  Parameters:
+                    Required: true
+                    Description: 参数类型
+                    Type:
+                      - Struct[Type[OSS]]:
+                          Bucket:
+                            Required: true
+                            Description: 为 OSS 中对应的 bucket 名称。
+                            Type:
+                              - String
+                          Events:
+                            Required: true
+                            Description: 为 OSS 端触发函数执行的事件。
+                            Type:
+                              - List
+                          Filter:
+                            Required: true
+                            Description: 筛选条件
+                            Type:
+                              - Struct:
+                                  Prefix:
+                                    Required: false
+                                    Description: 前缀
+                                    Type:
+                                      - String
+                                  Suffix:
+                                    Required: false
+                                    Description: 后缀
+                                    Type:
+                                      - String
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[Timer]]:
+                          CronExpression:
+                            Required: false
+                            Description: 存储桶名称
+                            Type:
+                              - String
+                          Enable:
+                            Required: false
+                            Default: true
+                            Description: 启动
+                            Type:
+                              - Boolean
+                          Payload:
+                            Required: false
+                            Description: 传入参数
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[CDN]]:
+                          EventName:
+                            Required: true
+                            Description: 为 CDN 端触发函数执行的事件，一经创建不能更改
+                            Type:
+                              - String
+                          EventVersion:
+                            Required: true
+                            Description: 为 CDN 端触发函数执行事件的版本，一经创建不能更改
+                            Type:
+                              - String
+                          Notes:
+                            Required: true
+                            Description: 备注信息
+                            Type:
+                              - String
+                          Filter:
+                            Required: true
+                            Description: 过滤器（至少需要一个过滤器）
+                            Type:
+                              - Struct:
+                                  Domain:
+                                    Required: false
+                                    Description: 网址
+                                    Type:
+                                      - <String>List
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[TableStore]]:
+                          InstanceName:
+                            Required: true
+                            Description: 表格存储实例的名字
+                            Type:
+                              - String
+                          TableName:
+                            Required: true
+                            Description: 实例中的表名
+                            Type:
+                              - String
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[MNSTopic]]:
+                          TopicName:
+                            Required: true
+                            Description: mns topic的名字
+                            Type:
+                              - String
+                          Region:
+                            Required: false
+                            Description:  mns topic 所在的 region，如果不填，默认为和函数一样的 region
+                            Type:
+                              - String
+                          NotifyContentFormat:
+                            Required: false
+                            Description: 推送给函数入参 event 的格式，可选值：STREAM, JSON
+                            Default: STREAM
+                            Type:
+                              - String
+                          NotifyStrategy:
+                            Required: false
+                            Description: 调用函数的重试策略，可选值：BACKOFF_RETRY, EXPONENTIAL_DECAY_RETRY,
+                            Deafult: BACKOFF_RETRY
+                            Type:
+                              - Enum:
+                                  - BACKOFF_RETRY
+                                  - EXPONENTIAL_DECAY_RETRY
+                          FilterTag:
+                            Required: false
+                            Description: 描述了该订阅中消息过滤的标签（标签一致的消息才会被推送）,不超过 16 个字符的字符串，默认不进行消息过滤，即默认不填写该字段
+                            Type:
+                              - String
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[RDS]]:
+                          InstanceId:
+                            Required: true
+                            Description:  RDS 实例 ID
+                            Type:
+                              - String
+                          SubscriptionObjects:
+                            Required: false
+                            Description:  订阅对象，当前支持到表级别，只有这些表的更新才会触发函数执行
+                            Type:
+                              - <String>List
+                          Retry:
+                            Required: false
+                            Description: 重试次数，可选值：[0,3], 默认值为3。
+                            Type:
+                              - Number
+                          Concurrency:
+                            Required: false
+                            Description: 调用并发量，可选值：[1，5], 默认值为1
+                            Deafult: 1
+                            Type:
+                              - Enum:
+                                  - 1
+                                  - 2
+                                  - 3
+                                  - 4
+                                  - 5
+                          EventFormat:
+                            Required: false
+                            Description: event格式，可选值：json, protobuf
+                            Default: protobuf
+                            Type:
+                              - Enum:
+                                  - json
+                                  - protobuf
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[Log]]:
+                          Logstore:
+                            Required: true
+                            Description:  数据源的 Logstore 名称。触发器会定时从该 Logstore 订阅数据到函数计算。
+                            Type:
+                              - String
+                          JobConfig:
+                            Required: false
+                            Description:  包含两个可配置属性。
+                            Type:
+                              - Struct:
+                                  MaxRetryTime:
+                                    Required: false
+                                    Description: 表示日志服务触发函数执行时，如果遇到错误，所允许的最大尝试次数.
+                                    Type:
+                                      - String
+                                  TriggerInterval:
+                                    Required: false
+                                    Description: 表示日志服务触发函数执行的间隔。
+                                    Type:
+                                      - String
+                          LogConfig:
+                            Required: false
+                            Description: 包含三个可配置属性。
+                            Type:
+                              - Struct:
+                                  Project:
+                                    Required: false
+                                    Description: 表示日志服务 Project 名称
+                                    Type:
+                                      - String
+                                  Logstore:
+                                    Required: false
+                                    Description: 表示触发函数执行时，产生的日志会记录到该 Logstore
+                                    Type:
+                                      - String
+                                  FunctionParameter:
+                                    Required: false
+                                    Description: 当事件触发时，会连同它的内容一起发送给函数。
+                                    Type:
+                                      - Struct
+                          FunctionParameter:
+                            Required: false
+                            Description: 日志服务将该配置内容作为函数 event, 当事件触发时，会连同它的内容一起发送给函数。
+                            Deafult: {}
+                            Type:
+                              - Struct
+                          Enable:
+                            Required: false
+                            Description: 表示是否启用该触发器。
+                            Default: true
+                            Type:
+                              - Boolean
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
+                      - Struct[Type[HTTP]]:
+                          AuthType:
+                            Required: true
+                            Description:  鉴权类型，可选值：ANONYMOUS、FUNCTION。
+                            Type:
+                              - Enum:
+                                  - ANONYMOUS
+                                  - FUNCTION
+                          Methods:
+                            Required: true
+                            Description:  HTTP 触发器支持的访问方法.
+                            Type:
+                              - Enum:
+                                  - GET
+                                  - POST
+                                  - PUT
+                                  - DELETE
+                                  - HEAD
+                          Domains:
+                            Required: false
+                            Description: 自定义域名配置。
+                            Type:
+                              - Struct:
+                                  Domain:
+                                    equired: true
+                                    Description: 域名
+                                    Type:
+                                      - String
+                              - <Struct>List:
+                                  Domain:
+                                    equired: true
+                                    Description: 域名
+                                    Type:
+                                      - String
+                                  Protocol:
+                                    Required: true
+                                    Description: 协议
+                                    Type:
+                                      - <Enum>List:
+                                          - HTTP
+                                          - HTTPS
+                                  CertConfig:
+                                    Required: false
+                                    Description: 域名证书
+                                    Type:
+                                      - Struct:
+                                          CertName:
+                                            Required: false
+                                            Description: 名称
+                                            Type:
+                                              - String
+                                          PrivateKey:
+                                            Required: false
+                                            Description: 表示私钥
+                                            Type:
+                                              - String
+                                          Certificate:
+                                            Required: false
+                                            Description: 表示证书
+                                            Type:
+                                              - String
+                                  Routes:
+                                    Required: false
+                                    Description: 路径配置。
+                                    Type:
+                                      - <Struct>List:
+                                          Path:
+                                            Required: false
+                                            Description: 路径
+                                            Type:
+                                              - String
+                                          Qualifier:
+                                            Required: false
+                                            Description: service 版本。
+                                            Example: LATEST
+                                            Type:
+                                              - String
+                          FunctionParameter:
+                            Required: false
+                            Description: 日志服务将该配置内容作为函数 event, 当事件触发时，会连同它的内容一起发送给函数。
+                            Deafult: {}
+                            Type:
+                              - Struct
+                          Enable:
+                            Required: false
+                            Description: 表示是否启用该触发器。
+                            Default: true
+                            Type:
+                              - Boolean
+                          InvocationRole:
+                            Required: false
+                            Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
+                            Example: acs:ram::1234567890:role/fc-invoke-test
+                            Type:
+                              - String
+                          Qualifier:
+                            Required: false
+                            Description: service 版本。
+                            Example: LATEST
+                            Type:
+                              - String
