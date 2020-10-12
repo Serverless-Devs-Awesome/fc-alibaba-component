@@ -9,7 +9,7 @@
 模版拉取：
 
 ```
-s init python3-http
+s init python3-http -p alibaba
 ```
 
 其中Yaml的默认配置为：
@@ -63,15 +63,23 @@ MyFunction:
       Name: 服务名
       Description: 服务描述
       InternetAccess: 访问公网
+#      Log: Auto
       Log:
         LogStore: loghub中的logstore名称
         Project: loghub中的project名称
-      Role: 授予函数计算所需权限的RAM role
+#      Role: acs:ram::1234567890:role/fc-test
+      Role: # 授予函数计算所需权限的RAM role
+          Name: abc
+          Policies:
+            - AliyunECSNetworkInterfaceManagementAccess
+            - AliyunFCFullAccess
+#      Vpc: Auto
       Vpc:
         SecurityGroupId: 安全组
         VSwitchIds:
           - 一个或多个VSwitch ID
         VpcId: VPC ID
+#      Nas: Auto
       Nas:
         UseId: userID
         GroupId: groupID
@@ -99,6 +107,14 @@ MyFunction:
         Includes:
           - path1
           - path2
+      CAPort: 8080 #指定端口
+      CustomContainer:
+        CrAccount:
+          User: xx  #如指定则会自动进行登录
+          Password: xx #如指定则会自动进行登录
+        Image: 'registry.cn-hangzhou.aliyuncs.com/lvwantest/nahai-repo:latest'  # 仓库地址
+        Command: '[ "node"]'
+        Args: '["server.js"]'
       Handler: function执行的入口，具体格式和语言相关
       MemorySize: function的内存规格
       Runtime: function的运行环境
