@@ -387,6 +387,9 @@ class FcComponent extends Component {
         "commands": [{
               "name": "docker",
               "desc": "use docker to install dependencies.",
+        }, {
+          "name": "local",
+          "desc": "install dependencies.",
         }],
         "args": [{
               "name": "-e, --env <env>",
@@ -420,8 +423,8 @@ class FcComponent extends Component {
     }
 
     const installCommand = commands[0];
-    if (!_.includes(['docker'], installCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${installCommand}', example: s install docker`));
+    if (!_.includes(['docker', 'local'], installCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`));
       throw new Error('Input error.');
     }
 
@@ -467,6 +470,13 @@ class FcComponent extends Component {
       throw new Error('Input error.');
     }
 
+    if (!useDocker) {
+      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
+        console.log(red(`'local' should be only used to install all dependencies in manifest, please use 's install local' without packageNames or params.`));
+        throw new Error('Input error.');
+      }
+    }
+
     console.log('Start to install dependency.');
     const properties = inputs.Properties
     const state = inputs.State || {}
@@ -485,13 +495,11 @@ class FcComponent extends Component {
       console.log('Start installing functions using docker.');
       await installer.installInDocker({serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs});
       return;
+    } else {
+      console.log('Start installing functions.');
+      await installer.install({serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs});
+      return;
     }
-
-    if (installAll) {
-      await installer.installAll(serviceName, serviceInput, functionName, functionInput, interactive, useDocker, false);
-    }
-
-    console.log('Install artifact successfully.');
   }
 
   // 构建
@@ -542,7 +550,7 @@ class FcComponent extends Component {
         console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionInput.Runtime}`));
         throw new Error('Input error.');
       }
-      await builder.buildImage()
+      await builder.buildImage(functionInput.CustomContainer)
       return
     }
 

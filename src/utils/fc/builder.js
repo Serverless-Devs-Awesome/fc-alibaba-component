@@ -10,6 +10,7 @@ const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
 const { yellow } = require('colors')
 const Install = require('./install')
+const execSync = require('child_process').execSync
 
 class Builder {
   constructor () {
@@ -99,7 +100,7 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
 
   async buildImage (customContainer) {
     if (!customContainer) {
-      throw new Error('No CustomContainer found for container build')
+      throw new Error(`No 'CustomContainer' configuration found in template.yml.`)
     }
     let dockerFile = 'Dockerfile'
     if (customContainer && customContainer.Dockerfile) {
@@ -110,7 +111,7 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
     }
     const imageName = customContainer.Image
 
-    if (!existsSync(dockerFile)) {
+    if (!fs.existsSync(dockerFile)) {
       throw new Error('No dockerfile found.')
     }
 

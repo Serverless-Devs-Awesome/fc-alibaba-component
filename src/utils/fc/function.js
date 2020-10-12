@@ -12,6 +12,7 @@ const { addEnv } = require('../install/env');
 const Builder = require('./builder')
 const util = require('util')
 const ncp = require('../ncp')
+const { red, yellow } = require('colors')
 const ncpAsync = util.promisify(ncp)
 
 class Function {
@@ -147,6 +148,9 @@ class Function {
 
     functionProperties.handler = functionInput.Handler ? functionInput.Handler : DEFAULT.Handler
 
+    if (functionProperties.runtime == 'custom-container' && functionInput.CAPort) {
+      functionProperties.CAPort = functionInput.CAPort
+    }
     if (functionInput.MemorySize) {
       functionProperties.memorySize = functionInput.MemorySize
     }
@@ -184,9 +188,6 @@ class Function {
       if (!functionInput.CustomContainer.Image) {
         throw new Error('No CustomContainerConfig.Image found for container runtime')
       }
-      if (!functionInput.CustomContainer.CrAccount) {
-        throw new Error('No CustomContainerConfig.CrAccount found for container runtime')
-      }
       // code和customContainerConfig不能同时存在
       functionProperties.code = undefined
       functionProperties.customContainerConfig = {
@@ -201,7 +202,8 @@ class Function {
       try {
         // Push image to repo for custom-container
         const customContainer = functionInput.CustomContainer
-        await this.pushImage(customContainer.CrAccount.User, customContainer.CrAccount.Password, customContainer.Image)
+        const crAccount = customContainer.CrAccount || {};
+        await this.pushImage(crAccount.User, crAccount.Password, customContainer.Image)
       } catch (e) {
         console.log(e)
         throw e
@@ -269,8 +271,9 @@ class Function {
   }
 
   async pushImage (userName, password, imageName) {
-    try {
-      const registry = imageName.split('/')[0]
+    const registry = imageName.split('/')[0]
+    
+    try {  
       if (userName && password) {
         console.log('Login to the registry...')
         execSync(`docker login --username=${userName} ${registry} --password-stdin`, {
@@ -278,13 +281,21 @@ class Function {
         })
       }
 
+      console.log(`Login to registry successfully`)
+    } catch (e) {
+      console.log(red('Login to registry failed.'))
+      throw e
+    }
+
+    try {
+
       execSync(`docker push ${imageName}`, {
         stdio: 'inherit'
       })
 
       console.log(`Push image(${imageName}) to registry successfully`)
     } catch (e) {
-      console.log(e.message)
+      console.log(yellow(`Push image failed, please confirm that registry is correct and had login to it with 'docker login' already.`))
       throw e
     }
   }

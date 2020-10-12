@@ -295,7 +295,7 @@ class Service {
     const attachedPolicies = []
 
     if (_.isNil(roleArn)) {
-      roleName = 'serverlessToolDefaultRole'
+      roleName = 'ServerlessToolDefaultRole'
       roleName = this.ram.normalizeRoleOrPoliceName(roleName)
       createRoleIfNotExist = true
     } else {
