@@ -1,77 +1,35 @@
-const FC = require('@alicloud/fc2')
-const fs = require('fs')
-const path = require('path')
+'use strict'
+
+const _ = require('lodash')
+
 const kitx = require('kitx')
+const Client = require('./client')
+
+const { green, yellow } = require('colors')
+const { eventPriority } = require('../install/file')
 const { composeStringToSign, signString } = require('./signature')
 
-class InvokeRemote {
+const INVOKE_TYPE = ['async', 'sync']
+
+class InvokeRemote extends Client {
   constructor (credentials, region) {
-    this.accountId = credentials.AccountID
-    this.accessKeyID = credentials.AccessKeyID
-    this.accessKeySecret = credentials.AccessKeySecret
-    this.region = region
-    this.fcClient = new FC(credentials.AccountID, {
-      accessKeyID: credentials.AccessKeyID,
-      accessKeySecret: credentials.AccessKeySecret,
-      region: region,
-      timeout: 60000
-    })
+    super(credentials, region)
+    this.fcClient = this.buildFcClient()
   }
 
-  async invokeEvent (serviceName, functionName, eventConfig = {}, qualifier) {
-    console.log(
-      `\nMissing invokeName argument, will use the first function ${serviceName}/${functionName} as invokeName`
-    )
-    let event
-    if (eventConfig.event) {
-      event = eventConfig.event
-    } else {
-      event = await this.readFile(eventConfig.eventFilePath)
-    }
-
-    const rs = await this.fcClient.invokeFunction(
-      serviceName,
-      functionName,
-      event,
-      {
-        'X-Fc-Log-Type': 'Tail'
-      },
-      qualifier || 'LATEST'
-    )
-    const log = rs.headers['x-fc-log-result']
-    if (log) {
-      this.handlerLog(log)
-    }
-
-    console.log(`FC Invoke Result:\n${rs.data}`)
+  async getTriggerMetas (serviceName, functionName) {
+    const { data } = await this.fcClient.listTriggers(serviceName, functionName)
+    return data.triggers
   }
 
-  async invokeHttp (serviceName, functionName, eventConfig = {}, qualifier) {
-    let event = await this.readFile(eventConfig.eventFilePath)
-    if (event) {
-      try {
-        event = JSON.parse(event)
-      } catch (e) {
-        console.log(
-          `${path.join(
-            process.cwd(),
-            eventConfig.eventFilePath || 'invoke.json'
-          )} file parsing failed.`
-        )
-        return
-      }
-    }
+  async getHttpTrigger (serviceName, functionName) {
+    const triggers = await this.getTriggerMetas(serviceName, functionName)
+    if (_.isEmpty(triggers)) { return [] }
 
-    const q = qualifier ? `.${qualifier}` : ''
-    const p = `/proxy/${serviceName}${q}/${functionName}/${event.path || ''}`
+    const httpTrigger = triggers.filter(t => t.triggerType === 'http' || t.triggerType === 'https')
+    if (_.isEmpty(httpTrigger)) { return [] }
 
-    console.log(
-      `https://${this.accountId}.${this.region}.fc.aliyuncs.com/2016-08-15/proxy/${serviceName}${q}/${functionName}/`
-    )
-    console.log(
-      `\nMissing invokeName argument, will use the first function ${serviceName}/${functionName} as invokeName`
-    )
-    await this.request({ ...event, path: p })
+    return httpTrigger
   }
 
   /**
@@ -161,24 +119,73 @@ class InvokeRemote {
     }
   }
 
-  async readFile (eventFilePath) {
-    const filePath = path.join(process.cwd(), eventFilePath || 'invoke.json')
-    try {
-      const text = await fs.readFileSync(filePath)
-      return text.toString()
-    } catch (e) {
-      if (eventFilePath) {
-        throw new Error(e.message)
-      }
-    }
-    return ''
-  }
-
   handlerLog (log) {
     console.log('\n========= FC invoke Logs begin =========')
     const decodedLog = Buffer.from(log, 'base64')
     console.log(decodedLog.toString())
     console.log('========= FC invoke Logs end =========\n')
+  }
+
+  async httpInvoke ({ serviceName, functionName, event, qualifier }) {
+    const q = qualifier ? `.${qualifier}` : ''
+    const p = `/proxy/${serviceName}${q}/${functionName}/${event.path || ''}`
+
+    console.log(`https://${this.accountId}.${this.region}.fc.aliyuncs.com/2016-08-15/proxy/${serviceName}${q}/${functionName}/`)
+
+    await this.request({ ...event, path: p })
+  }
+
+  async eventInvoke ({
+    serviceName,
+    functionName,
+    event,
+    qualifier = 'LATEST',
+    invocationType
+  }) {
+    let rs
+
+    if (invocationType === 'Sync') {
+      rs = await this.fcClient.invokeFunction(serviceName, functionName, event, {
+        'X-Fc-Log-Type': 'Tail',
+        'X-Fc-Invocation-Type': invocationType
+      }, qualifier)
+
+      const log = rs.headers['x-fc-log-result']
+
+      if (log) {
+        console.log(yellow('========= FC invoke Logs begin ========='))
+        const decodedLog = Buffer.from(log, 'base64')
+        console.log(decodedLog.toString())
+        console.log(yellow('========= FC invoke Logs end ========='))
+
+        console.log(green('\nFC Invoke Result:'))
+        console.log(rs.data)
+      }
+    } else {
+      rs = await this.fcClient.invokeFunction(serviceName, functionName, event, {
+        'X-Fc-Invocation-Type': invocationType
+      }, qualifier)
+
+      console.log(green('✔ ') + `${serviceName}/${functionName} async invoke success.\n`)
+    }
+    return rs
+  }
+
+  async doInvoke (serviceName, functionName, invocationType = 'sync', qualifier, eventOptions) {
+    const upperCase = _.lowerCase(invocationType)
+
+    if (!_.includes(INVOKE_TYPE, upperCase)) {
+      throw new Error(red(`error: unexpected argument：${invocationType}`))
+    }
+
+    const event = await eventPriority(eventOptions)
+    const httpTriggers = await this.getHttpTrigger(serviceName, functionName)
+
+    if (_.isEmpty(httpTriggers)) {
+      await this.eventInvoke({ serviceName, functionName, event, qualifier, invocationType: _.upperFirst(upperCase) })
+    } else {
+      await this.httpInvoke({ serviceName, functionName, event, qualifier })
+    }
   }
 }
 
