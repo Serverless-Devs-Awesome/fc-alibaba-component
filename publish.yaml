@@ -95,7 +95,7 @@ Properties:
               - String
               - Struct:
                   Name:
-                    Required: false
+                    Required: true
                     Description: 角色名
                     Type:
                       - String
@@ -226,6 +226,46 @@ Properties:
                     Description: 本地路径
                     Type:
                       - <String>List
+          CustomContainer:
+            Required: false
+            Description: 自定义镜像配置
+            Type:
+              - Struct:
+                  CAPort:
+                    Required: false
+                    Description: 指定端口
+                    Type:
+                      - String
+                  CrAccount:
+                    Required: false
+                    Description: 账号信息
+                    Type:
+                      - Struct:
+                          User:
+                            Required: false
+                            Description: CrAccount账号
+                            Type:
+                              - String
+                          Password:
+                            Required: false
+                            Description: CrAccount密码
+                            Type:
+                              - String
+                  Image:
+                    Required: false
+                    Description: 仓库地址
+                    Type:
+                      - String
+                  Command:
+                    Required: false
+                    Description: 指令
+                    Type:
+                      - String
+                  Args:
+                    Required: false
+                    Description: 参数
+                    Type:
+                      - String
           Handler:
             Required: false
             Default: index.handler
