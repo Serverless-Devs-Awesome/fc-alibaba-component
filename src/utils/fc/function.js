@@ -6,6 +6,7 @@ const path = require('path')
 const { DEFAULT } = require('./static')
 const { packTo } = require('@serverless-devs/s-zip')
 const OSS = require('../oss')
+const AliyunContainerRepository = require('../cr')
 const { execSync } = require('child_process')
 const { addEnv } = require('../install/env');
 
@@ -185,28 +186,27 @@ class Function {
       if (!functionInput.CustomContainer) {
         throw new Error('No CustomContainer found for container runtime')
       }
-      if (!functionInput.CustomContainer.Image) {
-        throw new Error('No CustomContainerConfig.Image found for container runtime')
+      // Push image to repo for custom-container
+      const customContainer = functionInput.CustomContainer
+      let imageName = customContainer.Image
+      try {
+        const crAccount = customContainer.CrAccount || {};
+        //regionId, serviceName, functionName, userName, password, imageName
+        imageName = await this.pushImage(serviceName, functionInput.Name, crAccount.User, crAccount.Password, customContainer.Image)
+      } catch (e) {
+        console.log(e)
+        throw e
       }
       // code和customContainerConfig不能同时存在
       functionProperties.code = undefined
       functionProperties.customContainerConfig = {
-        image: functionInput.CustomContainer.Image
+        image: imageName
       }
       if (functionInput.CustomContainer.Command) {
         functionProperties.customContainerConfig.command = functionInput.CustomContainer.Command
       }
       if (functionInput.CustomContainer.Args) {
         functionProperties.customContainerConfig.args = functionInput.CustomContainer.Args
-      }
-      try {
-        // Push image to repo for custom-container
-        const customContainer = functionInput.CustomContainer
-        const crAccount = customContainer.CrAccount || {};
-        await this.pushImage(crAccount.User, crAccount.Password, customContainer.Image)
-      } catch (e) {
-        console.log(e)
-        throw e
       }
     } else {
       const baseDir = process.cwd()
@@ -270,25 +270,62 @@ class Function {
     return functionName
   }
 
-  async pushImage (userName, password, imageName) {
-    const registry = imageName.split('/')[0]
+  getDefaultImageName(regionId, serviceName, functionName) {
+    const defaultNamespace = this.getDefaultNamespace();
+    const defaultRepo = this.getDefaultRepo(serviceName, functionName);
+    const defaultRegistry = this.getDefaultRegistry(regionId);
+    return `${defaultRegistry}/${defaultNamespace}/${defaultRepo}:latest`
+  }
+
+  getDefaultNamespace() {
+    return `${this.credentials.AccountID}-serverless`
+  }
+
+  getDefaultRepo(serviceName, functionName) {
+    return `${serviceName}-${functionName}`.toLocaleLowerCase();
+  }
+
+  getDefaultRegistry(regionId) {
+    return `registry.${regionId}.aliyuncs.com`
+  }
+
+  async pushImage (serviceName, functionName, userName, password, imageName) {
+    const cr = new AliyunContainerRepository(this.credentials, this.region);
+    const registry = imageName ? imageName.split('/')[0] : this.getDefaultRegistry(this.region);
     
-    try {  
-      if (userName && password) {
-        console.log('Login to the registry...')
+    if (userName && password) {
+      console.log('Login to the registry...')
+      try {  
         execSync(`docker login --username=${userName} ${registry} --password-stdin`, {
           input: password
         })
+        console.log(`Successfully login to registry with user: ${userName}`)
+      } catch (e) {
+        console.log(red('Login to registry failed.'))
+        throw e
       }
+    } else {
+      console.log('Now try to use a temporary token for login...')
+      const {User: tmpUser, Password: tmpPassword} = await cr.getAuthorizationToken();
+      try {  
+        execSync(`docker login --username=${tmpUser} ${registry} --password-stdin`, {
+          input: tmpPassword
+        })
+        console.log(`Successfully login to registry with user: ${tmpUser}`)
+      } catch (e) {
+        console.log('Login to registry failed with temporary token, now fallback to your current context.')
+      }
+    }
 
-      console.log(`Login to registry successfully`)
-    } catch (e) {
-      console.log(red('Login to registry failed.'))
-      throw e
+    if (!imageName) {
+      console.log(`'Image' is not configured in template.yml, use default namespace and repository...`);
+      const defaultNamespace = this.getDefaultNamespace();
+      console.log(`Ensure default namespace(${defaultNamespace}) exists, will create it if not.`);
+      await cr.ensureNamespace(defaultNamespace);
+      imageName = this.getDefaultImageName(this.region, serviceName, functionName);
     }
 
     try {
-
       execSync(`docker push ${imageName}`, {
         stdio: 'inherit'
       })
@@ -298,6 +335,8 @@ class Function {
       console.log(yellow(`Push image failed, please confirm that registry is correct and had login to it with 'docker login' already.`))
       throw e
     }
+
+    return imageName
   }
 }
 

@@ -409,11 +409,14 @@ class FcComponent extends Component {
             },{
               "name": "-f, --file",
               "desc": "use fcfile before installing, this path should be relative to your codeUri.",
+            },{
+              "name": "--cmd <cmd>",
+              "desc": "command with arguments to execute inside the installation docker.",
             }
         ],
     })
     
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, ['i', 'interactive', 'save']);
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, ['i', 'interactive', 'save'], ['cmd']);
     const {e, env, r, runtime, p, packageType, url, c, cmd, f, file , i, interactive} = parameters;
     const installer = new Install();
 
@@ -450,9 +453,11 @@ class FcComponent extends Component {
       packages: packages
     };
 
-    if (cmdArgs.save && installAll) {
-      console.log(red(`--save should be use with packages, such as 's install docker hexo --save'`));
-      throw new Error('Input error.');
+    if (!useDocker) {
+      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime || cmdArgs.url) {
+        console.log(red(`'local' should be only used to install all dependencies in manifest, please use 's install local' without packageNames or params.`));
+        throw new Error('Input error.');
+      }
     }
 
     if (cmdArgs.interactive && cmdArgs.cmd) {
@@ -460,21 +465,8 @@ class FcComponent extends Component {
       throw new Error('Input error.');
     }
 
-    if (cmdArgs.packageType && cmdArgs.installAll) {
-      console.log(red(`'--package-type' should be used to install packages, but no packageName specified.`));
-      throw new Error('Input error.');
-    }
-
-    if (cmdArgs.save && cmdArgs.installAll) {
-      console.log(red(`'--save' should be used to record installing packages, but no packageName specified.`));
-      throw new Error('Input error.');
-    }
-
-    if (!useDocker) {
-      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
-        console.log(red(`'local' should be only used to install all dependencies in manifest, please use 's install local' without packageNames or params.`));
-        throw new Error('Input error.');
-      }
+    if (installAll && (cmdArgs.save || cmdArgs.packageType || cmdArgs.url)) {
+      console.log(red(`Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.`));
     }
 
     console.log('Start to install dependency.');
@@ -520,19 +512,17 @@ class FcComponent extends Component {
           }]
     })
     console.log('Start to build artifact.')
-    const properties = inputs.Properties
-    const state = inputs.State || {}
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
-    const serviceInput = properties.Service || {}
-    const serviceState = state.Service || {}
-    const serviceName = serviceInput.Name
-      ? serviceInput.Name
-      : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
-    const functionInput = properties.Function
-    const functionName = functionInput.Name
+    const {
+      properties,
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      args, region
+    } = this.handlerInputs(inputs)
 
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
     if (commands.length == 0) {
       console.log(red(`input error, use 's build --help' for info.`));
       throw new Error('input error.');
@@ -543,14 +533,14 @@ class FcComponent extends Component {
       throw new Error('Input error.');
     }
 
-    const builder = new Builder()
+    const builder = new Builder(credentials, region)
     const buildImage = buildCommand === 'image'
     if (buildImage) {
-      if (functionInput.Runtime != 'custom-container') {
-        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionInput.Runtime}`));
+      if (functionProp.Runtime != 'custom-container') {
+        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionProp.Runtime}`));
         throw new Error('Input error.');
       }
-      await builder.buildImage(functionInput.CustomContainer)
+      await builder.buildImage(serviceName, serviceProp, functionName, functionProp)
       return
     }
 
@@ -559,7 +549,7 @@ class FcComponent extends Component {
     if (useDocker) {
       console.log('Use docker for building.')
     }
-    await builder.build(serviceName, serviceInput, functionName, functionInput, useDocker, true)
+    await builder.build(serviceName, serviceProp, functionName, functionProp, useDocker, true)
 
     console.log('Build artifact successfully.')
   }

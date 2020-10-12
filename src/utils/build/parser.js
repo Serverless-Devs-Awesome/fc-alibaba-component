@@ -148,7 +148,7 @@ If you have a requirement, you can submit the issue at https://github.com/alibab
       const runtimeOfFunfile = runtimeArgs[0].getValue();
 
       if (runtimeOfFunfile !== runtime) {
-        console.warn(yellow(`\nDetectionWarning: The 'runtime' of '${serviceName}/${functionName}' in your template.yml is inconsistent with that in Funfile.`));
+        console.warn(yellow(`\nDetectionWarning: The 'runtime' of '${serviceName}/${functionName}' in your template.yml is inconsistent with that in fcfile.`));
       }
 
       const imageName = await dockerOpts.resolveRuntimeToDockerImage(runtimeOfFunfile, true);

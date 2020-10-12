@@ -148,6 +148,10 @@ const getEcsPopClient = async () => {
   return await getPopClient('https://ecs.aliyuncs.com', '2014-05-26')
 }
 
+const getCrPopClient = async (regionId) => {
+  return await getPopClient(`https://cr.${regionId}.aliyuncs.com`, '2016-06-07')
+}
+
 const getNasPopClient = async () => {
   const profile = await getProfile()
 
@@ -226,6 +230,7 @@ module.exports = {
   getVpcPopClient,
   getEcsPopClient,
   getNasPopClient,
+  getCrPopClient,
   getOssClient,
   getRosClient,
   getFnFClient

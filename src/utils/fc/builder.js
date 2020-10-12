@@ -13,8 +13,9 @@ const Install = require('./install')
 const execSync = require('child_process').execSync
 
 class Builder {
-  constructor () {
-
+  constructor (credentials, region) {
+    this.credentials = credentials;
+    this.region = region;
   }
 
   async build (serviceName, serviceProps, functionName, functionProps, useDocker, verbose) {
@@ -93,12 +94,17 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
   async buildArtifact (serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose) {
     const stages = ['install', 'build']
     const runtime = functionProps.Runtime
-
+    //detect fcfile
+    const fcfilePath = path.resolve(codePath, 'fcfile');
+    if (fs.existsSync(fcfilePath)) {
+      console.log(yellow(`Found fcfile in src directory, maybe 's build docker' is better.`));
+    }
     const builder = new fcBuilders.Builder(serviceName, functionName, codePath, runtime, artifactPath, verbose, stages)
     await builder.build()
   }
 
-  async buildImage (customContainer) {
+  async buildImage (serviceName, serviceProps, functionName, functionProps) {
+    const customContainer = functionProps.CustomContainer
     if (!customContainer) {
       throw new Error(`No 'CustomContainer' configuration found in template.yml.`)
     }
@@ -106,10 +112,13 @@ async buildInDocker (serviceName, serviceProps, functionName, functionProps, bas
     if (customContainer && customContainer.Dockerfile) {
       dockerFile = customContainer.Dockerfile
     }
-    if (!customContainer.Image) {
-      throw new Error('No CustomContainer.Image found for container build')
+    let imageName = customContainer.Image
+    //TODO duplicated code in deploy, use a better way to handle this
+    if (!imageName) {
+      const defaultNamespace = `${this.credentials.AccountID}-serverless`
+      const defaultRepo = `${serviceName}-${functionName}`.toLocaleLowerCase();
+      imageName = `registry.${this.region}.aliyuncs.com/${defaultNamespace}/${defaultRepo}:latest`
     }
-    const imageName = customContainer.Image
 
     if (!fs.existsSync(dockerFile)) {
       throw new Error('No dockerfile found.')
