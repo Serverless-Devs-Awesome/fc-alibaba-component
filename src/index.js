@@ -338,7 +338,7 @@ class FcComponent extends Component {
       await remoteInvoke.invoke(serviceName, functionName)
     } else if (commands[0] === 'docker') {
       const dockerInvoke = new DockerInvoke(credentials, serviceName, serviceProp, functionName, functionProp, options)
-      await dockerInvoke.invoke(options)
+      await dockerInvoke.invoke()
     }
   }
 

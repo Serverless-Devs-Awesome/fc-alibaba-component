@@ -127,7 +127,7 @@ async function resolveTmpDirToMount (absTmpDir) {
   }
 }
 
-async function resolveDebuggerPathToMount (debuggerPath) {
+function resolveDebuggerPathToMount (debuggerPath) {
   if (!debuggerPath) { return {} }
   const absDebuggerPath = path.resolve(debuggerPath)
   return {

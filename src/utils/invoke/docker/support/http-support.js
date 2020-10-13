@@ -24,7 +24,7 @@ class HttpSupport {
   }
 
   async registerSingleHttpTrigger (serviceName, serviceProps, functionName, functionProps, app, router, serverPort, httpTrigger, debugPort, debugIde, baseDir, eager = false, debuggerPath, debugArgs, nasBaseDir, tplPath) {
-    const { triggerName, Parameters: triggerProps, path, domainName } = httpTrigger
+    const { Name: triggerName, Parameters: triggerProps, path, domainName } = httpTrigger
 
     const isCustomDomain = path
 

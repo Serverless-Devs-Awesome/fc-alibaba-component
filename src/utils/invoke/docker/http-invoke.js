@@ -101,7 +101,6 @@ class HttpInvoke extends Invoke {
             if (!this.watcher) {
               // add file ignore when auto reloading
               const ign = await ignore(this.baseDir)
-
               this.watcher = watch(this.codeUri, {
                 recursive: true,
                 persistent: false,
@@ -127,7 +126,7 @@ class HttpInvoke extends Invoke {
   }
 
   async _startRunner () {
-    const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceRes.Properties, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, true, this.debugIde, this.debugArgs)
+    const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, true, this.debugIde, this.debugArgs)
 
     const opts = await dockerOpts.generateLocalStartOpts(this.runtime,
       this.containerName,
@@ -150,6 +149,7 @@ class HttpInvoke extends Invoke {
   }
 
   async doInvoke (req, res) {
+    console.log('do invoke')
     // only one invoke can be processed
     await lock.acquire('invoke', async () => {
       debug('http doInvoke, aquire invoke lock success, processing...')
@@ -161,7 +161,7 @@ class HttpInvoke extends Invoke {
 
       const httpParams = generateHttpParams(req, this.endpointPrefix)
 
-      const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceRes.Properties, this.functionName, this.functionProps, this.debugPort, httpParams, this.nasConfig, true, this.debugIde)
+      const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, httpParams, this.nasConfig, true, this.debugIde)
 
       if (this.debugPort && !this.runner) {
         // don't reuse container

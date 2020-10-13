@@ -61,13 +61,13 @@ class Invoke {
   }
 
   async init () {
-    this.dockerUser = await dockerOpts.resolveDockerUser({ nasConfig: this.nasConfig })
+    this.dockerUser = dockerOpts.resolveDockerUser({ nasConfig: this.nasConfig })
     this.nasMounts = await docker.resolveNasConfigToMounts(this.baseDir, this.serviceName, this.nasConfig, this.nasBaseDir || path.join(this.baseDir, DEFAULT_NAS_PATH_SUFFIX))
     this.unzippedCodeDir = await processZipCodeIfNecessary(this.codeUri)
     this.codeMount = await docker.resolveCodeUriToMount(this.unzippedCodeDir || this.codeUri)
     this.nasMappingsMount = await docker.resolveNasYmlToMount(this.baseDir, this.serviceName)
     this.tmpDirMount = await docker.resolveTmpDirToMount(this.tmpDir)
-    this.debuggerMount = await docker.resolveDebuggerPathToMount(this.debuggerPath)
+    this.debuggerMount = docker.resolveDebuggerPathToMount(this.debuggerPath)
     this.passwdMount = await docker.resolvePasswdMount()
 
     const allMount = _.compact([this.codeMount, ...this.nasMounts, ...this.nasMappingsMount, this.passwdMount])

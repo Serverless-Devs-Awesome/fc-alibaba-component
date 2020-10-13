@@ -4,7 +4,6 @@ const _ = require('lodash')
 
 const express = require('express')
 const app = express()
-
 const fs = require('fs-extra')
 const path = require('path')
 const debug = require('debug')('invoke:docker')
@@ -199,9 +198,8 @@ class DockerInvoke {
       strict: true
     })
 
-    const httpSupport = new HttpSupport()
-
-    await httpSupport.registerHttpTriggers(this.serviceName, this.serviceProp, this.functionName, this.functionProp, app, router, serverPort, this.httpTriggers, this.debugPort, this.debugIde, this.baseDir, true, this.debuggerPath, this.debugArgs, this.nasBaseDir, this.tplPath)
+    const httpSupport = new HttpSupport(this.credentials)
+    await httpSupport.registerHttpTriggers(this.serviceName, this.serviceProp, this.functionName, this.functionProp, app, router, serverPort, this.httpTriggers, this.debugPort, this.debugIde, this.baseDir, this.debuggerPath, this.debugArgs, this.nasBaseDir, this.tplPath)
 
     this.startExpress(app)
   }
