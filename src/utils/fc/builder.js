@@ -10,10 +10,12 @@ const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
 const { yellow } = require('colors')
 const Install = require('./install')
+const execSync = require('child_process').execSync
 
 class Builder {
-  constructor () {
-
+  constructor (credentials, region) {
+    this.credentials = credentials
+    this.region = region
   }
 
   async build (serviceName, serviceProps, functionName, functionProps, useDocker, verbose) {
@@ -93,24 +95,33 @@ class Builder {
     const stages = ['install', 'build']
     const runtime = functionProps.Runtime
 
+    // detect fcfile
+    const fcfilePath = path.resolve(codePath, 'fcfile')
+    if (fs.existsSync(fcfilePath)) {
+      console.log(yellow('Found fcfile in src directory, maybe \'s build docker\' is better.'))
+    }
     const builder = new fcBuilders.Builder(serviceName, functionName, codePath, runtime, artifactPath, verbose, stages)
     await builder.build()
   }
 
-  async buildImage (customContainer) {
+  async buildImage (serviceName, serviceProps, functionName, functionProps) {
+    const customContainer = functionProps.CustomContainer
     if (!customContainer) {
-      throw new Error('No CustomContainer found for container build')
+      throw new Error('No \'CustomContainer\' configuration found in template.yml.')
     }
     let dockerFile = 'Dockerfile'
     if (customContainer && customContainer.Dockerfile) {
       dockerFile = customContainer.Dockerfile
     }
-    if (!customContainer.Image) {
-      throw new Error('No CustomContainer.Image found for container build')
+    let imageName = customContainer.Image
+    // TODO duplicated code in deploy, use a better way to handle this
+    if (!imageName) {
+      const defaultNamespace = `${this.credentials.AccountID}-serverless`
+      const defaultRepo = `${serviceName}-${functionName}`.toLocaleLowerCase()
+      imageName = `registry.${this.region}.aliyuncs.com/${defaultNamespace}/${defaultRepo}:latest`
     }
-    const imageName = customContainer.Image
 
-    if (!existsSync(dockerFile)) {
+    if (!fs.existsSync(dockerFile)) {
       throw new Error('No dockerfile found.')
     }
 
@@ -141,39 +152,6 @@ class Builder {
     }
     fs.mkdirpSync(artifactPath)
   }
-
-  // async collectArtifact (runtime, funcArtifactDir) {
-  //   if (!fs.pathExistsSync(funcArtifactDir)) {
-  //     return
-  //   }
-
-  //   if (runtime.includes('python')) {
-  //     // copy dependency to the root dir for deploy/package later
-  //     let source
-  //     const pythonLibDir = path.join(funcArtifactDir, '.fun', 'python', 'lib')
-  //     if (!fs.pathExistsSync(pythonLibDir)) {
-  //       return
-  //     }
-  //     const libs = fs.readdirSync(pythonLibDir)
-  //     if (libs.length == 1) {
-  //       source = path.join(pythonLibDir, libs[0], 'site-packages')
-  //     } else {
-  //       source = path.join(pythonLibDir, 'python', 'site-packages')
-  //       libs.forEach(dir => {
-  //         if (runtime === 'python3' && dir === 'python3.6') {
-  //           source = path.join(pythonLibDir, 'python3.6', 'site-packages')
-  //         } else if (runtime === 'python2.7' && dir === 'python2.7') {
-  //           source = path.join(pythonLibDir, 'python2.7', 'site-packages')
-  //         }
-  //       })
-  //     }
-
-  //     await ncpAsync(source, funcArtifactDir)
-  //   }
-
-  //   // remove the unecessary directory
-  //   fs.rmdirSync(path.join(funcArtifactDir, '.fun'), { recursive: true })
-  // }
 
   isOnlyDefaultTaskFlow (taskFlows) {
     if (taskFlows.length !== 1) { return false }
@@ -227,7 +205,7 @@ class Builder {
       await ncpAsync(absCodeUri, buildCodePath, {
         filter: (source) => {
           if (source.endsWith('.s') || source.endsWith('.fc') || source.endsWith('.git') ||
-                source == 'vendor' || source == 'node_modules') {
+                source === 'vendor' || source === 'node_modules') {
             return false
           }
           return true
