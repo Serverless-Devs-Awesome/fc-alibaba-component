@@ -84,8 +84,10 @@ MyFunction:
         UseId: userID
         GroupId: groupID
         MountPoints:
-          - ServerAddr: adasdasdas
-            MountDir: ./ssssss
+          - NasAddr: 3e3544a894-qjf60.cn-shanghai.nas.aliyuncs.com
+            NasDir: /demo
+            FcDir: /home
+            LocalDir: ./ssss
       Tags:
         - Key: 标签名
           Value: 标签值
@@ -293,8 +295,10 @@ MyFunction:
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
-| ServerAddr | false | String |  NAS 服务器地址 |
-| MountDir | false | String | 本地挂载目录 |
+| NasAddr | false | String |  NAS 服务器地址 |
+| NasDir | false | String | NAS目录 |
+| FcDir | false | String | 函数计算目录 |
+| LocalDir | false | String | 本地目录 |
 
 ##### Tag
 
