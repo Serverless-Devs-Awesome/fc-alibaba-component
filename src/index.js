@@ -410,13 +410,16 @@ class FcComponent extends Component {
               "name": "-f, --file",
               "desc": "use fcfile before installing, this path should be relative to your codeUri.",
             },{
-              "name": "--cmd <cmd>",
+              "name": "-c, --cmd <cmd>",
               "desc": "command with arguments to execute inside the installation docker.",
             }
         ],
     })
     
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, ['i', 'interactive', 'save'], ['cmd']);
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, 
+      ['i', 'interactive', 'save'], 
+      [], 
+      ['--cmd', '-c', '-e', '--env', '-f', '--file', '--save', '--url', '-p', '--package-type', '-r', '--runtime']);
     const {e, env, r, runtime, p, packageType, url, c, cmd, f, file , i, interactive} = parameters;
     const installer = new Install();
 
