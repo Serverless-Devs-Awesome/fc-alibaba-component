@@ -40,7 +40,7 @@ class CustomDomain extends Client {
     }
 
     if (domainName.toLocaleUpperCase() === 'AUTO') {
-      const getAutoDomain = new GetAutoDomain()
+      const getAutoDomain = new GetAutoDomain(this.credentials, this.region)
       const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName, true)
       domainName = autoDomain.domainName
       options.protocol = 'HTTP'
@@ -131,7 +131,7 @@ class CustomDomain extends Client {
     }
     for (const { Domain } of domains) {
       if (Domain.toLocaleUpperCase() === 'AUTO') {
-        const getAutoDomain = new GetAutoDomain()
+        const getAutoDomain = new GetAutoDomain(this.credentials, this.region)
         const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName)
         await deleteDomain(autoDomain)
       } else {
