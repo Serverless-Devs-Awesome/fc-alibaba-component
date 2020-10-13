@@ -147,14 +147,24 @@ Properties:
                     Description: 挂载点
                     Type:
                       - <Struct>List:
-                          ServerAddr:
+                          NasAddr:
                             Required: false
                             Description: NAS 服务器地址
                             Type:
                               - String
-                          MountDir:
+                          NasDir:
                             Required: false
-                            Description: 本地挂载目录
+                            Description: NAS目录
+                            Type:
+                              - String
+                          FcDir:
+                            Required: false
+                            Description: 函数计算目录
+                            Type:
+                              - String
+                          LocalDir:
+                            Required: false
+                            Description: 本地目录
                             Type:
                               - String
           Tag:
