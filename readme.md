@@ -9,7 +9,7 @@
 模版拉取：
 
 ```
-s init python3-http
+s init python3-http -p alibaba
 ```
 
 其中Yaml的默认配置为：
@@ -63,19 +63,23 @@ MyFunction:
       Name: 服务名
       Description: 服务描述
       InternetAccess: 访问公网
+#      Log: Auto
       Log:
         LogStore: loghub中的logstore名称
         Project: loghub中的project名称
+#      Role: acs:ram::1234567890:role/fc-test
       Role: # 授予函数计算所需权限的RAM role
-        Name: abc
-        Policies:
-          - AliyunECSNetworkInterfaceManagementAccess
-          - AliyunFCFullAccess
+          Name: abc
+          Policies:
+            - AliyunECSNetworkInterfaceManagementAccess
+            - AliyunFCFullAccess
+#      Vpc: Auto
       Vpc:
         SecurityGroupId: 安全组
         VSwitchIds:
           - 一个或多个VSwitch ID
         VpcId: VPC ID
+#      Nas: Auto
       Nas:
         UseId: userID
         GroupId: groupID
@@ -103,6 +107,14 @@ MyFunction:
         Includes:
           - path1
           - path2
+      CAPort: 8080 #指定端口
+      CustomContainer:
+        CrAccount:
+          User: xx  #如指定则会自动进行登录
+          Password: xx #如指定则会自动进行登录
+        Image: 'registry.cn-hangzhou.aliyuncs.com/lvwantest/nahai-repo:latest'  # 仓库地址
+        Command: '[ "node"]'
+        Args: '["server.js"]'
       Handler: function执行的入口，具体格式和语言相关
       MemorySize: function的内存规格
       Runtime: function的运行环境
@@ -222,7 +234,7 @@ MyFunction:
 
 #### Region
 
-参数取值：`cn-beijing`, `cn-hangzhou`, `cn-shanghai`, `cn-qingdao`, `cn-zhangjiakou`, `cn-huhehaote`, `cn-shenzhen`, `cn-chengdu`, `cn-hongkong`, `ap-southeast-1`, `ap-southeast-2`, `ap-southeast-3`, `ap-southeast-5`, `ap-northeast-1`, `eu-central-1`, `eu-west-1`, `us-west-1`, `us-east-1`, `ap-south-1`, `cn-zhangjiakou-na62-a01
+参数取值：`cn-beijing`, `cn-hangzhou`, `cn-shanghai`, `cn-qingdao`, `cn-zhangjiakou`, `cn-huhehaote`, `cn-shenzhen`, `cn-chengdu`, `cn-hongkong`, `ap-southeast-1`, `ap-southeast-2`, `ap-southeast-3`, `ap-southeast-5`, `ap-northeast-1`, `eu-central-1`, `eu-west-1`, `us-west-1`, `us-east-1`, `ap-south-1`
 
 
 #### Service
@@ -232,13 +244,24 @@ MyFunction:
 | Name | false | String | service名称 |
 | Description | false | String | service的简短描述 |
 | InternetAccess | false | Boolean | 设为true让function可以访问公网 |
-| Role | false | String | 授予函数计算所需权限的RAM role, 使用场景包含 1. 把 function产生的 log 发送到用户的 logstore 中 2. 为function 在执行中访问其它云资源生成 token |
-| Log | false | Struct | log配置，function产生的log会写入这里配置的logstore |
-| Vpc | false | Struct | vpc配置, 配置后function可以访问指定VPC |
-| Nas | false | Struct |  NAS配置, 配置后function可以访问指定NAS |
+| Role | false | String/Struct | 授予函数计算所需权限的RAM role, 使用场景包含 1. 把 function产生的 log 发送到用户的 logstore 中 2. 为function 在执行中访问其它云资源生成 token |
+| Log | false |String/Struct | log配置，function产生的log会写入这里配置的logstore |
+| Vpc | false | String/Struct | vpc配置, 配置后function可以访问指定VPC |
+| Nas | false | String/Struct |  NAS配置, 配置后function可以访问指定NAS |
 | Tag | false | <Struct>List | 标签 |
 
+##### Role
+
+如果是String类型，可以直接写arn，如果是Struct类型：
+
+| 参数名 |  必填|  类型|  参数描述 | 
+| --- |  --- |  --- |  --- | 
+| Name | true | String | 角色名 |
+| Policies | true | <String>List | 策略列表 |
+
 ##### Log
+
+如果是String类型，可以直接写Auto，如果是Struct类型：
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
@@ -247,6 +270,8 @@ MyFunction:
 
 ##### Vpc
 
+如果是String类型，可以直接写Auto，如果是Struct类型：
+
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
 | SecurityGroupId | false | String | 安全组ID |
@@ -254,6 +279,8 @@ MyFunction:
 | VpcId | false | String | VPC ID |
 
 ##### Nas
+
+如果是String类型，可以直接写Auto，如果是Struct类型：
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
@@ -284,6 +311,8 @@ MyFunction:
 | Description | false | String | function的简短描述 |
 | MemorySize | false | String |  function的内存规格 |
 | CodeUri | false(默认为./) | String/Struct | 代码位置 |
+| CAPort | false | String |  CustomContainer/Runtime指定端口 |
+| CustomContainer | false | Struct | 自定义镜像配置 |
 | Handler | true | String | function执行的入口，具体格式和语言相关 |
 | Runtime | true | String | function的运行环境 |
 | Initializer | false | Struct | 初始化方法 | 
@@ -320,6 +349,22 @@ MyFunction:
     | Exclude | false | <String>List | 除去路径 |
     | Include | false | <String>List | 包括路径 |
 
+
+##### CustomContainer
+
+| 参数名 |  必填|  类型|  参数描述 | 
+| --- |  --- |  --- |  --- | 
+| CrAccount | false | Struct | 账号信息 |
+| Image | false | String | 仓库地址 |
+| Command | false | String | 指令 |
+| Args | false | String | 参数 |
+
+###### CrAccount
+
+| 参数名 |  必填|  类型|  参数描述 | 
+| --- |  --- |  --- |  --- | 
+| User | false | String |  CrAccount账号 |
+| Password | false | String | CrAccount密码 |
 
 ##### Initializer
 

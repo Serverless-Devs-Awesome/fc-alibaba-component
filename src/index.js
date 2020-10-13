@@ -11,9 +11,12 @@ const TAG = require('./utils/tag')
 const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 
+const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
+const RemoteInvoke = require('./utils/invoke/remote/remote-invoke')
+
 const { Component } = require('@serverless-devs/s-core')
 const { green, yellow, red } = require('colors')
-const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, InvokeRemote, Sync } = require('./utils/fc')
+const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, Sync } = require('./utils/fc')
 
 const DEFAULT = {
   Region: 'cn-hangzhou',
@@ -23,6 +26,7 @@ const DEFAULT = {
 class FcComponent extends Component {
   // 解析入参
   handlerInputs (inputs) {
+    const projectName = inputs.Project.ProjectName
     const properties = inputs.Properties || {}
     const credentials = inputs.Credentials || {}
 
@@ -40,6 +44,7 @@ class FcComponent extends Component {
     const region = properties.Region || DEFAULT.Region
 
     return {
+      projectName,
       properties,
       credentials,
       serviceName,
@@ -294,36 +299,46 @@ class FcComponent extends Component {
   }
 
   /**
+   * ---------------------------
    * s invoke remote options:
    *   -e or --event
    *   -f or --event-file <path>
    *   -s or --event-stdin
    *   -q or qualifier
-   *
+   * ---------------------------
+   * s invoke docker options:
+   *   -e or --event
+   *   -f or --event-file <path>
+   *   -s or --event-stdin
+   *   -d or --debug-port
+   *   --no-reuse
+   *   --tmp-dir
+   *   --debug-port
+   *   --debug-args
+   *   --debugger-path
+   * ---------------------------
    * @param {*} inputs
    */
   async invoke (inputs) {
     const {
       credentials,
       serviceName,
+      serviceProp,
       functionName,
+      functionProp,
       args: {
         Commands: commands,
-        Parameters: parameters
-      }, region
+        Parameters: options
+      },
+      region
     } = this.handlerInputs(inputs)
 
     if (commands[0] === 'remote') {
-      const invokeRemote = new InvokeRemote(credentials, region)
-
-      const event = parameters.e || parameters.event || ''
-      const eventFile = parameters.f || parameters.eventFile
-      const eventStdin = parameters.s || parameters.eventStdin
-
-      const qualifier = parameters.q || parameters.qualifier || 'LATEST'
-      const invocationType = parameters.t || parameters.invocationType || 'sync'
-
-      await invokeRemote.doInvoke(serviceName, functionName, invocationType, qualifier, { event, eventFile, eventStdin })
+      const remoteInvoke = new RemoteInvoke(credentials, region, options)
+      await remoteInvoke.invoke(serviceName, functionName)
+    } else if (commands[0] === 'docker') {
+      const dockerInvoke = new DockerInvoke(credentials, serviceName, serviceProp, functionName, functionProp, options)
+      await dockerInvoke.invoke(options)
     }
   }
 
@@ -383,6 +398,9 @@ class FcComponent extends Component {
       commands: [{
         name: 'docker',
         desc: 'use docker to install dependencies.'
+      }, {
+        name: 'local',
+        desc: 'install dependencies.'
       }],
       args: [{
         name: '-e, --env <env>',
@@ -402,27 +420,33 @@ class FcComponent extends Component {
       }, {
         name: '-f, --file',
         desc: 'use fcfile before installing, this path should be relative to your codeUri.'
+      }, {
+        name: '-c, --cmd <cmd>',
+        desc: 'command with arguments to execute inside the installation docker.'
       }
       ]
     })
 
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args, ['i', 'interactive', 'save'])
-    const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive } = parameters
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
+      ['i', 'interactive', 'save'],
+      [],
+      ['--cmd', '-c', '-e', '--env', '-f', '--file', '--save', '--url', '-p', '--package-type', '-r', '--runtime'])
+    const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = parameters
     const installer = new Install()
 
-    if (commands.length == 0) {
+    if (commands.length === 0) {
       console.log(red('input error, use \'s install --help\' for info.'))
       throw new Error('input error.')
     }
 
     const installCommand = commands[0]
-    if (!_.includes(['docker'], installCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${installCommand}', example: s install docker`))
+    if (!_.includes(['docker', 'local'], installCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`))
       throw new Error('Input error.')
     }
 
     // commands
-    const useDocker = installCommand == 'docker'
+    const useDocker = installCommand === 'docker'
     let installAll = true; let packages = []
     // console.log(commands);
     if (commands.length > 1) {
@@ -430,22 +454,24 @@ class FcComponent extends Component {
       installAll = false
     }
     const cmdArgs = {
-      env: [].concat(e || env || []),
+      env: [].concat(e).concat(env),
       runtime: r || runtime,
       packageType: p || packageType,
       registryUrl: url,
       cmd: c || cmd,
-      interactive: parameters.hasOwnProperty('i') || parameters.hasOwnProperty('interactive'),
-      save: parameters.hasOwnProperty('save'),
+      interactive: i || interactive,
+      save: save,
       fcFile: f || file || 'fcfile',
       url: url,
       installAll: installAll,
       packages: packages
     }
 
-    if (cmdArgs.save && installAll) {
-      console.log(red('--save should be use with packages, such as \'s install docker hexo --save\''))
-      throw new Error('Input error.')
+    if (!useDocker) {
+      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
+        console.log(red('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.'))
+        throw new Error('Input error.')
+      }
     }
 
     if (cmdArgs.interactive && cmdArgs.cmd) {
@@ -453,14 +479,8 @@ class FcComponent extends Component {
       throw new Error('Input error.')
     }
 
-    if (cmdArgs.packageType && cmdArgs.installAll) {
-      console.log(red('\'--package-type\' should be used to install packages, but no packageName specified.'))
-      throw new Error('Input error.')
-    }
-
-    if (cmdArgs.save && cmdArgs.installAll) {
-      console.log(red('\'--save\' should be used to record installing packages, but no packageName specified.'))
-      throw new Error('Input error.')
+    if (installAll && (cmdArgs.save || cmdArgs.packageType || cmdArgs.url)) {
+      console.log(red('Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.'))
     }
 
     console.log('Start to install dependency.')
@@ -480,14 +500,10 @@ class FcComponent extends Component {
     if (useDocker) {
       console.log('Start installing functions using docker.')
       await installer.installInDocker({ serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs })
-      return
+    } else {
+      console.log('Start installing functions.')
+      await installer.install({ serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs })
     }
-
-    if (installAll) {
-      await installer.installAll(serviceName, serviceInput, functionName, functionInput, interactive, useDocker, false)
-    }
-
-    console.log('Install artifact successfully.')
   }
 
   // 构建
@@ -508,20 +524,17 @@ class FcComponent extends Component {
       }]
     })
     console.log('Start to build artifact.')
-    const properties = inputs.Properties
-    const state = inputs.State || {}
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
-    const serviceInput = properties.Service || {}
-    const serviceState = state.Service || {}
-    const serviceName = serviceInput.Name
-      ? serviceInput.Name
-      : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
-    const functionInput = properties.Function
-    const functionName = functionInput.Name
+    const {
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      region
+    } = this.handlerInputs(inputs)
 
-    if (commands.length == 0) {
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
+    if (commands.length === 0) {
       console.log(red('input error, use \'s build --help\' for info.'))
       throw new Error('input error.')
     }
@@ -531,14 +544,14 @@ class FcComponent extends Component {
       throw new Error('Input error.')
     }
 
-    const builder = new Builder()
+    const builder = new Builder(credentials, region)
     const buildImage = buildCommand === 'image'
     if (buildImage) {
-      if (functionInput.Runtime != 'custom-container') {
-        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionInput.Runtime}`))
+      if (functionProp.Runtime !== 'custom-container') {
+        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionProp.Runtime}`))
         throw new Error('Input error.')
       }
-      await builder.buildImage()
+      await builder.buildImage(serviceName, serviceProp, functionName, functionProp)
       return
     }
 
@@ -547,7 +560,7 @@ class FcComponent extends Component {
     if (useDocker) {
       console.log('Use docker for building.')
     }
-    await builder.build(serviceName, serviceInput, functionName, functionInput, useDocker, true)
+    await builder.build(serviceName, serviceProp, functionName, functionProp, useDocker, true)
 
     console.log('Build artifact successfully.')
   }

@@ -50,7 +50,6 @@ Properties:
           - us-west-1
           - us-east-1
           - ap-south-1
-          - cn-zhangjiakou-na62-a01
   Service:
     Description: 服务
     Required: true
@@ -75,6 +74,8 @@ Properties:
             Required: false
             Description: log配置，function产生的log会写入这里配置的logstore
             Type:
+              - Enum:
+                  - Auto
               - Struct:
                   LogStore:
                     Required: false
@@ -89,13 +90,25 @@ Properties:
           Role:
             Required: false
             Description: 授予函数计算所需权限的RAM role, 使用场景包含 1. 把 function产生的 log 发送到用户的 logstore 中 2. 为function 在执行中访问其它云资源生成 token
-            Example: "acs:ram::1234567890:role/fc-test"
             Type:
               - String
+              - Struct:
+                  Name:
+                    Required: true
+                    Description: 角色名
+                    Type:
+                      - String
+                  Policies:
+                    Required: true
+                    Description: 策略列表
+                    Type:
+                      - <String>List
           Vpc:
             Required: false
             Description: vpc配置, 配置后function可以访问指定VPC
             Type:
+              - Enum:
+                  - Auto
               - Struct:
                   SecurityGroupId:
                     Required: false
@@ -116,6 +129,8 @@ Properties:
             Required: false
             Description: NAS配置, 配置后function可以访问指定NAS
             Type:
+              - Enum:
+                  - Auto
               - Struct:
                   UserId:
                     Required: false
@@ -147,8 +162,16 @@ Properties:
             Description: NAS配置, 配置后function可以访问指定NAS
             Type:
               - <Struct>List:
-                  Key: 标签名
-                  Value: 标签值
+                  Key:
+                    Required: true
+                    Description: 标签名
+                    Type:
+                      - String
+                  Value:
+                    Required: true
+                    Description: 标签值
+                    Type:
+                      - String
   Function:
     Description: 函数
     Required: true
@@ -190,6 +213,56 @@ Properties:
                   Src:
                     Required: false
                     Description: 本地路径
+                    Type:
+                      - String
+                  Exclude:
+                    Required: false
+                    Description: 本地路径
+                    Type:
+                      - <String>List
+                  Include:
+                    Required: false
+                    Description: 本地路径
+                    Type:
+                      - <String>List
+          CAPort:
+            Required: false
+            Description: CustomContainer/Runtime指定端口
+            Type:
+              - String
+          CustomContainer:
+            Required: false
+            Description: 自定义镜像配置
+            Type:
+              - Struct:
+                  CrAccount:
+                    Required: false
+                    Description: 账号信息
+                    Type:
+                      - Struct:
+                          User:
+                            Required: false
+                            Description: CrAccount账号
+                            Type:
+                              - String
+                          Password:
+                            Required: false
+                            Description: CrAccount密码
+                            Type:
+                              - String
+                  Image:
+                    Required: false
+                    Description: 仓库地址
+                    Type:
+                      - String
+                  Command:
+                    Required: false
+                    Description: 指令
+                    Type:
+                      - String
+                  Args:
+                    Required: false
+                    Description: 参数
                     Type:
                       - String
           Handler:
@@ -506,16 +579,11 @@ Properties:
                                     Description: 表示日志服务 Project 名称
                                     Type:
                                       - String
-                                  Logstore:
+                                  LogStore:
                                     Required: false
                                     Description: 表示触发函数执行时，产生的日志会记录到该 Logstore
                                     Type:
                                       - String
-                                  FunctionParameter:
-                                    Required: false
-                                    Description: 当事件触发时，会连同它的内容一起发送给函数。
-                                    Type:
-                                      - Struct
                           FunctionParameter:
                             Required: false
                             Description: 日志服务将该配置内容作为函数 event, 当事件触发时，会连同它的内容一起发送给函数。

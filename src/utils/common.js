@@ -1,5 +1,7 @@
 'use strict'
 
+const _ = require('lodash')
+
 const DEFAULT_RETRIES = 3
 
 const retry = require('promise-retry')
@@ -33,10 +35,33 @@ async function asyncFind (pathArrays, filter) {
   return null
 }
 
+function syncFind (pathArrays, filter) {
+  for (const path of pathArrays) {
+    if (filter(path)) {
+      return path
+    }
+  }
+  return null
+}
+
 function hasOwnProperty (obj, key) {
   return Object.prototype.hasOwnProperty.call(obj, key)
 }
 
+function isDotnetcoreRuntime (runtime) {
+  return runtime.indexOf('dotnetcore') > -1
+}
+
+function isFalseValue (val) {
+  return val && (_.toLower(val) === 'false' || val === '0')
+}
+
 module.exports = {
-  sleep, promiseRetry, asyncFind, hasOwnProperty
+  sleep,
+  promiseRetry,
+  isDotnetcoreRuntime,
+  isFalseValue,
+  asyncFind,
+  syncFind,
+  hasOwnProperty
 }

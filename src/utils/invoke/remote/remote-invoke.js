@@ -3,17 +3,27 @@
 const _ = require('lodash')
 
 const kitx = require('kitx')
-const Client = require('./client')
+const Client = require('../../fc/client')
 
-const { green, yellow } = require('colors')
-const { eventPriority } = require('../install/file')
-const { composeStringToSign, signString } = require('./signature')
+const { eventPriority } = require('../../install/file')
+const { green, yellow, red } = require('colors')
+const { composeStringToSign, signString } = require('../../fc/signature')
 
 const INVOKE_TYPE = ['async', 'sync']
 
-class InvokeRemote extends Client {
-  constructor (credentials, region) {
+class RemoteInvoke extends Client {
+  constructor (credentials, region, options) {
     super(credentials, region)
+
+    this.qualifier = options.q || options.qualifier || 'LATEST'
+    this.invocationType = options.t || options.invocationType || 'sync'
+
+    this.eventOptions = {
+      event: options.e || options.event || '',
+      eventFile: options.f || options.eventFile,
+      eventStdin: options.s || options.eventStdin
+    }
+
     this.fcClient = this.buildFcClient()
   }
 
@@ -33,7 +43,6 @@ class InvokeRemote extends Client {
   }
 
   /**
-   *
    * @param event: { body, headers, method, queries, path }
    * path 组装后的路径 /proxy/serviceName/functionName/path ,
    */
@@ -171,22 +180,34 @@ class InvokeRemote extends Client {
     return rs
   }
 
-  async doInvoke (serviceName, functionName, invocationType = 'sync', qualifier, eventOptions) {
-    const upperCase = _.lowerCase(invocationType)
+  async invoke (serviceName, functionName) {
+    const upperCase = _.lowerCase(this.invocationType)
 
     if (!_.includes(INVOKE_TYPE, upperCase)) {
-      throw new Error(red(`error: unexpected argument：${invocationType}`))
+      throw new Error(red(`error: unexpected argument：${this.invocationType}`))
     }
 
-    const event = await eventPriority(eventOptions)
+    const event = await eventPriority(this.eventOptions)
+
     const httpTriggers = await this.getHttpTrigger(serviceName, functionName)
 
     if (_.isEmpty(httpTriggers)) {
-      await this.eventInvoke({ serviceName, functionName, event, qualifier, invocationType: _.upperFirst(upperCase) })
+      await this.eventInvoke({
+        event,
+        serviceName,
+        functionName,
+        qualifier: this.qualifier,
+        invocationType: _.upperFirst(upperCase)
+      })
     } else {
-      await this.httpInvoke({ serviceName, functionName, event, qualifier })
+      await this.httpInvoke({
+        event,
+        serviceName,
+        functionName,
+        qualifier: this.qualifier
+      })
     }
   }
 }
 
-module.exports = InvokeRemote
+module.exports = RemoteInvoke
