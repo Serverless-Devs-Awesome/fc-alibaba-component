@@ -147,6 +147,11 @@ Properties:
                     Description: 挂载点
                     Type:
                       - <Struct>List:
+                          Alias:
+                            Required: false
+                            Description: 针对组件生效的别名
+                            Type:
+                              - String
                           NasAddr:
                             Required: false
                             Description: NAS 服务器地址
