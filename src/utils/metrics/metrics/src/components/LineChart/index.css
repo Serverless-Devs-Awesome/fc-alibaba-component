@@ -1,0 +1,29 @@
+.totalBox{
+  padding: 16px;
+  height: 295px;
+  margin-right: 16px;
+}
+
+.stateProportion {
+  padding: 16px;
+  height: 295px;
+}
+
+.chartPlaceholder {
+  text-align: center;
+  line-height: 230px;
+}
+
+.chartTitle {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.lineChartBox {
+  padding: 16px;
+  height: 300px;
+  margin-right: 16px;
+}
+.lastLineChartBoxParent .lineChartBox{
+  margin-right: 0;
+}
