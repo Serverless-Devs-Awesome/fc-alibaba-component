@@ -1,0 +1,28 @@
+.qualifier-dropdownTab .next-tabs-tab .next-tabs-tab-inner {
+  line-height: 20px;
+}
+
+.qualifier-dropdownTab {
+  position: absolute;
+  width: 250px;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #ebecec;
+}
+.qualifier-dropdownTab .dropdownTabItem {
+  padding: 8px 0;
+  max-height: 250px;
+  overflow-y: auto;
+}
+.qualifier-dropdownTab .dropdownTabItem p {
+  line-height: 32px;
+  padding: 0 16px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+.qualifier-dropdownTab .dropdownTabItem p:hover {
+  background-color: #ebecec;
+}

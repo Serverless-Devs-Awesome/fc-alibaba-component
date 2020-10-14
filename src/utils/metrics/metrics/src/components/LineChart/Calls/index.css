@@ -1,0 +1,30 @@
+.chart1{
+  display: flex;
+  margin-bottom: 8px;
+  height: 112px;
+  line-height: 20px;
+  font-family: SourceHanSansSC-regular;
+}
+
+.chart1 span:first-child {
+  line-height: 27px;
+  color: rgba(16, 16, 16, 100);
+  font-size: 18px;
+}
+.chart1 span:nth-child(2) {
+  line-height: 47px;
+  color: rgba(16, 16, 16, 100);
+  font-size: 50px;
+  align-self: flex-end;
+  padding: 0 32px;
+}
+.chart1 span:last-child {
+  align-self: flex-end;
+  font-size: 20px;
+}
+.lineChart .border{
+  padding: 16px;
+}
+.lineChart .border .tip{
+  text-align: end;
+}
