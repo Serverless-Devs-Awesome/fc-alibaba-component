@@ -80,7 +80,7 @@ class Service extends Client {
   }
 
   async getFcUtilsFunctionCode (filename) {
-    return await fs.readFile(path.join(__dirname, 'utils', filename))
+    return await fs.readFile(path.join(__dirname, '..', 'nas', filename))
   }
 
   async makeFcUtilsService (role, vpcConfig, nasConfig) {
