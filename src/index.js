@@ -11,6 +11,7 @@ const TAG = require('./utils/tag')
 const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 
+const LocalInvoke = require('./utils/invoke/local/local-invoke')
 const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
 const RemoteInvoke = require('./utils/invoke/remote/remote-invoke')
 
@@ -317,6 +318,10 @@ class FcComponent extends Component {
    *   --debug-args
    *   --debugger-path
    * ---------------------------
+   * s invoke local options:
+   *   -e or --event
+   *   -f or --event-file <path>
+   *   -s or --event-stdin
    * @param {*} inputs
    */
   async invoke (inputs) {
@@ -334,11 +339,14 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     if (commands[0] === 'remote') {
-      const remoteInvoke = new RemoteInvoke(credentials, region, options)
-      await remoteInvoke.invoke(serviceName, functionName)
+      const remoteInvoke = new RemoteInvoke(credentials, region, serviceName, functionName, options)
+      await remoteInvoke.invoke()
     } else if (commands[0] === 'docker') {
       const dockerInvoke = new DockerInvoke(credentials, serviceName, serviceProp, functionName, functionProp, options)
       await dockerInvoke.invoke()
+    } else if (commands[0] === 'local') {
+      const localInvoke = new LocalInvoke(credentials, region, serviceProp, functionProp, options)
+      await localInvoke.invoke()
     }
   }
 
