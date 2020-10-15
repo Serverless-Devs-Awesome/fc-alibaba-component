@@ -472,7 +472,7 @@ class Service extends Client {
 
       console.log(`${FIVE_SPACES}using 'Nas: Auto', Fun will try to generate related nas file system automatically`)
       nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
-      console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nasConfig)))
+      console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig))))
     } else {
       // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
@@ -486,7 +486,7 @@ class Service extends Client {
       try {
         service = await this.retryUntilSlsCreated(serviceName, options, !service)
       } catch (ex) {
-        if (ex.code === 'AccessDenied' || this.isSlsNotExistException(ex)) {
+        if (ex.code === 'AccessDenied' || ex.code === 'InvalidArgument' || this.isSlsNotExistException(ex)) {
           throw ex
         }
         debug('error when createService or updateService, serviceName is %s, options is %j, error is: \n%O', serviceName, options, ex)

@@ -476,6 +476,35 @@ function transformToolConfigToFcClientConfig (nasConfig) {
   }
 }
 
+/**
+ * reverse function of transformToolConfigToFcClientConfig
+ */
+function transformClientConfigToToolConfig (nasConfig) {
+  if (!nasConfig) {
+    return nasConfig
+  }
+
+  const toolMountPoints = []
+  if (!_.isEmpty(nasConfig.MountPoints)) {
+    for (const mountPoint of nasConfig.MountPoints) {
+      if (mountPoint.ServerAddr && mountPoint.MountDir) {
+        
+        toolMountPoints.push({
+          NasAddr: mountPoint.ServerAddr.split(':')[0],
+          NasDir: mountPoint.ServerAddr.split(':')[1],
+          FcDir: mountPoint.MountDir
+        })
+      }
+    }
+  }
+  return {
+    GroupId: nasConfig.GroupId,
+    UserId: nasConfig.UserId,
+    MountPoints: toolMountPoints
+  }
+}
+
+
 module.exports = {
   findNasFileSystem,
   findMountTarget,
@@ -490,5 +519,6 @@ module.exports = {
   getDefaultNasDir,
   getAvailableNasFileSystems,
   describeNasZones,
-  transformToolConfigToFcClientConfig
+  transformToolConfigToFcClientConfig,
+  transformClientConfigToToolConfig
 }
