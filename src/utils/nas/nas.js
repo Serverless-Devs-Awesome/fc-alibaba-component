@@ -76,16 +76,12 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
   if (status !== 'Active') { throw new Error(`Timeout while waiting for MountPoint ${mountTargetDomain} status to be 'Active'`) }
 }
 
-async function createDefaultNasIfNotExist (vpcId, vswitchIds) {
-  const nasClient = await getNasPopClient()
-  const vpcClient = await getVpcPopClient()
-
-  const profile = await getProfile()
-  const region = profile.defaultRegion
-
+async function createDefaultNasIfNotExist (credentials, region, vpcId, vswitchIds) {
+  const nasClient = await getNasPopClient(credentials, region)
+  const vpcClient = await getVpcPopClient(credentials)
   const nasZones = await describeNasZones(nasClient, region)
 
-  const { zoneId, vswitchId, storageType } = await getAvailableVSwitchId(vpcClient, region, vswitchIds, nasZones)
+  const { zoneId, vswitchId, storageType } = await getAvailableVSwitchId(credentials, vpcClient, region, vswitchIds, nasZones)
 
   const fileSystemId = await createNasFileSystemIfNotExist(nasClient, region, zoneId, storageType)
 
@@ -209,8 +205,8 @@ async function createNasFileSystem ({
   return rs.FileSystemId
 }
 
-async function generateAutoNasConfig (serviceName, vpcId, vswitchIds, userId, groupId) {
-  const mountPointDomain = await createDefaultNasIfNotExist(vpcId, vswitchIds)
+async function generateAutoNasConfig (credentials, region, serviceName, vpcId, vswitchIds, userId, groupId) {
+  const mountPointDomain = await createDefaultNasIfNotExist(credentials, region, vpcId, vswitchIds)
 
   // fun nas 创建的服务名比其对应的服务多了 '_FUN_NAS_' 前缀
   // 对于 nas 的挂载目录，要去掉这个前缀，保证 fun nas 的服务与对应的服务使用的是同样的挂载目录

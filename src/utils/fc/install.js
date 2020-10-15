@@ -10,7 +10,6 @@ const util = require('util')
 const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
 const { sboxForServerless } = require('../docker/sbox')
-const { getOrConvertFcfile } = require('../build/build')
 const { red } = require('colors')
 const { resolveEnv } = require('../build/parser')
 const { FunModule } = require('../install/module')
@@ -304,7 +303,7 @@ class Install {
   }
 
   async save (runtime, codeUri, pkgType, packages, env) {
-    let funfilePath = await getOrConvertFcfile(codeUri)
+    let funfilePath = await this.getOrConvertFcfile(codeUri)
     const cmds = []
 
     if (!funfilePath) {
@@ -358,6 +357,15 @@ class Install {
     }
 
     return defaultCmd
+  }
+
+  async getOrConvertFcfile (codeUri) {
+    const funfilePath = path.join(codeUri, 'fcfile')
+    const funfileExist = await fs.pathExists(funfilePath)
+    if (funfileExist) {
+      return funfilePath
+    }
+    return null
   }
 }
 

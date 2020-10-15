@@ -16,7 +16,7 @@ const dotenv = require('dotenv').config()
 function filterNotExistParameters (profile) {
   const propsRequired = ['accountId', 'accessKeyId', 'accessKeySecret', 'defaultRegion']
   return propsRequired.filter(paramter => {
-    return !profile.hasOwnProperty(paramter)
+    return !Object.prototype.hasOwnProperty.call(profile, paramter)
   })
 }
 

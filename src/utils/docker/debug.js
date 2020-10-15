@@ -161,7 +161,7 @@ async function generateVscodeDebugConfig (serviceName, functionName, runtime, co
               `docker exec -i $(docker ps -q -f publish=${debugPort}) \${debuggerCommand}`
               ],
               debuggerPath: '/vsdbg/vsdbg',
-              pipeCwd: '${workspaceFolder}'
+              pipeCwd: '${' + 'workspaceFolder}' // get rid of the no-template-curly-in-string warning
             },
             windows: {
               pipeTransport: {
@@ -171,7 +171,7 @@ async function generateVscodeDebugConfig (serviceName, functionName, runtime, co
                 `docker exec -i $(docker ps -q -f publish=${debugPort}) \${debuggerCommand}`
                 ],
                 debuggerPath: '/vsdbg/vsdbg',
-                pipeCwd: '${workspaceFolder}'
+                pipeCwd: '${' + 'workspaceFolder}' // get rid of the no-template-curly-in-string warning
               }
             },
             sourceFileMap: {

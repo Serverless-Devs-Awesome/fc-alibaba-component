@@ -17,7 +17,7 @@ async function getSharedPathsOfDockerForMac () {
 
   const settings = JSON.parse(fileData)
 
-  if (settings.hasOwnProperty('filesharingDirectories')) {
+  if (Object.prototype.hasOwnProperty.call(settings, 'filesharingDirectories')) {
     return settings.filesharingDirectories
   }
   return defaultFileSharingPaths

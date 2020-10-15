@@ -258,7 +258,6 @@ class FcComponent extends Component {
   async remove (inputs) {
     const {
       credentials,
-      properties,
       functionName,
       serviceName,
       args = {},
@@ -412,19 +411,19 @@ class FcComponent extends Component {
 
   // 指标
   async metrics (inputs) {
-    const { State = {}, Properties } = inputs;
-    const { Service = {}, Function = {} } = Properties || State || {};
+    const { State = {}, Properties } = inputs
+    const { Service = {}, Function = {} } = Properties || State || {}
 
-    const serviceName = Service.Name;
+    const serviceName = Service.Name
     if (!serviceName) {
-      throw new Error(`Service Name is empty`);
+      throw new Error('Service Name is empty')
     }
-    const functionName = Function.Name;
+    const functionName = Function.Name
     if (!functionName) {
-      throw new Error(`Function Name is empty`);
+      throw new Error('Function Name is empty')
     }
 
-    const metricsClient = new Metrics(inputs.Credentials || {}, Properties.Region || DEFAULT.Region);
+    const metricsClient = new Metrics(inputs.Credentials || {}, Properties.Region || DEFAULT.Region)
     await metricsClient.start({
       functionName,
       serviceName
@@ -575,7 +574,7 @@ class FcComponent extends Component {
       region
     } = this.handlerInputs(inputs)
 
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
+    const { Commands: commands = [] } = this.args(inputs.Args)
     if (commands.length === 0) {
       console.log(red('input error, use \'s build --help\' for info.'))
       throw new Error('input error.')

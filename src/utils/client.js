@@ -19,45 +19,42 @@ const {
   throwProcessedSLSPermissionError
 } = require('./error/error-message')
 
-const getRosClient = async () => {
-  return await getPopClient('http://ros.aliyuncs.com', '2019-09-10')
+const getRosClient = async (credential) => {
+  return await getPopClientByCredential(credential, 'http://ros.aliyuncs.com', '2019-09-10')
 }
 
-const getOssClient = async (bucket) => {
-  const profile = await getProfile()
-
+const getOssClient = async (credential, region, bucket) => {
+  const timeout = credential.Timeout || 60
   if (!bucket) {
     return OSS({
-      region: 'oss-' + profile.defaultRegion,
-      accessKeyId: profile.accessKeyId,
-      accessKeySecret: profile.accessKeySecret,
-      timeout: profile.timeout * 1000
+      region: 'oss-' + region,
+      accessKeyId: credential.AccessKeyID,
+      accessKeySecret: credential.AccessKeySecret,
+      timeout: timeout * 1000
     })
   }
 
   const location = await OSS({
-    accessKeyId: profile.accessKeyId,
-    accessKeySecret: profile.accessKeySecret,
+    accessKeyId: credential.AccessKeyID,
+    accessKeySecret: credential.AccessKeySecret,
     bucket,
-    region: 'oss-' + profile.defaultRegion
+    region: 'oss-' + region
   }).getBucketLocation(bucket)
 
   debug('use bucket region %s', location.location)
 
   const client = OSS({
-    accessKeyId: profile.accessKeyId,
-    accessKeySecret: profile.accessKeySecret,
+    accessKeyId: credential.AccessKeyID,
+    accessKeySecret: credential.AccessKeySecret,
     bucket,
     region: location.location,
-    timeout: profile.timeout * 1000
+    timeout: timeout * 1000
   })
 
   return client
 }
 
-const getFcClient = async (opts = {}) => {
-  const profile = await getProfile()
-
+const getFcClient = async (credentials, region, opts = {}) => {
   const locale = await osLocale()
 
   const mid = await hashedMachineId()
@@ -66,21 +63,19 @@ const getFcClient = async (opts = {}) => {
     return this.get('/account-settings', options, headers)
   }
 
-  const accountId = profile.accountId ? profile.accountId : 'accountId'
-  const accessKeyID = profile.accessKeyId ? profile.accessKeyId : 'accessKeyID'
-  const accessKeySecret = profile.accessKeySecret ? profile.accessKeySecret : 'accessKeySecret'
-  const region = profile.defaultRegion ? profile.defaultRegion : 'cn-hangzhou'
-
-  const enable = profile.enableCustomEndpoint === true || profile.enableCustomEndpoint === 'true'
-  const endpoint = profile.fcEndpoint ? profile.fcEndpoint : (enable ? profile.endpoint : undefined)
+  const accountId = credentials.AccountID ? credentials.AccountID : 'accountId'
+  const accessKeyID = credentials.AccessKeyID ? credentials.AccessKeyID : 'accessKeyID'
+  const accessKeySecret = credentials.AccessKeySecret ? credentials.AccessKeySecret : 'accessKeySecret'
+  const securityToken = credentials.SecurityToken
+  const secure = credentials.protocol && credentials.protocol !== 'http'
 
   const fc = new FC(accountId, {
     accessKeyID,
     accessKeySecret,
+    securityToken,
     region,
-    endpoint,
-    timeout: opts.timeout || profile.timeout * 1000,
-    secure: profile.protocol !== 'http',
+    timeout: (opts.timeout || 60) * 1000,
+    secure,
     headers: {
       'user-agent': `${pkg.name}/v${pkg.version} ( Node.js ${process.version}; OS ${process.platform} ${process.arch}; language ${locale}; mid ${mid})`
     }
@@ -98,16 +93,15 @@ const getFcClient = async (opts = {}) => {
   return fc
 }
 
-const getFnFClient = async () => {
-  const profile = await getProfile()
-
+const getFnFClient = async (credential, region) => {
   return new FnFClient({
-    endpoint: `https://${profile.accountId}.${profile.defaultRegion}.fnf.aliyuncs.com`,
-    accessKeyId: profile.accessKeyId,
-    accessKeySecret: profile.accessKeySecret
+    endpoint: `https://${credential.AccountID}.${region}.fnf.aliyuncs.com`,
+    accessKeyId: credential.AccessKeyID,
+    accessKeySecret: credential.AccessKeySecret
   })
 }
 
+// Deprecated. Use getPopClientByCredential instead.
 const getPopClient = async (endpoint, apiVersion) => {
   const profile = await getProfile()
 
@@ -134,24 +128,47 @@ const getPopClient = async (endpoint, apiVersion) => {
   return pop
 }
 
+const getPopClientByCredential = async (credential, endpoint, apiVersion) => {
+  const timeout = credential.Timeout || 60
+  const pop = new Pop({
+    endpoint: endpoint,
+    apiVersion: apiVersion,
+    accessKeyId: credential.AccessKeyID || credential.AccessKeyId,
+    accessKeySecret: credential.AccessKeySecret,
+    opts: {
+      timeout: timeout * 1000
+    }
+  })
+
+  const realRequest = pop.request.bind(pop)
+  pop.request = async (action, params, options) => {
+    try {
+      return await realRequest(action, params, options)
+    } catch (ex) {
+      await throwProcessedPopPermissionError(ex, action)
+      throw ex
+    }
+  }
+
+  return pop
+}
+
 const getOtsPopClient = async () => {
   const profile = await getProfile()
 
   return await getPopClient(`http://ots.${profile.defaultRegion}.aliyuncs.com`, '2016-06-20')
 }
 
-const getVpcPopClient = async () => {
-  return await getPopClient('https://vpc.aliyuncs.com', '2016-04-28')
+const getVpcPopClient = async (credential) => {
+  return await getPopClientByCredential(credential, 'https://vpc.aliyuncs.com', '2016-04-28')
 }
 
-const getEcsPopClient = async () => {
-  return await getPopClient('https://ecs.aliyuncs.com', '2014-05-26')
+const getEcsPopClient = async (credential) => {
+  return await getPopClientByCredential(credential, 'https://ecs.aliyuncs.com', '2014-05-26')
 }
 
-const getNasPopClient = async () => {
-  const profile = await getProfile()
-
-  return await getPopClient(`http://nas.${profile.defaultRegion}.aliyuncs.com`, '2017-06-26')
+const getNasPopClient = async (credential, region) => {
+  return await getPopClientByCredential(credential, `http://nas.${region}.aliyuncs.com`, '2017-06-26')
 }
 
 const getOtsClient = async (instanceName) => {

@@ -26,9 +26,9 @@ const conf = new Conf({
   }
 })
 
-process.on('unhandledRejection', error => {
-  // require('../lib/exception-handler')(error)
-})
+// process.on('unhandledRejection', error => {
+//   // require('../lib/exception-handler')(error)
+// })
 
 var fake = {
   pageview: () => {
@@ -64,9 +64,14 @@ real.set('cd3', appVersion)
 
 var visitor
 
+var isUnderDevelop = true
+
 async function getVisitor (returnFakeIfMissingConfig = false) {
   // TODO nahai send method block, so use fake here
-  return fakeMocha
+  if (isUnderDevelop) {
+    return fakeMocha
+  }
+
   if (!visitor) {
     const profile = await getProfileFromFile()
 
