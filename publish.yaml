@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.17
+Version: 0.0.19
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -352,7 +352,7 @@ Properties:
                     Required: true
                     Description: 参数类型
                     Type:
-                      - Struct[Type[OSS]]:
+                      - Struct:
                           Bucket:
                             Required: true
                             Description: 为 OSS 中对应的 bucket 名称。
@@ -390,7 +390,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[Timer]]:
+                      - Struct:
                           CronExpression:
                             Required: false
                             Description: 存储桶名称
@@ -413,7 +413,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[CDN]]:
+                      - Struct:
                           EventName:
                             Required: true
                             Description: 为 CDN 端触发函数执行的事件，一经创建不能更改
@@ -451,7 +451,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[TableStore]]:
+                      - Struct:
                           InstanceName:
                             Required: true
                             Description: 表格存储实例的名字
@@ -474,7 +474,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[MNSTopic]]:
+                      - Struct:
                           TopicName:
                             Required: true
                             Description: mns topic的名字
@@ -516,7 +516,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[RDS]]:
+                      - Struct:
                           InstanceId:
                             Required: true
                             Description:  RDS 实例 ID
@@ -563,7 +563,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[Log]]:
+                      - Struct:
                           Logstore:
                             Required: true
                             Description:  数据源的 Logstore 名称。触发器会定时从该 Logstore 订阅数据到函数计算。
@@ -623,7 +623,7 @@ Properties:
                             Example: LATEST
                             Type:
                               - String
-                      - Struct[Type[HTTP]]:
+                      - Struct:
                           AuthType:
                             Required: true
                             Description:  鉴权类型，可选值：ANONYMOUS、FUNCTION。

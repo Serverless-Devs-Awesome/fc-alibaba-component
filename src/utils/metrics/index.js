@@ -60,7 +60,7 @@ class Metrics {
       params.Dimensions[0].qualifier = qualifier;
     }
     params.Dimensions = JSON.stringify(params.Dimensions)
-    console.log('params:: ', params);
+    // console.log('params:: ', params);
     
     return await this.cmsClient.request('QueryMetricList', params, requestOption);
   }
@@ -89,10 +89,10 @@ class Metrics {
 
       app.get('/get/metric', async (req, res) => {
         const { query } = req;
-        console.log('收到 /get/metric 请求：', query.metric);
+        // console.log('收到 /get/metric 请求：', query.metric);
         const result = await that.get({ ...params, ...query });
-        console.log('result: ', result.Datapoints);
-        console.log('');
+        // console.log('result: ', result.Datapoints);
+        // console.log('');
         if (result.Datapoints) {
           res.send(result.Datapoints);
         } else {
@@ -101,7 +101,7 @@ class Metrics {
       })
 
       app.get('/get/version', async (req, res) => {
-        console.log('收到 /get/version 请求');
+        // console.log('收到 /get/version 请求');
         const list = await that.version.list(params.serviceName);
         if (list.data && list.data.versions) {
           res.send(list.data.versions)
@@ -114,7 +114,7 @@ class Metrics {
       })
 
       app.get('/get/alias', async (req, res) => {
-        console.log('收到 /get/alias 请求');
+        // console.log('收到 /get/alias 请求');
         const list = await that.alias.list(params.serviceName);
         if (list.data && list.data.aliases) {
           res.send(list.data.aliases)
