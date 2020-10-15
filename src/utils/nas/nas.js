@@ -432,6 +432,55 @@ async function describeNasZones (nasClient, region) {
   return zones.Zones.Zone
 }
 
+/**
+ * Transform Nas config from serverless tool format to fc client format. 
+ * From:
+ *  Nas:
+ *     GroupId: groupID
+ *     UseId: userID
+ *     MountPoints:
+ *       - NasAddr: 3e3544a894-qjf60.cn-shanghai.nas.aliyuncs.com
+ *         NasDir: /demo
+ *         FcDir: /home
+ *         LocalDir: ./ssss
+ * To:
+ *   Nas:
+ *     GroupId: groupID
+ *     UserId: userID
+ *     MountPoints:
+ *       - ServerAddr: 0e7644ac24-awh51.cn-hangzhou.nas.aliyuncs.com:/
+ *         MountDir: /mnt/auto
+ */
+function transformToolConfigToFcClientConfig(nasConfig) {
+  if (!nasConfig) {
+    return nasConfig
+  }
+
+  let fcClientMountPoints = [];
+  if (!_.isEmpty(nasConfig.MountPoints)) {
+    for (const mountPoint of nasConfig.MountPoints) {
+      if (mountPoint.NasAddr && mountPoint.NasDir) {
+        fcClientMountPoints.push({
+          ServerAddr: `${mountPoint.NasAddr}:${mountPoint.NasDir}`,
+          MountDir: mountPoint.FcDir
+        })
+      } else if (mountPoint.ServerAddr && mountPoint.MountDir) {
+        //support old format
+        fcClientMountPoints.push({
+          ServerAddr: mountPoint.ServerAddr,
+          MountDir: mountPoint.MountDir
+        })
+      }
+
+    }
+  }
+  return {
+    GroupId: nasConfig.GroupId,
+    UserId: nasConfig.UserId,
+    MountPoints: fcClientMountPoints
+  }
+}
+
 module.exports = {
   findNasFileSystem,
   findMountTarget,
@@ -445,5 +494,6 @@ module.exports = {
   getNasIdFromNasConfig,
   getDefaultNasDir,
   getAvailableNasFileSystems,
-  describeNasZones
+  describeNasZones,
+  transformToolConfigToFcClientConfig
 }

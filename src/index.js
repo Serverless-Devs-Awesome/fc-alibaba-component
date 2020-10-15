@@ -643,7 +643,150 @@ class FcComponent extends Component {
   async package (inputs) {}
 
   // NAS操作
-  async nas (inputs) {}
+  async nas (inputs) {
+    this.help(inputs, {
+      description: `Usage: s nas [command] [options] [arguments]
+
+      Operate NAS file system. Example:
+      * s nas sync : sync directories and files to NAS configured in template.yaml.
+      * s nas sync -n : sync directories and files to NAS without overwriting existed files.
+      * s nas ls /mnt/auto : list NAS directories and files under the fc path bound.`,
+      commands: [{
+        name: 'sync',
+        desc: `synchronize the local directory to the remote NAS file system. Example:`
+      },{
+        name: 'ls',
+        desc: 'list contents of remote NAS directory.'
+      }],
+      args: [{
+        name: '-n, --no-overwrite',
+        desc: 'Never overwrite existing files on NAS when synchronizing files.'
+      },{
+        name: '-a, --alias <alias>',
+        desc: 'Synchronize to NAS with this alias.'
+      },{
+        name: '--all',
+        desc: 'Show all files as well as hidden directories and files.'
+      }]
+    })
+
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
+      ['-n', '--no-overwrite', '-o', '--overwrite', '--all'],
+      [],
+      ['--alias', '-a', '-n', '--no-overwrite', '--all'])
+
+    if (commands.length === 0) {
+      console.log(red('input error, use \'s nas --help\' for info.'))
+      throw new Error('input error.')
+    }
+
+    const nasCommand = commands[0]
+    if (!_.includes(['sync', 'ls'], nasCommand)) {
+      console.log(red(`Nas command error, unknown subcommand '${nasCommand}', use 's nas --help' for info.`))
+      throw new Error('Input error.')
+    }
+
+    const cmdArgs = {
+      alias: parameters.a || parameters.alias,
+      noOverwirte: parameters.n || parameters.noOverwirte || false,
+      all: parameters.all
+    }
+
+    const {
+      projectName,
+      properties,
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      args, region
+    } = this.handlerInputs(inputs)
+
+    //TODO fix auto
+    if (!serviceProp || !serviceProp.Nas) {
+      console.log(red('No NAS config found in template.yaml'))
+      throw new Error('input error.')
+    }
+    if (!serviceProp.Nas || serviceProp.Nas === 'Auto' || _.isEmpty(serviceProp.Nas.MountPoints)) {
+      console.log(red(`No 'MountPoints' config found in your NAS config, please set MountPoints manully for sync.`))
+      throw new Error('input error.')
+    }
+
+    console.log('Loading NAS component, this may cost a few minutes...')
+    const nasComponent = await this.load('nas', 'Component')
+    console.log('Load NAS component successfully.')
+
+    //check function if exists
+    const fcFunction = new FcFunction(credentials, region)
+    const existsNasServerFunction = await fcFunction.functionExists(serviceName, 'fun-nas-function')
+    if (!existsNasServerFunction) {
+      console.log('Configuring a function for operating files on NAS: fun-nas-function.')
+      await nasComponent.deploy(Object.assign({}, inputs))
+      console.log('fun-nas-function is up')
+    }
+
+    const isSyncCommand = nasCommand === 'sync'
+    const isLsCommand = nasCommand === 'ls'
+    if (isSyncCommand) {
+      let hadSync = false
+      for (const mountPoint of serviceProp.Nas.MountPoints) {
+        const localDir = mountPoint.LocalDir
+        if (!localDir) {
+          console.log(red(`No 'LocalDir' config found in your NAS mounpoint config.`))
+          throw new Error('input error.')
+        }
+        const remoteDir = mountPoint.FcDir || mountPoint.MountDir
+        if (!remoteDir) {
+          console.log(red(`No 'FcDir' config found in your NAS mounpoint config.`))
+          throw new Error('input error.')
+        }
+        if (cmdArgs.alias && cmdArgs.alias !== mountPoint.Alias) {
+          continue
+        }
+  
+        let nasComponentInputs = Object.assign({}, inputs)
+        process.argv = ['node', 's', 'cp'] //TODO 修改nas组件，不需要这么处理
+        if (cmdArgs.noOverwirte) {
+          nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
+        } else {
+          nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+        }
+        
+        console.log(`Sync ${localDir} to remote ${remoteDir}`)
+        await nasComponent.cp(nasComponentInputs)
+        hadSync = true
+      }
+      if (!hadSync && cmdArgs.alias) {
+        console.log(yellow(`No files or directory sync to NAS, please check alias if correct.`))
+      }
+    } else if (isLsCommand) {
+      let remoteDirs = []
+      if (commands.length <=1) {
+        for (const mountPoint of serviceProp.Nas.MountPoints) {
+          if (mountPoint.FcDir || mountPoint.MountDir) {
+            remoteDirs.push(mountPoint.FcDir || mountPoint.MountDir)
+          }
+        }
+      } else {
+        remoteDirs = commands.slice(1)
+      }
+
+      for (const remoteDir of remoteDirs) {
+        let nasComponentInputs = Object.assign({}, inputs)
+        process.argv = ['node', 's', 'ls'] //TODO 修改nas组件，不需要这么处理
+        if (cmdArgs.all) {
+          nasComponentInputs.Args = `-a nas://${remoteDir}`
+        } else {
+          nasComponentInputs.Args = `nas://${remoteDir}`
+        }
+
+        console.log(yellow(`Now showing contents under remote directory ${remoteDir}:`))
+        await nasComponent.ls(nasComponentInputs)
+      }
+    }
+    
+  }
 }
 
 module.exports = FcComponent

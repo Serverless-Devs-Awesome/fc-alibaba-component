@@ -472,6 +472,9 @@ class Service extends Client {
       console.log(`${FIVE_SPACES}using 'Nas: Auto', Fun will try to generate related nas file system automatically`)
       nasConfig = await nas.generateAutoNasConfig(serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
       console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nasConfig)))
+    } else {
+      //transform nas config from tool format to fc client format
+      nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
     }
 
     Object.assign(options, {

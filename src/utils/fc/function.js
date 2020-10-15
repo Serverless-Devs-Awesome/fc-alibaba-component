@@ -215,6 +215,16 @@ class Function extends Client {
     return functionProperties
   }
 
+  async functionExists(serviceName, functionName) {
+    try {
+      await this.fcClient.getFunction(serviceName, functionName)
+      return true
+    } catch (e) {
+      //TODO more accurate
+      return false
+    }
+  }
+
   async deploy ({
     projectName,
     serviceName, serviceProp,
