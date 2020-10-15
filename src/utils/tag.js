@@ -59,13 +59,13 @@ class TAG extends Client {
       }
     }
 
-    let tagsAttr
-    try {
-      const tempTags = await this.fcClient.getResourceTags({ resourceArn: resourceArn })
-      tagsAttr = tempTags.data.tags
-    } catch (ex) {
-      tagsAttr = {}
-    }
+    // let tagsAttr
+    // try {
+    //   const tempTags = await this.fcClient.getResourceTags({ resourceArn: resourceArn })
+    //   tagsAttr = tempTags.data.tags
+    // } catch (ex) {
+    //   tagsAttr = {}
+    // }
 
     // 删除标签
     // const untagResourceKeys = []

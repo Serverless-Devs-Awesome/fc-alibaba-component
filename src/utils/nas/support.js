@@ -3,9 +3,9 @@
 const { red } = require('colors')
 const { parseNasUri } = require('./path')
 const { getRootBaseDir } = require('../tpl/tpl')
-const { findServices, isNasAutoConfig } = require('../tpl/definition')
+const { findServices } = require('../tpl/definition')
 const { convertTplToServiceNasIdMappings } = require('./nas')
-const { getVersion, getNasHttpTriggerPath} = require('./request')
+const { getVersion, getNasHttpTriggerPath } = require('./request')
 
 const fs = require('fs-extra')
 const path = require('path')

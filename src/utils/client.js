@@ -24,8 +24,6 @@ const getRosClient = async (credential) => {
 }
 
 const getOssClient = async (credential, region, bucket) => {
-  //const profile = await getProfile()
-
   const timeout = credential.Timeout || 60
   if (!bucket) {
     return OSS({
@@ -37,28 +35,26 @@ const getOssClient = async (credential, region, bucket) => {
   }
 
   const location = await OSS({
-    accessKeyId: profile.accessKeyId,
-    accessKeySecret: profile.accessKeySecret,
+    accessKeyId: credential.AccessKeyID,
+    accessKeySecret: credential.AccessKeySecret,
     bucket,
-    region: 'oss-' + profile.defaultRegion
+    region: 'oss-' + region
   }).getBucketLocation(bucket)
 
   debug('use bucket region %s', location.location)
 
   const client = OSS({
-    accessKeyId: profile.accessKeyId,
-    accessKeySecret: profile.accessKeySecret,
+    accessKeyId: credential.AccessKeyID,
+    accessKeySecret: credential.AccessKeySecret,
     bucket,
     region: location.location,
-    timeout: profile.timeout * 1000
+    timeout: timeout * 1000
   })
 
   return client
 }
 
 const getFcClient = async (credentials, region, opts = {}) => {
-  //const profile = await getProfile()
-
   const locale = await osLocale()
 
   const mid = await hashedMachineId()
@@ -98,8 +94,6 @@ const getFcClient = async (credentials, region, opts = {}) => {
 }
 
 const getFnFClient = async (credential, region) => {
-  //const profile = await getProfile()
-
   return new FnFClient({
     endpoint: `https://${credential.AccountID}.${region}.fnf.aliyuncs.com`,
     accessKeyId: credential.AccessKeyID,
@@ -174,8 +168,6 @@ const getEcsPopClient = async (credential) => {
 }
 
 const getNasPopClient = async (credential, region) => {
-  //const profile = await getProfile()
-
   return await getPopClientByCredential(credential, `http://nas.${region}.aliyuncs.com`, '2017-06-26')
 }
 

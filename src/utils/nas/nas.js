@@ -79,10 +79,6 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
 async function createDefaultNasIfNotExist (credentials, region, vpcId, vswitchIds) {
   const nasClient = await getNasPopClient(credentials, region)
   const vpcClient = await getVpcPopClient(credentials)
-
-  //const profile = await getProfile()
-  //const region = profile.defaultRegion
-
   const nasZones = await describeNasZones(nasClient, region)
 
   const { zoneId, vswitchId, storageType } = await getAvailableVSwitchId(credentials, vpcClient, region, vswitchIds, nasZones)

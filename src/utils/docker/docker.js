@@ -514,7 +514,10 @@ async function isDockerToolBoxAndEnsureDockerVersion () {
 
   const obj = (dockerInfo.Labels || []).map(e => _.split(e, '=', 2))
     .filter(e => e.length === 2)
-    .reduce((acc, cur) => (acc[cur[0]] = cur[1], acc), {})
+    .reduce((acc, cur) => {
+      acc[cur[0]] = cur[1]
+      return acc
+    }, {})
 
   return process.platform === 'win32' && obj.provider === 'virtualbox'
 }
@@ -646,7 +649,7 @@ async function waitForExec (exec) {
         if (err) {
           reject(err)
         } else if (data.ExitCode !== 0) {
-          reject(`${data.ProcessConfig.entrypoint} exited with code ${data.ExitCode}`)
+          reject(new Error(`${data.ProcessConfig.entrypoint} exited with code ${data.ExitCode}`))
         } else {
           resolve(data.ExitCode)
         }

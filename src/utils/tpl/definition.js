@@ -319,6 +319,7 @@ async function matchingResourceBySourceName (resources, sourceName) {
   } else if (functions.length > 1) {
     // TODO nahai 引用太多，这里先注释掉
     // const { serviceName, functionName } = await promptForFunctionSelection(functions);
+    const functionName = 'undefined'
 
     const selectionFunction = functions.find(funcObj => {
       return funcObj.serviceName === serviceName && funcObj.functionName === functionName
@@ -392,7 +393,7 @@ function ensureNasParams (nasConfig) {
   const propsRequired = ['Auto', 'UserId', 'GroupId']
 
   const notExistParams = propsRequired.filter(paramter => {
-    return !nasConfig.hasOwnProperty(paramter)
+    return !Object.prototype.hasOwnProperty.call(nasConfig, paramter)
   })
 
   if (!_.isEmpty(notExistParams)) {

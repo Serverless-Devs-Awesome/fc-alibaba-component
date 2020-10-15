@@ -7,6 +7,7 @@ const path = require('path')
 const httpx = require('httpx')
 const unzipper = require('unzipper')
 const Client = require('./client')
+const { red } = require('colors')
 
 class Sync extends Client {
   constructor (credentials, region) {
@@ -59,6 +60,7 @@ class Sync extends Client {
       try {
         await this.outputFunctionCode(serviceName, functionName, codeUri)
       } catch (e) {
+        console.log(red('Failed to sync function code.'))
         throw e
       }
       pro.Function.CodeUri = codeUri

@@ -22,7 +22,7 @@ async function sbox (options) {
   const cmd = options.cmd
   let envs = options.envs
   const isInteractive = options.interactive
-  const isTty = isInteractive && process.stdin.isTTY || false
+  const isTty = (isInteractive && process.stdin.isTTY) || false
   let tplPath = options.template; let codeUri; let runtime = options.runtime; let mounts = []
 
   if (funcPath) {
@@ -79,7 +79,7 @@ async function sbox (options) {
 }
 
 async function sboxForServerless ({ serviceName, serviceProps, functionName, functionProps, runtime, isInteractive, cmd, baseDir, absCodeUri, envs = {} }) {
-  const isTty = isInteractive && process.stdin.isTTY || false
+  const isTty = (isInteractive && process.stdin.isTTY) || false
   let mounts = []
 
   if (!runtime) {

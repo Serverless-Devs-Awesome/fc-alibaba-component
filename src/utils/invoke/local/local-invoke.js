@@ -92,7 +92,7 @@ class LocalInvoke {
   }
 
   asyncFunction (func) {
-    return func.constructor.name == 'AsyncFunction'
+    return func.constructor.name === 'AsyncFunction'
   }
 
   async excuteFunction (func, ...restArgs) {

@@ -565,7 +565,7 @@ class FcComponent extends Component {
       region
     } = this.handlerInputs(inputs)
 
-    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
+    const { Commands: commands = [] } = this.args(inputs.Args)
     if (commands.length === 0) {
       console.log(red('input error, use \'s build --help\' for info.'))
       throw new Error('input error.')

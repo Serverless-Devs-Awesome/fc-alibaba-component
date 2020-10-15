@@ -361,9 +361,7 @@ class Install {
 
   async getOrConvertFcfile (codeUri) {
     const funfilePath = path.join(codeUri, 'fcfile')
-  
     const funfileExist = await fs.pathExists(funfilePath)
-  
     if (funfileExist) {
       return funfilePath
     }
