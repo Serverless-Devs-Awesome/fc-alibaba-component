@@ -59,13 +59,14 @@ class Metrics {
     if(['FunctionQualifierDestinationSuccessed', 'FunctionQualifierDestinationErrors', 'FunctionQualifierAsyncEventExpiredDropped'].includes(metric)) {
       params.Dimensions[0].qualifier = qualifier;
     }
+    params.Dimensions = JSON.stringify(params.Dimensions)
     console.log('params:: ', params);
     
     return await this.cmsClient.request('QueryMetricList', params, requestOption);
   }
 
   async start(params) {
-    const uri = path.join(__dirname, './build');
+    const uri = path.join(__dirname, './metrics/build');
     const that = this;
     
     function callback(app) {
