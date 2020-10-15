@@ -99,6 +99,8 @@ class FcComponent extends Component {
     const deployTags = commands[0] === 'tags' || deployAll
     const deployDomain = commands[0] === 'domain' || deployAll
 
+    const output = {}
+
     // Service
     if (deployService) {
       const fcService = new Service(credentials, region)
@@ -110,7 +112,7 @@ class FcComponent extends Component {
       const afterDeployLog = deployAllConfig ? 'config update success' : 'deploy success'
 
       console.log(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
-      await fcService.deploy(serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig)
+      output.Service = await fcService.deploy(serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig)
       console.log(green(`service ${serviceName} ${afterDeployLog}\n`))
     }
 
@@ -125,7 +127,7 @@ class FcComponent extends Component {
       const afterDeployLog = onlyDelpoyConfig || deployAllConfig ? 'config update success' : 'deploy success'
 
       console.log(`Waiting for function ${functionName} ${beforeDeployLog}...`)
-      await fcFunction.deploy({
+      output.Function = await fcFunction.deploy({
         projectName,
         serviceName,
         serviceProp,
@@ -141,19 +143,23 @@ class FcComponent extends Component {
     if (deployTriggers) {
       const fcTrigger = new Trigger(credentials, region)
       const triggerName = parameters.n || parameters.name
-      await fcTrigger.deploy(properties, serviceName, functionName, triggerName, commands[0] === 'trigger')
+      output.Triggers = await fcTrigger.deploy(properties, serviceName, functionName, triggerName, commands[0] === 'trigger')
     }
 
     // Tags
     if (deployTags) {
       const tag = new TAG(credentials, region)
       const tagName = parameters.n || parameters.name
-      await tag.deploy(`services/${serviceName}`, properties.Service.Tags, tagName)
+      output.Tags = await tag.deploy(`services/${serviceName}`, properties.Service.Tags, tagName)
     }
 
     if (deployDomain) {
-      await this.domain(inputs)
+      // await this.domain(inputs)
+      output.Domains = await this.domain(inputs)
     }
+
+    // 返回结果
+    return output
   }
 
   // 部署自定义域名

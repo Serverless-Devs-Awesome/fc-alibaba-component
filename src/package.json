@@ -1,6 +1,6 @@
 {
   "name": "@serverless-devs/fc-alibaba",
-  "version": "0.0.13",
+  "version": "0.0.17",
   "description": "Serverless Devs Tool FC Component For Alibaba Cloud",
   "keywords": [
     "Serverless",
@@ -88,7 +88,8 @@
     "util": "^0.12.3",
     "uuid-by-string": "^3.0.2",
     "walkdir": "^0.4.1",
-    "zip-local": "^0.3.4"
+    "zip-local": "^0.3.4",
+    "inquirer": "^7.3.3"
   },
   "devDependencies": {
     "standard": "^14.3.4"
