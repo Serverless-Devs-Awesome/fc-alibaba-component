@@ -59,6 +59,7 @@ class Metrics {
     if(['FunctionQualifierDestinationSuccessed', 'FunctionQualifierDestinationErrors', 'FunctionQualifierAsyncEventExpiredDropped'].includes(metric)) {
       params.Dimensions[0].qualifier = qualifier;
     }
+    params.Dimensions = JSON.stringify(params.Dimensions)
     console.log('params:: ', params);
     
     return await this.cmsClient.request('QueryMetricList', params, requestOption);
