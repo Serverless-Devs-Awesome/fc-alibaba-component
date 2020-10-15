@@ -358,8 +358,8 @@ class FcComponent extends Component {
 
   // 日志
   async logs (inputs) {
+
     const {
-      args,
       region,
       serviceProp,
       serviceName,
@@ -367,13 +367,13 @@ class FcComponent extends Component {
       credentials
     } = this.handlerInputs(inputs)
 
+    const args = this.args(inputs.Args, undefined, ["s", "startTime", "e", "endTime"], undefined)
+
     const logConfig = serviceProp.Log
 
     if (_.isEmpty(logConfig)) {
       throw new Error('Missing Log definition in template.yml.\nRefer to https://github.com/ServerlessTool/fc-alibaba#log')
     }
-
-    console.log(yellow('by default, find logs within 20 minutes...\n'))
 
     const logs = new Logs(credentials, region)
 
@@ -381,12 +381,20 @@ class FcComponent extends Component {
 
     const cmdParameters = args.Parameters
 
-    if (_.has(cmdParameters, 't') || _.has(cmdParameters, 'tail')) {
+    if (args.Parameters.t || args.Parameters.tail) {
       await logs.realtime(projectName, logStoreName, serviceName, functionName)
     } else {
-      // 20 minutes ago
-      const from = moment().subtract(20, 'minutes').unix()
-      const to = moment().unix()
+      let from
+      let to
+      if((cmdParameters.s || cmdParameters.startTime) && (cmdParameters.e || cmdParameters.endTime)){
+        from = (new Date(cmdParameters.s || cmdParameters.startTime)).getTime()/1000
+        to = (new Date(cmdParameters.e || cmdParameters.endTime)).getTime()/1000
+      }else{
+        // 20 minutes ago
+        console.log(yellow('By default, find logs within 20 minutes...\n'))
+        from = moment().subtract(20, 'minutes').unix()
+        to = moment().unix()
+      }
 
       const query = cmdParameters.k || cmdParameters.keyword
       const type = cmdParameters.t || cmdParameters.type
