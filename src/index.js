@@ -367,10 +367,9 @@ class FcComponent extends Component {
       credentials
     } = this.handlerInputs(inputs)
 
-    const args = this.args(inputs.Args, [], [], ["-s", "--start-time", "-e", "--end-time"])
+    const args = this.args(inputs.Args, undefined, ["s", "startTime", "e", "endTime"], undefined)
 
     const logConfig = serviceProp.Log
-
 
     if (_.isEmpty(logConfig)) {
       throw new Error('Missing Log definition in template.yml.\nRefer to https://github.com/ServerlessTool/fc-alibaba#log')
