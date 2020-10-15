@@ -433,7 +433,7 @@ async function describeNasZones (nasClient, region) {
 }
 
 /**
- * Transform Nas config from serverless tool format to fc client format. 
+ * Transform Nas config from serverless tool format to fc client format.
  * From:
  *  Nas:
  *     GroupId: groupID
@@ -451,12 +451,12 @@ async function describeNasZones (nasClient, region) {
  *       - ServerAddr: 0e7644ac24-awh51.cn-hangzhou.nas.aliyuncs.com:/
  *         MountDir: /mnt/auto
  */
-function transformToolConfigToFcClientConfig(nasConfig) {
+function transformToolConfigToFcClientConfig (nasConfig) {
   if (!nasConfig) {
     return nasConfig
   }
 
-  let fcClientMountPoints = [];
+  const fcClientMountPoints = []
   if (!_.isEmpty(nasConfig.MountPoints)) {
     for (const mountPoint of nasConfig.MountPoints) {
       if (mountPoint.NasAddr && mountPoint.NasDir) {
@@ -465,13 +465,12 @@ function transformToolConfigToFcClientConfig(nasConfig) {
           MountDir: mountPoint.FcDir
         })
       } else if (mountPoint.ServerAddr && mountPoint.MountDir) {
-        //support old format
+        // support old format
         fcClientMountPoints.push({
           ServerAddr: mountPoint.ServerAddr,
           MountDir: mountPoint.MountDir
         })
       }
-
     }
   }
   return {

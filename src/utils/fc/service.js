@@ -473,7 +473,7 @@ class Service extends Client {
       nasConfig = await nas.generateAutoNasConfig(serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
       console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nasConfig)))
     } else {
-      //transform nas config from tool format to fc client format
+      // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
     }
 
