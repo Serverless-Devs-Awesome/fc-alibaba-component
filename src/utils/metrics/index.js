@@ -66,7 +66,7 @@ class Metrics {
   }
 
   async start(params) {
-    const uri = path.join(__dirname, './build');
+    const uri = path.join(__dirname, './metrics/build');
     const that = this;
     
     function callback(app) {
