@@ -13,8 +13,8 @@ var requestOption = {
   method: 'POST'
 }
 
-async function createDefaultVSwitch (vpcClient, region, vpcId, vswitchName) {
-  const vswitchZoneId = await selectAllowedVSwitchZone(vpcClient, region)
+async function createDefaultVSwitch (credentials, vpcClient, region, vpcId, vswitchName) {
+  const vswitchZoneId = await selectAllowedVSwitchZone(credentials, vpcClient, region)
 
   var vswitchId
   try {
@@ -99,8 +99,8 @@ async function selectVSwitchZoneId (fcAllowedZones, vpcZones, nasZones) {
   return (_.head(sortedZones) || {}).ZoneId
 }
 
-async function getFcAllowedZones () {
-  const fc = await getFcClient()
+async function getFcAllowedZones (credentials, region) {
+  const fc = await getFcClient(credentials, region)
 
   const fcRs = await fc.getAccountSettings()
 
@@ -117,12 +117,12 @@ async function getFcAllowedZones () {
   return fcAllowedZones
 }
 
-async function selectAllowedVSwitchZone (vpcClient, region) {
-  const nasClient = await getNasPopClient()
+async function selectAllowedVSwitchZone (credentials, vpcClient, region) {
+  const nasClient = await getNasPopClient(credentials, region)
 
-  const fcAllowedZones = await getFcAllowedZones()
+  const fcAllowedZones = await getFcAllowedZones(credentials, region)
   const vpcZones = await describeVpcZones(vpcClient, region)
-  const nasZones = await require('./nas').describeNasZones(nasClient, region)
+  const nasZones = await require('./nas/nas').describeNasZones(nasClient, region)
 
   const usedZoneId = await selectVSwitchZoneId(fcAllowedZones, vpcZones, nasZones)
 
@@ -144,8 +144,8 @@ async function describeVpcZones (vpcClient, region) {
   return zones.Zones.Zone
 }
 
-async function convertToFcAllowedZones (vpcClient, region, vswitchIds) {
-  const fcAllowedZones = await getFcAllowedZones()
+async function convertToFcAllowedZones (credentials, vpcClient, region, vswitchIds) {
+  const fcAllowedZones = await getFcAllowedZones(credentials, region)
 
   const fcZones = []
   for (const vswitchId of vswitchIds) {
@@ -197,8 +197,8 @@ function processDifferentZones (nasZones, FcAllowVswitchId) {
   return null
 }
 
-async function getAvailableVSwitchId (vpcClient, region, vswitchIds, nasZones) {
-  const fcZones = await convertToFcAllowedZones(vpcClient, region, vswitchIds)
+async function getAvailableVSwitchId (credentials, vpcClient, region, vswitchIds, nasZones) {
+  const fcZones = await convertToFcAllowedZones(credentials, vpcClient, region, vswitchIds)
 
   const availableZones = fcZones.filter(fcZone => { return _.includes(nasZones.map(m => { return m.ZoneId }), fcZone.zoneId) })
 
