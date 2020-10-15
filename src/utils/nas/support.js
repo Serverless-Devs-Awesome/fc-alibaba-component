@@ -3,9 +3,9 @@
 const { red } = require('colors')
 const { parseNasUri } = require('./path')
 const { getRootBaseDir } = require('../tpl/tpl')
-const { findServices, isNasAutoConfig } = require('../tpl/definition')
+const { findServices } = require('../tpl/definition')
 const { convertTplToServiceNasIdMappings } = require('./nas')
-const { getVersion, getNasHttpTriggerPath, getNasConfig } = require('./request')
+const { getVersion, getNasHttpTriggerPath } = require('./request')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -89,16 +89,16 @@ function hasWritePerm (num, stats, nasPath) {
   }
 }
 
-async function isNasServerStale (serviceName, nasConfig, version) {
-  return !(await isSameVersion(serviceName, version) && await isSameNasConfig(serviceName, nasConfig))
-}
+// async function isNasServerStale (credentials, region, serviceName, nasConfig, version) {
+//   return !(await isSameVersion(credentials, region, serviceName, version) && await isSameNasConfig(credentials, region, serviceName, nasConfig))
+// }
 
-async function isSameVersion (serviceName, version) {
+async function isSameVersion (credentials, region, serviceName, version) {
   const nasHttpTriggerPath = getNasHttpTriggerPath(serviceName)
   let getVersionRes
   let curNasServerVersion
   try {
-    getVersionRes = await getVersion(nasHttpTriggerPath)
+    getVersionRes = await getVersion(credentials, region, nasHttpTriggerPath)
     curNasServerVersion = (getVersionRes.data).curVersionId
   } catch (error) {
     curNasServerVersion = -1
@@ -107,31 +107,31 @@ async function isSameVersion (serviceName, version) {
   return _.isEqual(curNasServerVersion, version)
 }
 
-async function isSameNasConfig (serviceName, nasConfig) {
-  let curNasServerNasConfig
-  try {
-    curNasServerNasConfig = await getNasConfig(serviceName)
-    curNasServerNasConfig = {
-      UserId: curNasServerNasConfig.userId,
-      GroupId: curNasServerNasConfig.groupId,
-      MountPoints: curNasServerNasConfig.mountPoints.map(p => ({ ServerAddr: p.serverAddr, MountDir: p.mountDir }))
-    }
-  } catch (error) {
-    curNasServerNasConfig = {}
-  }
+// async function isSameNasConfig (credentials, region, serviceName, nasConfig) {
+//   let curNasServerNasConfig
+//   try {
+//     curNasServerNasConfig = await getNasConfig(credentials, region, serviceName)
+//     curNasServerNasConfig = {
+//       UserId: curNasServerNasConfig.userId,
+//       GroupId: curNasServerNasConfig.groupId,
+//       MountPoints: curNasServerNasConfig.mountPoints.map(p => ({ ServerAddr: p.serverAddr, MountDir: p.mountDir }))
+//     }
+//   } catch (error) {
+//     curNasServerNasConfig = {}
+//   }
 
-  if (isNasAutoConfig(nasConfig)) {
-    // 当线上函数计算端的 NasConfig 包含如下几个选项时，对应本地 NasConfig: Auto
-    // UserId: 10003,
-    // GroupId: 10003,
-    // MountDir: /mnt/auto
-    // 当本地 NasConfig 为 Auto 时，认为 nas 配置未变
-    return _.isEqual(curNasServerNasConfig.UserId, nasConfig.UserId || 10003) &&
-          _.isEqual(curNasServerNasConfig.GroupId, nasConfig.GroupId || 10003) &&
-          _.isEqual(curNasServerNasConfig.MountPoints[0].MountDir, '/mnt/auto')
-  }
-  return _.isEqual(nasConfig, curNasServerNasConfig)
-}
+//   if (isNasAutoConfig(nasConfig)) {
+//     // 当线上函数计算端的 NasConfig 包含如下几个选项时，对应本地 NasConfig: Auto
+//     // UserId: 10003,
+//     // GroupId: 10003,
+//     // MountDir: /mnt/auto
+//     // 当本地 NasConfig 为 Auto 时，认为 nas 配置未变
+//     return _.isEqual(curNasServerNasConfig.UserId, nasConfig.UserId || 10003) &&
+//           _.isEqual(curNasServerNasConfig.GroupId, nasConfig.GroupId || 10003) &&
+//           _.isEqual(curNasServerNasConfig.MountPoints[0].MountDir, '/mnt/auto')
+//   }
+//   return _.isEqual(nasConfig, curNasServerNasConfig)
+// }
 
 function toBeUmountedDirs (configuredMountDirs, mountedDirs) {
   const toUnmountDirs = mountedDirs.filter((mountedDir) => !configuredMountDirs.includes(mountedDir))
@@ -245,9 +245,9 @@ module.exports = {
   chunk,
   splitRangeBySize,
   checkWritePerm,
-  isNasServerStale,
+  // isNasServerStale,
   toBeUmountedDirs,
-  isSameNasConfig,
+  // isSameNasConfig,
   isSameVersion,
   getNasId,
   getNasPathAndServiceFromNasUri,

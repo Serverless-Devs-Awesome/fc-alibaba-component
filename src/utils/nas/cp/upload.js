@@ -22,7 +22,7 @@ const {
   changeNasFilePermission
 } = require('../request')
 
-async function uploadFolder (srcPath, dstPath, nasHttpTriggerPath, localNasTmpDir, noClobber) {
+async function uploadFolder (credentials, region, srcPath, dstPath, nasHttpTriggerPath, localNasTmpDir, noClobber) {
   console.log('zipping ' + srcPath)
   const zipFilePath = await zipWithArchiver(srcPath, localNasTmpDir)
   const zipFileSize = await getFileSize(zipFilePath)
@@ -33,59 +33,59 @@ async function uploadFolder (srcPath, dstPath, nasHttpTriggerPath, localNasTmpDi
 
   const remoteNasTmpDir = path.posix.join(dstPath, '.fun_nas_tmp')
   debug(`checking NAS tmp dir ${remoteNasTmpDir}`)
-  await checkRemoteNasTmpDir(nasHttpTriggerPath, remoteNasTmpDir)
+  await checkRemoteNasTmpDir(credentials, region, nasHttpTriggerPath, remoteNasTmpDir)
   debug(`${green('✔')} check done`)
   const nasZipFile = path.posix.join(remoteNasTmpDir, fileName)
   debug(`Creating ${zipFileSize} bytes size file: ${nasZipFile}`)
-  await createSizedNasFile(nasHttpTriggerPath, nasZipFile, zipFileSize)
+  await createSizedNasFile(credentials, region, nasHttpTriggerPath, nasZipFile, zipFileSize)
 
   debug(`${green('✔')} create done`)
 
-  await uploadFileByChunk(nasHttpTriggerPath, nasZipFile, zipFilePath, fileOffSetCutByChunkSize)
+  await uploadFileByChunk(credentials, region, nasHttpTriggerPath, nasZipFile, zipFilePath, fileOffSetCutByChunkSize)
 
   debug(`checking uploaded NAS zip file ${nasZipFile} hash`)
-  await checkFileHash(nasHttpTriggerPath, nasZipFile, zipHash)
+  await checkFileHash(credentials, region, nasHttpTriggerPath, nasZipFile, zipHash)
   debug(`${green('✔')} hash unchanged`)
 
   console.log('unzipping file')
   const srcPathFiles = await readDirRecursive(srcPath)
   const unzipFilesCount = srcPathFiles.length
   const filesArrSlicedBySize = chunk(srcPathFiles, constants.FUN_NAS_FILE_COUNT_PER_REQUEST)
-  await unzipNasFileParallel(nasHttpTriggerPath, dstPath, nasZipFile, filesArrSlicedBySize, unzipFilesCount, noClobber)
+  await unzipNasFileParallel(credentials, region, nasHttpTriggerPath, dstPath, nasZipFile, filesArrSlicedBySize, unzipFilesCount, noClobber)
   debug('cleaning')
-  await sendCleanRequest(nasHttpTriggerPath, nasZipFile)
+  await sendCleanRequest(credentials, region, nasHttpTriggerPath, nasZipFile)
   debug(`${green('✔')} clean done`)
 
   rimraf.sync(zipFilePath)
   console.log(`${green('✔')} upload completed!`)
 }
 
-async function uploadFile (resolvedSrc, actualDstPath, nasHttpTriggerPath) {
+async function uploadFile (credentials, region, resolvedSrc, actualDstPath, nasHttpTriggerPath) {
   const fileSize = await getFileSize(resolvedSrc)
   const fileOffSetCutByChunkSize = splitRangeBySize(0, fileSize, constants.FUN_NAS_CHUNK_SIZE)
   const fileHash = await getFileHash(resolvedSrc)
   const filePermission = await getFilePermission(resolvedSrc)
 
   debug(`Creating ${fileSize} bytes size file: ${actualDstPath}`)
-  await createSizedNasFile(nasHttpTriggerPath, actualDstPath, fileSize)
+  await createSizedNasFile(credentials, region, nasHttpTriggerPath, actualDstPath, fileSize)
   debug(`${green('✔')} create done`)
 
-  await uploadFileByChunk(nasHttpTriggerPath, actualDstPath, resolvedSrc, fileOffSetCutByChunkSize)
-  await changeNasFilePermission(nasHttpTriggerPath, actualDstPath, filePermission)
+  await uploadFileByChunk(credentials, region, nasHttpTriggerPath, actualDstPath, resolvedSrc, fileOffSetCutByChunkSize)
+  await changeNasFilePermission(credentials, region, nasHttpTriggerPath, actualDstPath, filePermission)
 
   debug(`checking uploaded file ${actualDstPath} hash`)
-  await checkFileHash(nasHttpTriggerPath, actualDstPath, fileHash)
+  await checkFileHash(credentials, region, nasHttpTriggerPath, actualDstPath, fileHash)
   debug(`${green('✔')} hash unchanged`)
 
   console.log(`${green('✔')} upload completed!`)
 }
 
-function unzipNasFileParallel (nasHttpTriggerPath, dstDir, nasZipFile, filesArrQueue, unzipFilesCount, noClobber) {
+function unzipNasFileParallel (credentials, region, nasHttpTriggerPath, dstDir, nasZipFile, filesArrQueue, unzipFilesCount, noClobber) {
   return new Promise((resolve, reject) => {
     const bar = createProgressBar(`${green(':unzipping')} :bar :current/:total :rate files/s, :percent :elapsed s`, { total: unzipFilesCount })
     const unzipQueue = async.queue(async (unzipFiles, next) => {
       try {
-        await sendUnzipRequest(nasHttpTriggerPath, dstDir, nasZipFile, unzipFiles, noClobber)
+        await sendUnzipRequest(credentials, region, nasHttpTriggerPath, dstDir, nasZipFile, unzipFiles, noClobber)
         bar.tick(unzipFiles.length)
       } catch (error) {
         // zip 中存在特殊文件名，例如 $data.js
@@ -124,13 +124,13 @@ function unzipNasFileParallel (nasHttpTriggerPath, dstDir, nasZipFile, filesArrQ
     unzipQueue.push(filesArrQueue)
   })
 }
-function uploadFileByChunk (nasHttpTriggerPath, nasZipFile, zipFilePath, fileOffSet) {
+function uploadFileByChunk (credentials, region, nasHttpTriggerPath, nasZipFile, zipFilePath, fileOffSet) {
   return new Promise((resolve, reject) => {
     const chunks = fileOffSet.length
     const bar = createProgressBar(`${green(':uploading')} :bar :current/:total :rate files/s, :percent :elapsed s`, { total: chunks })
     const uploadQueue = async.queue(async (offSet, callback) => {
       try {
-        await uploadChunkFile(nasHttpTriggerPath, nasZipFile, zipFilePath, offSet)
+        await uploadChunkFile(credentials, region, nasHttpTriggerPath, nasZipFile, zipFilePath, offSet)
       } catch (error) {
         console.log(red(`upload error : ${error.message}`))
         return

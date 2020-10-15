@@ -103,12 +103,12 @@ async function waitVpcUntilAvaliable (vpcClient, region, vpcId) {
   if (status !== 'Available') { throw new Error(`Timeout while waiting for vpc ${vpcId} status to be 'Available'`) }
 }
 
-async function createDefaultVSwitchIfNotExist (vpcClient, region, vpcId, vswitchIds) {
+async function createDefaultVSwitchIfNotExist (credentials, vpcClient, region, vpcId, vswitchIds) {
   let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
 
   if (!vswitchId) { // create vswitch
     console.log(`${TEN_SPACES}could not find default vswitch, ready to generate one.`)
-    vswitchId = await vswitch.createDefaultVSwitch(vpcClient, region, vpcId, defaultVSwitchName)
+    vswitchId = await vswitch.createDefaultVSwitch(credentials, vpcClient, region, vpcId, defaultVSwitchName)
     console.log(`${TEN_SPACES}default vswitch has been generated, vswitchId is: ` + vswitchId)
   } else {
     console.log(`${TEN_SPACES}vswitch already generated, vswitchId is: ` + vswitchId)
@@ -139,9 +139,9 @@ async function createDefaultSecurityGroupIfNotExist (ecsClient, region, vpcId) {
   return securityGroupId
 }
 
-async function createDefaultVpcIfNotExist (region) {
-  const vpcClient = await getVpcPopClient()
-  const ecsClient = await getEcsPopClient()
+async function createDefaultVpcIfNotExist (credentials, region) {
+  const vpcClient = await getVpcPopClient(credentials)
+  const ecsClient = await getEcsPopClient(credentials)
 
   const defaultVpcName = 'fc-fun-vpc'
 
@@ -162,7 +162,7 @@ async function createDefaultVpcIfNotExist (region) {
   }
 
   debug('vpcId is %s', vpcId)
-  const vswitchId = await createDefaultVSwitchIfNotExist(vpcClient, region, vpcId, vswitchIds)
+  const vswitchId = await createDefaultVSwitchIfNotExist(credentials, vpcClient, region, vpcId, vswitchIds)
 
   vswitchIds = [vswitchId]
   // create security

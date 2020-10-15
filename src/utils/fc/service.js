@@ -176,8 +176,9 @@ class Service extends Client {
       if (log) {
         const decodedLog = Buffer.from(log, 'base64')
         if ((decodedLog.toString().toLowerCase()).includes('permission denied')) {
-          throw new Error(`fc utils function ${functionName} invoke error, error message is: ${decodedLog}\n${red('May be UserId and GroupId in NasConfig don\'t have enough \
-  permission, more information please refer to https://github.com/alibaba/funcraft/blob/master/docs/usage/faq-zh.md')}`)
+          throw new Error(`fc utils function ${functionName} invoke error, error message is: ${decodedLog}\n` +
+          `${red('May be UserId and GroupId in NasConfig don\'t have enough\n' +
+          'permission, more information please refer to https://github.com/alibaba/funcraft/blob/master/docs/usage/faq-zh.md')}`)
         }
         throw new Error(`fc utils function ${functionName} invoke error, error message is: ${decodedLog}`)
       }
@@ -454,7 +455,7 @@ class Service extends Client {
     if (!_.isEmpty(vpcConfig) || isNasAuto) {
       if (isVpcAuto || (_.isEmpty(vpcConfig) && isNasAuto)) {
         console.log(`${FIVE_SPACES}using 'Vpc: Auto', try to generate related vpc resources automatically`)
-        vpcConfig = await vpc.createDefaultVpcIfNotExist(this.region)
+        vpcConfig = await vpc.createDefaultVpcIfNotExist(this.credentials, this.region)
         console.log(green(`${FIVE_SPACES}generated default Vpc config done:`, JSON.stringify(vpcConfig)))
 
         debug('generated vpcConfig: %j', vpcConfig)
@@ -470,7 +471,7 @@ class Service extends Client {
       const vswitchIds = vpcConfig.vswitchIds || vpcConfig.VSwitchIds
 
       console.log(`${FIVE_SPACES}using 'Nas: Auto', Fun will try to generate related nas file system automatically`)
-      nasConfig = await nas.generateAutoNasConfig(serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
+      nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
       console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nasConfig)))
     } else {
       // transform nas config from tool format to fc client format
@@ -538,6 +539,10 @@ class Service extends Client {
       internetAccess,
       description
     })
+  }
+
+  async getService (serviceName) {
+    return await this.fcClient.getService(serviceName)
   }
 }
 

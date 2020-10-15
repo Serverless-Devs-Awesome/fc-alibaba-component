@@ -91,6 +91,11 @@
     "zip-local": "^0.3.4",
     "inquirer": "^7.3.3"
   },
+  "standard": {
+    "ignore": [
+      "utils/metrics/metrics"
+    ]
+  },
   "devDependencies": {
     "standard": "^14.3.4"
   }
