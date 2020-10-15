@@ -82,11 +82,16 @@ MyFunction:
 #      Nas: Auto
       Nas:
         UseId: userID
-        GroupId: groupID
+        GroupId: groupID # s nas sync
         MountPoints:
+          - Alias: demo # 选填
+            NasAddr: 3e3544a894-qjf60.cn-shanghai.nas.aliyuncs.com
+            NasDir: /demo
+            FcDir: /home/ssss
+            LocalDir: ./ssss
           - NasAddr: 3e3544a894-qjf60.cn-shanghai.nas.aliyuncs.com
             NasDir: /demo
-            FcDir: /home
+            FcDir: /home/aaaaaa
             LocalDir: ./ssss
       Tags:
         - Key: 标签名
@@ -295,6 +300,7 @@ MyFunction:
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
+| Alias | false | String |  针对组件生效的别名（和线上资源无关） |
 | NasAddr | false | String |  NAS 服务器地址 |
 | NasDir | false | String | NAS目录 |
 | FcDir | false | String | 函数计算目录 |

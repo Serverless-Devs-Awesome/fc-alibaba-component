@@ -12,8 +12,11 @@ const { composeStringToSign, signString } = require('../../fc/signature')
 const INVOKE_TYPE = ['async', 'sync']
 
 class RemoteInvoke extends Client {
-  constructor (credentials, region, options) {
+  constructor (credentials, region, serviceName, functionName, options) {
     super(credentials, region)
+
+    this.serviceName = serviceName
+    this.functionName = functionName
 
     this.qualifier = options.q || options.qualifier || 'LATEST'
     this.invocationType = options.t || options.invocationType || 'sync'
@@ -180,7 +183,7 @@ class RemoteInvoke extends Client {
     return rs
   }
 
-  async invoke (serviceName, functionName) {
+  async invoke () {
     const upperCase = _.lowerCase(this.invocationType)
 
     if (!_.includes(INVOKE_TYPE, upperCase)) {
@@ -189,21 +192,21 @@ class RemoteInvoke extends Client {
 
     const event = await eventPriority(this.eventOptions)
 
-    const httpTriggers = await this.getHttpTrigger(serviceName, functionName)
+    const httpTriggers = await this.getHttpTrigger(this.serviceName, this.functionName)
 
     if (_.isEmpty(httpTriggers)) {
       await this.eventInvoke({
         event,
-        serviceName,
-        functionName,
+        serviceName: this.serviceName,
+        functionName: this.functionName,
         qualifier: this.qualifier,
         invocationType: _.upperFirst(upperCase)
       })
     } else {
       await this.httpInvoke({
         event,
-        serviceName,
-        functionName,
+        serviceName: this.serviceName,
+        functionName: this.functionName,
         qualifier: this.qualifier
       })
     }
