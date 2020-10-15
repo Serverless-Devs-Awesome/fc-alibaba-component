@@ -90,6 +90,11 @@
     "walkdir": "^0.4.1",
     "zip-local": "^0.3.4"
   },
+  "standard": {
+    "ignore": [
+      "utils/metrics/metrics"
+    ]
+  },
   "devDependencies": {
     "standard": "^14.3.4"
   }
