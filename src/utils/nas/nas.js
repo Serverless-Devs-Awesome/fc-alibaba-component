@@ -23,7 +23,8 @@ const FIVE_SPACES = '     '
 
 const NAS_DEFAULT_DESCRIPTION = 'default_nas_created_by_fc_fun'
 const FUN_NAS_SERVICE_PREFIX = '_FUN_NAS_'
-// const FUN_NAS_FUNCTION = 'fun-nas-function'
+const FUN_NAS_FUNCTION = 'fun-nas-function'
+const FUN_AUTO_FC_MOUNT_DIR = '/mnt/auto'
 // const FUN_NAS_TIMEOUT = 600 * 1000
 // const FUN_NAS_UPLOAD_PARALLEL_COUNT = 5
 // const FUN_NAS_FILE_COUNT_PER_REQUEST = 248
@@ -219,7 +220,7 @@ async function generateAutoNasConfig (credentials, region, serviceName, vpcId, v
     MountPoints: [
       {
         ServerAddr: `${mountPointDomain}:/${serviceName}`,
-        MountDir: '/mnt/auto'
+        MountDir: FUN_AUTO_FC_MOUNT_DIR
       }
     ]
   }
@@ -448,7 +449,7 @@ async function describeNasZones (nasClient, region) {
  *         MountDir: /mnt/auto
  */
 function transformToolConfigToFcClientConfig (nasConfig) {
-  if (!nasConfig) {
+  if (!nasConfig || nasConfig === 'Auto') {
     return nasConfig
   }
 
@@ -480,7 +481,7 @@ function transformToolConfigToFcClientConfig (nasConfig) {
  * reverse function of transformToolConfigToFcClientConfig
  */
 function transformClientConfigToToolConfig (nasConfig) {
-  if (!nasConfig) {
+  if (!nasConfig || nasConfig === 'Auto') {
     return nasConfig
   }
 
@@ -506,6 +507,8 @@ function transformClientConfigToToolConfig (nasConfig) {
 
 
 module.exports = {
+  FUN_NAS_FUNCTION,
+  FUN_AUTO_FC_MOUNT_DIR,
   findNasFileSystem,
   findMountTarget,
   createMountTarget,

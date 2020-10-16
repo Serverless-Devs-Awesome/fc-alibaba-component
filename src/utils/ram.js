@@ -24,10 +24,24 @@ class RAM extends Client {
         RoleName: roleName
       })
     } catch (ex) {
-      console.error('error when getRole: %s, error is: \n%O', roleName, ex)
       if (ex.name !== 'EntityNotExist.RoleError') {
+        console.error('error when getRole: %s, error is: \n%O', roleName, ex)
         throw ex
       }
+    }
+  }
+
+  async existsRamRole (roleName) {
+    try {
+      await this.ramClient.getRole({
+        RoleName: roleName
+      })
+      return true
+    } catch (ex) {
+      if (ex.name === 'EntityNotExist.RoleError') {
+        return false
+      }
+      throw ex
     }
   }
 

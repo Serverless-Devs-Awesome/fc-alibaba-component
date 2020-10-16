@@ -57,14 +57,16 @@ class Function extends Client {
     } else {
       const packToParame = {
         outputFilePath: cachePath,
-        outputFileName: `${projectName}.zip`
+        outputFileName: `${projectName}.zip`,
+        exclude: ['.s'],
+        include: []
       }
       if (singlePathConfigued) {
         packToParame.codeUri = code
       } else {
         packToParame.codeUri = code.Src
-        packToParame.exclude = code.Exclude
-        packToParame.include = code.Include
+        packToParame.exclude = packToParame.exclude.concat(code.Exclude)
+        packToParame.include = packToParame.exclude.concat(code.Include)
       }
 
       const builder = new Builder(this.credentials, this.region)

@@ -518,7 +518,7 @@ class Trigger extends Client {
       try {
         await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
       } catch (ex) {
-        throw new Error(`Unable to deleting trigger: ${ex.message}`)
+        throw new Error(`Unable to delete trigger: ${ex.message}`)
       }
 
       console.log(`Delete trigger successfully: ${triggerList[i]}`)
