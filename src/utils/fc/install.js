@@ -20,6 +20,92 @@ const { yellow } = require('colors')
 const { DEFAULT_NAS_PATH_SUFFIX } = require('../tpl/tpl')
 
 class Install {
+  constructor (commands, parameters, {credentials, serviceName, serviceProp, functionName, functionProp, region}) {
+    this.commands = commands
+    this.parameters = parameters
+    this.credentials = credentials
+    this.serviceName = serviceName
+    this.serviceProp = serviceProp
+    this.functionName = functionName
+    this.functionProp = functionProp
+    this.region = region
+  }
+
+  async handle() {
+    const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = this.parameters
+
+    if (this.commands.length === 0) {
+      console.log(red('input error, use \'s install --help\' for info.'))
+      throw new Error('input error.')
+    }
+
+    const installCommand = this.commands[0]
+    if (!_.includes(['docker', 'local'], installCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`))
+      throw new Error('Input error.')
+    }
+
+    // commands
+    const useDocker = installCommand === 'docker'
+    let installAll = true; let packages = []
+    // console.log(commands);
+    if (this.commands.length > 1) {
+      packages = this.commands.slice(1)
+      installAll = false
+    }
+    const cmdArgs = {
+      env: [].concat(e).concat(env),
+      runtime: r || runtime,
+      packageType: p || packageType,
+      registryUrl: url,
+      cmd: c || cmd,
+      interactive: i || interactive,
+      save: save,
+      fcFile: f || file || 'fcfile',
+      url: url,
+      installAll: installAll,
+      packages: packages
+    }
+
+    if (!useDocker) {
+      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
+        console.log(red('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.'))
+        throw new Error('Input error.')
+      }
+    }
+
+    if (cmdArgs.interactive && cmdArgs.cmd) {
+      console.log(red('\'--interactive\' should not be used with \'--cmd\''))
+      throw new Error('Input error.')
+    }
+
+    if (installAll && (cmdArgs.save || cmdArgs.packageType || cmdArgs.url)) {
+      console.log(red('Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.'))
+    }
+
+    console.log('Start to install dependency.')
+
+    if (useDocker) {
+      console.log('Start installing functions using docker.')
+      await this.installInDocker({ 
+        serviceName: this.serviceName,
+        serviceProps: this.serviceProp, 
+        functionName: this.functionName, 
+        functionProps: this.functionProp, 
+        cmdArgs 
+      })
+    } else {
+      console.log('Start installing functions.')
+      await this.install({ 
+        serviceName: this.serviceName,
+        serviceProps: this.serviceProp,
+        functionName: this.functionName,
+        functionProps: this.functionProp,
+        cmdArgs 
+      })
+    }
+  }
+
   async install ({ serviceName, serviceProps, functionName, functionProps, cmdArgs = {} }) {
     const codeUri = functionProps.CodeUri
     const baseDir = process.cwd()

@@ -475,83 +475,30 @@ class FcComponent extends Component {
       ]
     })
 
+    const {
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      region
+    } = this.handlerInputs(inputs)
+
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
       ['i', 'interactive', 'save'],
       [],
       ['--cmd', '-c', '-e', '--env', '-f', '--file', '--save', '--url', '-p', '--package-type', '-r', '--runtime'])
-    const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = parameters
-    const installer = new Install()
 
-    if (commands.length === 0) {
-      console.log(red('input error, use \'s install --help\' for info.'))
-      throw new Error('input error.')
-    }
+    const installer = new Install(commands, parameters, {
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      region
+    })
 
-    const installCommand = commands[0]
-    if (!_.includes(['docker', 'local'], installCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`))
-      throw new Error('Input error.')
-    }
-
-    // commands
-    const useDocker = installCommand === 'docker'
-    let installAll = true; let packages = []
-    // console.log(commands);
-    if (commands.length > 1) {
-      packages = commands.slice(1)
-      installAll = false
-    }
-    const cmdArgs = {
-      env: [].concat(e).concat(env),
-      runtime: r || runtime,
-      packageType: p || packageType,
-      registryUrl: url,
-      cmd: c || cmd,
-      interactive: i || interactive,
-      save: save,
-      fcFile: f || file || 'fcfile',
-      url: url,
-      installAll: installAll,
-      packages: packages
-    }
-
-    if (!useDocker) {
-      if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
-        console.log(red('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.'))
-        throw new Error('Input error.')
-      }
-    }
-
-    if (cmdArgs.interactive && cmdArgs.cmd) {
-      console.log(red('\'--interactive\' should not be used with \'--cmd\''))
-      throw new Error('Input error.')
-    }
-
-    if (installAll && (cmdArgs.save || cmdArgs.packageType || cmdArgs.url)) {
-      console.log(red('Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.'))
-    }
-
-    console.log('Start to install dependency.')
-    const properties = inputs.Properties
-    const state = inputs.State || {}
-
-    const serviceInput = properties.Service || {}
-    const serviceState = state.Service || {}
-    const serviceName = serviceInput.Name
-      ? serviceInput.Name
-      : serviceState.Name
-        ? serviceState.Name
-        : DEFAULT.Service
-    const functionInput = properties.Function
-    const functionName = functionInput.Name
-
-    if (useDocker) {
-      console.log('Start installing functions using docker.')
-      await installer.installInDocker({ serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs })
-    } else {
-      console.log('Start installing functions.')
-      await installer.install({ serviceName, serviceProps: serviceInput, functionName, functionProps: functionInput, cmdArgs })
-    }
+    await installer.handle()
   }
 
   // 构建
@@ -581,36 +528,18 @@ class FcComponent extends Component {
       region
     } = this.handlerInputs(inputs)
 
-    const { Commands: commands = [] } = this.args(inputs.Args)
-    if (commands.length === 0) {
-      console.log(red('input error, use \'s build --help\' for info.'))
-      throw new Error('input error.')
-    }
-    const buildCommand = commands[0]
-    if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`))
-      throw new Error('Input error.')
-    }
+    const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
 
-    const builder = new Builder(credentials, region)
-    const buildImage = buildCommand === 'image'
-    if (buildImage) {
-      if (functionProp.Runtime !== 'custom-container') {
-        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${functionProp.Runtime}`))
-        throw new Error('Input error.')
-      }
-      await builder.buildImage(serviceName, serviceProp, functionName, functionProp)
-      return
-    }
+    const builder = new Builder(commands, parameters, {
+      credentials,
+      serviceName,
+      serviceProp,
+      functionName,
+      functionProp,
+      region
+    })
 
-    // serviceName, serviceProps, functionName, functionProps, useDocker, verbose
-    const useDocker = buildCommand === 'docker'
-    if (useDocker) {
-      console.log('Use docker for building.')
-    }
-    await builder.build(serviceName, serviceProp, functionName, functionProp, useDocker, true)
-
-    console.log('Build artifact successfully.')
+    await builder.handle()
   }
 
   // 发布

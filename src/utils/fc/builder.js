@@ -10,15 +10,57 @@ const ncp = require('../ncp')
 const util = require('util')
 const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
-const { yellow } = require('colors')
+const { yellow, red } = require('colors')
 const Install = require('./install')
 const execSync = require('child_process').execSync
 
 class Builder {
-  constructor (credentials, region) {
+  constructor (commands, parameters, {credentials, serviceName, serviceProp, functionName, functionProp, region}) {
+    this.commands = commands
+    this.parameters = parameters
     this.credentials = credentials
+    this.serviceName = serviceName
+    this.serviceProp = serviceProp
+    this.functionName = functionName
+    this.functionProp = functionProp
     this.region = region
   }
+
+  async handle() {
+    if (this.commands.length === 0) {
+      console.log(red('input error, use \'s build --help\' for info.'))
+      throw new Error('input error.')
+    }
+    const buildCommand = this.commands[0]
+    if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
+      console.log(red(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`))
+      throw new Error('Input error.')
+    }
+
+    const buildImage = buildCommand === 'image'
+    if (buildImage) {
+      if (this.functionProp.Runtime !== 'custom-container') {
+        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${this.functionProp.Runtime}`))
+        throw new Error('Input error.')
+      }
+      await this.buildImage(this.serviceName, this.serviceProp, this.functionName, this.functionProp)
+      return
+    }
+
+    // serviceName, serviceProps, functionName, functionProps, useDocker, verbose
+    const useDocker = buildCommand === 'docker'
+    if (useDocker) {
+      console.log('Use docker for building.')
+    }
+    await this.build(this.serviceName, this.serviceProp, this.functionName, this.functionProp, useDocker, true)
+
+    console.log('Build artifact successfully.')
+  }
+
+  // constructor (credentials, region) {
+  //   this.credentials = credentials
+  //   this.region = region
+  // }
 
   async build (serviceName, serviceProps, functionName, functionProps, useDocker, verbose) {
     const codeUri = functionProps.CodeUri
