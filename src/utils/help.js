@@ -70,5 +70,29 @@ module.exports = (inputs) => ({
     description: `Usage: s ${inputs.Project.ProjectName} metrics
   
     Monitoring function indicators.`,
-  }
+  },
+  publish: {
+    description: `Usage: s ${inputs.Project.ProjectName} publish
+  
+    Publish service version/alias.`,
+    commands: [{
+      name: 'version -d [description]',
+      desc: 'publish version' 
+    }, {
+      name: 'alias -d [description] -v <versionId> -gv [grayVersionId] -w [grayVersionWeight]',
+      desc: 'publish alias.'
+    }]
+  },
+  unpublish: {
+    description: `Usage: s ${inputs.Project.ProjectName} unpublish
+  
+    Unpublish service version/alias.`,
+    commands: [{
+      name: 'version -v, --versionId [versionId]',
+      desc: 'unpublish the specified versionId.' 
+    }, {
+      name: 'version -n, --name [name]',
+      desc: 'unpublish the specified alias name.'
+    }]
+  },
 })

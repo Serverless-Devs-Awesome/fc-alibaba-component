@@ -604,6 +604,7 @@ class FcComponent extends Component {
 
   // 发布
   async publish (inputs) {
+    this.help(inputs, getHelp(inputs).publish)
     const { Commands: commands } = this.args(inputs.Args)
     const publishType = commands[0]
 
@@ -620,6 +621,7 @@ class FcComponent extends Component {
 
   // 删除
   async unpublish (inputs) {
+    this.help(inputs, getHelp(inputs).unpublish)
     const { Commands: commands } = this.args(inputs.Args)
     const unPublishType = commands[0]
 
