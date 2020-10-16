@@ -17,7 +17,7 @@ const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
 const RemoteInvoke = require('./utils/invoke/remote/remote-invoke')
 
 const { Component } = require('@serverless-devs/s-core')
-const { green, yellow, red } = require('colors')
+const { green, yellow } = require('colors')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, Sync, Remove, Nas } = require('./utils/fc')
 
 const DEFAULT = {
@@ -261,7 +261,6 @@ class FcComponent extends Component {
       functionName,
       serviceName,
       serviceProp,
-      functionProp,
       args = {},
       region
     } = this.handlerInputs(inputs)
@@ -366,7 +365,6 @@ class FcComponent extends Component {
 
   // 日志
   async logs (inputs) {
-
     const {
       region,
       serviceProp,
@@ -375,7 +373,7 @@ class FcComponent extends Component {
       credentials
     } = this.handlerInputs(inputs)
 
-    const args = this.args(inputs.Args, undefined, ["s", "startTime", "e", "endTime"], undefined)
+    const args = this.args(inputs.Args, undefined, ['s', 'startTime', 'e', 'endTime'], undefined)
 
     const logConfig = serviceProp.Log
 
@@ -394,10 +392,10 @@ class FcComponent extends Component {
     } else {
       let from
       let to
-      if((cmdParameters.s || cmdParameters.startTime) && (cmdParameters.e || cmdParameters.endTime)){
-        from = (new Date(cmdParameters.s || cmdParameters.startTime)).getTime()/1000
-        to = (new Date(cmdParameters.e || cmdParameters.endTime)).getTime()/1000
-      }else{
+      if ((cmdParameters.s || cmdParameters.startTime) && (cmdParameters.e || cmdParameters.endTime)) {
+        from = (new Date(cmdParameters.s || cmdParameters.startTime)).getTime() / 1000
+        to = (new Date(cmdParameters.e || cmdParameters.endTime)).getTime() / 1000
+      } else {
         // 20 minutes ago
         console.log(yellow('By default, find logs within 20 minutes...\n'))
         from = moment().subtract(20, 'minutes').unix()
@@ -662,7 +660,7 @@ class FcComponent extends Component {
     console.log('Loading NAS component, this may cost a few minutes...')
     const nasComponent = await this.load('nas', 'Component')
     console.log('Load NAS component successfully.')
-    
+
     const nas = new Nas(commands, parameters, {
       credentials,
       serviceName,

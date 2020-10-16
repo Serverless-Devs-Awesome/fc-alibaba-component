@@ -21,7 +21,8 @@ class Builder {
     serviceProp = {},
     functionName = '',
     functionProp = {},
-    region = ''} = {}) {
+    region = ''
+  } = {}) {
     this.commands = commands
     this.parameters = parameters
     this.credentials = credentials
@@ -32,7 +33,7 @@ class Builder {
     this.region = region
   }
 
-  async handle() {
+  async handle () {
     if (this.commands.length === 0) {
       console.log(red('input error, use \'s build --help\' for info.'))
       throw new Error('input error.')

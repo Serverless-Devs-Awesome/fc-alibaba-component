@@ -489,7 +489,6 @@ function transformClientConfigToToolConfig (nasConfig) {
   if (!_.isEmpty(nasConfig.MountPoints)) {
     for (const mountPoint of nasConfig.MountPoints) {
       if (mountPoint.ServerAddr && mountPoint.MountDir) {
-        
         toolMountPoints.push({
           NasAddr: mountPoint.ServerAddr.split(':')[0],
           NasDir: mountPoint.ServerAddr.split(':')[1],
@@ -504,7 +503,6 @@ function transformClientConfigToToolConfig (nasConfig) {
     MountPoints: toolMountPoints
   }
 }
-
 
 module.exports = {
   FUN_NAS_FUNCTION,

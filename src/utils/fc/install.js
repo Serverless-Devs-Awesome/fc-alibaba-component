@@ -20,7 +20,7 @@ const { yellow } = require('colors')
 const { DEFAULT_NAS_PATH_SUFFIX } = require('../tpl/tpl')
 
 class Install {
-  constructor (commands, parameters, {credentials, serviceName, serviceProp, functionName, functionProp, region}) {
+  constructor (commands, parameters, { credentials, serviceName, serviceProp, functionName, functionProp, region }) {
     this.commands = commands
     this.parameters = parameters
     this.credentials = credentials
@@ -31,7 +31,7 @@ class Install {
     this.region = region
   }
 
-  async handle() {
+  async handle () {
     const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = this.parameters
 
     if (this.commands.length === 0) {
@@ -87,21 +87,21 @@ class Install {
 
     if (useDocker) {
       console.log('Start installing functions using docker.')
-      await this.installInDocker({ 
-        serviceName: this.serviceName,
-        serviceProps: this.serviceProp, 
-        functionName: this.functionName, 
-        functionProps: this.functionProp, 
-        cmdArgs 
-      })
-    } else {
-      console.log('Start installing functions.')
-      await this.install({ 
+      await this.installInDocker({
         serviceName: this.serviceName,
         serviceProps: this.serviceProp,
         functionName: this.functionName,
         functionProps: this.functionProp,
-        cmdArgs 
+        cmdArgs
+      })
+    } else {
+      console.log('Start installing functions.')
+      await this.install({
+        serviceName: this.serviceName,
+        serviceProps: this.serviceProp,
+        functionName: this.functionName,
+        functionProps: this.functionProp,
+        cmdArgs
       })
     }
   }

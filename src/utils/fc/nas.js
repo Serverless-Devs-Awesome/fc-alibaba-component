@@ -1,9 +1,10 @@
 const FcFunction = require('./function')
 const { FUN_NAS_FUNCTION, FUN_AUTO_FC_MOUNT_DIR } = require('../nas/nas')
 const { yellow, red } = require('colors')
+const _ = require('lodash')
 
 class Nas {
-  constructor (commands, parameters, {credentials, serviceName, serviceProp, region, nasComponent, inputs}) {
+  constructor (commands, parameters, { credentials, serviceName, serviceProp, region, nasComponent, inputs }) {
     this.commands = commands
     this.parameters = parameters
     this.credentials = credentials
@@ -14,7 +15,7 @@ class Nas {
     this.inputs = inputs
   }
 
-  async handle() {
+  async handle () {
     if (this.commands.length === 0) {
       console.log(red('input error, use \'s nas --help\' for info.'))
       throw new Error('input error.')
@@ -110,8 +111,8 @@ class Nas {
     }
   }
 
-  getRemoteFcDirFromServiceProp() {
-    let remoteDirs = []
+  getRemoteFcDirFromServiceProp () {
+    const remoteDirs = []
     if (this.serviceProp.Nas === 'Auto') {
       remoteDirs.push(FUN_AUTO_FC_MOUNT_DIR)
       return remoteDirs
@@ -125,7 +126,6 @@ class Nas {
 
     return remoteDirs
   }
-
 }
 
 module.exports = Nas
