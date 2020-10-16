@@ -406,6 +406,7 @@ class FcComponent extends Component {
 
   // 指标
   async metrics (inputs) {
+    this.help(inputs, getHelp(inputs).metrics)
     const { State = {}, Properties } = inputs
     const { Service = {}, Function = {} } = Properties || State || {}
 

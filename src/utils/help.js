@@ -2,7 +2,7 @@ module.exports = (inputs) => ({
   deploy: {
     description: `Usage: s ${inputs.Project.ProjectName} deploy [command]
   
-    Deploy the dependencies.`,
+    Deploy a serverless application`,
     commands: [{
       name: 'service',
       desc: 'only deploy service.'
@@ -42,7 +42,7 @@ module.exports = (inputs) => ({
   remove: {
     description: `Usage: s ${inputs.Project.ProjectName} remove [command]
   
-    Remove the dependencies.`,
+    Delete application.`,
     commands: [{
       name: 'function',
       desc: 'only remove function.'
@@ -65,5 +65,10 @@ module.exports = (inputs) => ({
       name: 'trigger -n, --name <name>',
       desc: 'only remove the specified trigger name.'
     }]
+  },
+  metrics: {
+    description: `Usage: s ${inputs.Project.ProjectName} metrics
+  
+    Monitoring function indicators.`,
   }
 })
