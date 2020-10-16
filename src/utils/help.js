@@ -95,4 +95,25 @@ module.exports = (inputs) => ({
       desc: 'unpublish the specified alias name.'
     }]
   },
+  sync: {
+    description: `Usage: s ${inputs.Project.ProjectName} sync
+  
+    Synchronize remote configuration.`,
+    commands: [{
+      name: 'service',
+      desc: 'only sync service.' 
+    }, {
+      name: 'tags',
+      desc: 'only sync service tags.'
+    }, {
+      name: 'function',
+      desc: 'only sync function config.'
+    }, {
+      name: 'code',
+      desc: 'only sync function code.'
+    }, {
+      name: 'trigger',
+      desc: 'only sync trigger.'
+    }]
+  }
 })

@@ -638,6 +638,7 @@ class FcComponent extends Component {
 
   // 同步
   async sync (inputs) {
+    this.help(inputs, getHelp(inputs).sync)
     const {
       credentials,
       properties,
