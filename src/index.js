@@ -78,7 +78,7 @@ class FcComponent extends Component {
    */
   async deploy (inputs) {
     this.help(inputs, getHelp(inputs).deploy)
-    
+
     const {
       projectName,
       properties,
@@ -342,6 +342,7 @@ class FcComponent extends Component {
    * @param {*} inputs
    */
   async invoke (inputs) {
+    this.help(inputs, getHelp(inputs).invoke)
     const {
       credentials,
       serviceName,
@@ -369,6 +370,7 @@ class FcComponent extends Component {
 
   // 日志
   async logs (inputs) {
+    this.help(inputs, getHelp(inputs).logs)
     const {
       region,
       serviceProp,
