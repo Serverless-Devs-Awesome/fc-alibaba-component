@@ -69,7 +69,7 @@ class Function extends Client {
         packToParame.include = packToParame.exclude.concat(code.Include)
       }
 
-      const builder = new Builder(this.credentials, this.region)
+      const builder = new Builder()
       const buildArtifactPath = builder.getArtifactPath(baseDir, serviceName, functionName)
       if (packToParame.codeUri && builder.runtimeMustBuild(runtime)) {
         if (!builder.hasBuild(baseDir, serviceName, functionName)) {

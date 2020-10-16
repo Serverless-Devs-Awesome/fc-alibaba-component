@@ -15,7 +15,13 @@ const Install = require('./install')
 const execSync = require('child_process').execSync
 
 class Builder {
-  constructor (commands, parameters, {credentials, serviceName, serviceProp, functionName, functionProp, region}) {
+  constructor (commands = {}, parameters = {}, {
+    credentials = {},
+    serviceName = '',
+    serviceProp = {},
+    functionName = '',
+    functionProp = {},
+    region = ''} = {}) {
     this.commands = commands
     this.parameters = parameters
     this.credentials = credentials
