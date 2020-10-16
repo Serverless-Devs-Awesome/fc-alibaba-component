@@ -11,6 +11,7 @@ const TAG = require('./utils/tag')
 const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 const Metrics = require('./utils/metrics')
+const getHelp = require('./utils/help')
 
 const LocalInvoke = require('./utils/invoke/local/local-invoke')
 const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
@@ -76,46 +77,7 @@ class FcComponent extends Component {
    * @param {*} inputs
    */
   async deploy (inputs) {
-    this.help(inputs, {
-      description: `Usage: s ${inputs.Project.ProjectName} deploy [command]
-
-      Deploy the dependencies.`,
-      commands: [{
-        name: 'service',
-        desc: 'only deploy service.'
-      }, {
-        name: 'function',
-        desc: 'only deploy function.'
-      }, {
-        name: 'function --config',
-        desc: 'only deploy function config.'
-      }, {
-        name: 'function --code',
-        desc: 'only deploy function code.'
-      }, {
-        name: 'tags',
-        desc: 'only deploy service tags.'
-      }, {
-        name: 'tags -k, --key <name>',
-        desc: 'only the specified service tag are deploy.'
-      }, {
-        name: 'domain',
-        desc: 'only deploy domain.'
-      }, {
-        name: 'domain -d, --domain <name>',
-        desc: 'only deploy the specified domain name.'
-      }, {
-        name: 'trigger',
-        desc: 'only deploy trigger.'
-      }, {
-        name: 'trigger -n, --name <name>',
-        desc: 'only deploy the specified trigger name.'
-      }],
-      args: [{
-        name: '--config',
-        desc: 'only deploy config.'
-      }]
-    })
+    this.help(inputs, getHelp(inputs).deploy)
     
     const {
       projectName,
@@ -297,6 +259,7 @@ class FcComponent extends Component {
 
   // 移除
   async remove (inputs) {
+    this.help(inputs, getHelp(inputs).remove)
     const {
       credentials,
       functionName,
