@@ -158,7 +158,11 @@ class FcComponent extends Component {
 
     if (deployDomain) {
       // await this.domain(inputs)
-      output.Domains = await this.domain(inputs)
+      // output.Domains = await this.domain(inputs)
+      const doaminResult = await this.domain(inputs)
+      if(!output){
+        output.Domains = doaminResult
+      }
     }
 
     // 返回结果

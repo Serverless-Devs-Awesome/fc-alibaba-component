@@ -24,7 +24,7 @@ class Client {
       accessKeySecret: this.accessKeySecret,
       securityToken: this.stsToken,
       region: this.region,
-      timeout: 60000
+      timeout: 6000000
     })
   }
 
