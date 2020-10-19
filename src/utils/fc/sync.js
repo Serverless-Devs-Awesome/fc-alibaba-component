@@ -248,6 +248,19 @@ class Sync extends Client {
             InvocationRole: invocationRole
           }
           break
+        case 'mns_topic':
+          const arnConfig = sourceArn.split(':');
+          type = 'MNSTopic'
+          parameters = {
+            Qualifier: qualifier,
+            InvocationRole: invocationRole,
+            FilterTag: triggerConfig.filterTag,
+            NotifyStrategy: triggerConfig.notifyStrategy,
+            NotifyContentFormat: triggerConfig.notifyContentFormat,
+            Region: arnConfig[2],
+            TopicName: arnConfig.pop().split('/').pop()
+          }
+          break
         default:
           console.log(`Skip sync trigger: ${item.triggerName}`)
       }
