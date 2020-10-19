@@ -331,7 +331,7 @@ class Trigger extends Client {
       parameters.triggerConfig = {
         payload: triggerParameters.Payload,
         cronExpression: triggerParameters.CronExpression,
-        enable: triggerParameters.Enable ? triggerParameters.Enable : true
+        enable: !!triggerParameters.Enable
       }
     } else if (triggerType === 'HTTP') {
       parameters.triggerConfig = {
@@ -352,7 +352,7 @@ class Trigger extends Client {
           logstore: triggerParameters.LogConfig.LogStore
         },
         functionParameter: triggerParameters.FunctionParameter || {},
-        Enable: triggerParameters.Enable ? triggerParameters.Enable : true
+        Enable: !!triggerParameters.Enable
       }
     } else if (triggerType === 'RDS') {
       parameters.triggerConfig = {

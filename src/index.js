@@ -229,7 +229,7 @@ class FcComponent extends Component {
     }
   }
 
-  // 删除版本
+  // 别名
   async alias (inputs, type) {
     const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
     const { Parameters: parameters = {} } = args
