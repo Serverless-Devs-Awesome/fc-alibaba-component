@@ -77,6 +77,25 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
   if (status !== 'Active') { throw new Error(`Timeout while waiting for MountPoint ${mountTargetDomain} status to be 'Active'`) }
 }
 
+async function deleteDefaultNasIfExist (credentials, region, vpcId, vswitchId) {
+  const nasClient = await getNasPopClient(credentials, region)
+
+  let fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
+  if (!fileSystemId) {
+    return
+  }
+  const mountTarget = await findMountTarget(nasClient, region, fileSystemId, vpcId, vswitchId)
+  if (!mountTarget) {
+    return
+  }
+  console.log(`Found auto generated NAS file, system: ${fileSystemId}, mount target: ${mountTarget}, now trying to delete it.`)
+  await nasClient.request('DeleteMountTarget', {FileSystemId: fileSystemId, MountTargetDomain: mountTarget}, requestOption)
+  console.log(`Delete mount target successfully.`)
+  
+  await nasClient.request('DeleteFileSystem', {FileSystemId: fileSystemId}, requestOption)
+  console.log('Delete NAS file system successfully.')
+}
+
 async function createDefaultNasIfNotExist (credentials, region, vpcId, vswitchIds) {
   const nasClient = await getNasPopClient(credentials, region)
   const vpcClient = await getVpcPopClient(credentials)
@@ -508,6 +527,7 @@ module.exports = {
   FUN_NAS_FUNCTION,
   FUN_AUTO_FC_MOUNT_DIR,
   findNasFileSystem,
+  deleteDefaultNasIfExist,
   findMountTarget,
   createMountTarget,
   generateAutoNasConfig,

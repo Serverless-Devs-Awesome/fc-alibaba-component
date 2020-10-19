@@ -15,6 +15,7 @@ var requestOption = {
   method: 'POST'
 }
 
+const defaultVpcName = 'fc-fun-vpc'
 const defaultVSwitchName = 'fc-fun-vswitch-1'
 const defaultSecurityGroupName = 'fc-fun-sg-1'
 
@@ -143,7 +144,7 @@ async function createDefaultVpcIfNotExist (credentials, region) {
   const vpcClient = await getVpcPopClient(credentials)
   const ecsClient = await getEcsPopClient(credentials)
 
-  const defaultVpcName = 'fc-fun-vpc'
+  // const defaultVpcName = 'fc-fun-vpc'
 
   let vswitchIds
   let vpcId
@@ -175,8 +176,24 @@ async function createDefaultVpcIfNotExist (credentials, region) {
   }
 }
 
+async function findDefaultVpcAndSwitch (credentials, region) {
+  const vpcClient = await getVpcPopClient(credentials)
+  const funDefaultVpc = await findVpc(vpcClient, region, defaultVpcName)
+  if (funDefaultVpc) {
+    let vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
+    let vpcId = funDefaultVpc.VpcId
+    let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
+    return {
+      vpcId,
+      vswitchId
+    }
+  }
+  return {}
+}
+
 module.exports = {
   createDefaultVpcIfNotExist,
+  findDefaultVpcAndSwitch,
   findVpc,
   createVpc
 }

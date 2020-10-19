@@ -9,7 +9,7 @@ const moment = require('moment')
 const definition = require('./tpl/definition')
 
 const { promiseRetry } = require('./common')
-const { red, green } = require('colors')
+const { red, green, yellow } = require('colors')
 
 const FIVE_SPACES = '     '
 const TEN_SPACES = '          '
@@ -226,12 +226,44 @@ class Logs extends Client {
         } else if (ex.code === 'ProjectNotExist') {
           throw new Error(red('Please go to https://sls.console.aliyun.com/ to open the LogServce.'))
         } else {
-          debug('error when createProject, projectName is %s, error is: \n%O', projectName, ex)
+          console.log(yellow(`\terror when createProject, projectName is ${projectName}, error is: ${ex}`))
           console.log(red(`\tretry ${times} times`))
           retry(ex)
         }
       }
     })
+  }
+
+  async defaultSlsProjectExist () {
+    const {project} = this.generateDefaultLogConfig()
+
+    return await this.slsProjectExist(project)
+  }
+
+  async deleteDefaultSlsProject() {
+    const defaultProjectExist = await this.defaultSlsProjectExist()
+    if (!defaultProjectExist) {
+      return
+    }
+
+    const {project} = this.generateDefaultLogConfig()
+    console.log(`Deleting default sls project ${project}.`)
+    await this.slsClient.deleteProject(project)
+    console.log(`Delete sls log project successfully.`)
+  }
+
+  async slsStoreExist (projectName, logStoreName) {
+    let logStoreExist = true
+    try {
+      await this.slsClient.getLogStore(projectName, logStoreName)
+    } catch (ex) {
+      if (ex.code == 'LogStoreNotExist') {
+        logStoreExist = false
+      } else {
+        throw ex
+      }
+    }
+    return logStoreExist
   }
 
   async slsProjectExist (projectName) {
