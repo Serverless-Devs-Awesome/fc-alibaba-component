@@ -64,6 +64,10 @@ module.exports = (inputs) => ({
     }, {
       name: 'trigger -n, --name <name>',
       desc: 'only remove the specified trigger name.'
+    }],
+    args: [{
+      name: '-f, --force',
+      desc: 'delete auto generated resource by force.'
     }]
   },
   metrics: {

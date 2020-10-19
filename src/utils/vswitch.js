@@ -44,6 +44,14 @@ async function getVSwitchZoneId (vpcClient, region, vswitchId) {
   return (describeRs || {}).ZoneId
 }
 
+async function deleteVSwitch (vpcClient, region, vswitchId) {
+  const params = {
+    RegionId: region,
+    VSwitchId: vswitchId
+  }
+  return await vpcClient.request('DeleteVSwitch', params, requestOption)
+}
+
 async function getVSwitchName (vpcClient, region, vswitchId) {
   const describeRs = await describeVSwitchAttributes(vpcClient, region, vswitchId)
   return (describeRs || {}).VSwitchName
@@ -231,5 +239,6 @@ module.exports = {
   selectVSwitchZoneId,
   createVSwitch,
   createDefaultVSwitch,
-  getAvailableVSwitchId
+  getAvailableVSwitchId,
+  deleteVSwitch
 }

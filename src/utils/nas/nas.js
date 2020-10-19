@@ -7,6 +7,7 @@ const debug = require('debug')('fun:nas')
 const definition = require('../tpl/definition')
 const getProfile = require('../tpl/profile').getProfile
 const getAvailableVSwitchId = require('../vswitch').getAvailableVSwitchId
+const inquirer = require('inquirer')
 
 const { green } = require('colors')
 const { sleep } = require('./time')
@@ -77,7 +78,7 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
   if (status !== 'Active') { throw new Error(`Timeout while waiting for MountPoint ${mountTargetDomain} status to be 'Active'`) }
 }
 
-async function deleteDefaultNasIfExist (credentials, region, vpcId, vswitchId) {
+async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDelete = false) {
   const nasClient = await getNasPopClient(credentials, region)
 
   let fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
@@ -88,12 +89,25 @@ async function deleteDefaultNasIfExist (credentials, region, vpcId, vswitchId) {
   if (!mountTarget) {
     return
   }
-  console.log(`Found auto generated NAS file, system: ${fileSystemId}, mount target: ${mountTarget}, now trying to delete it.`)
-  await nasClient.request('DeleteMountTarget', {FileSystemId: fileSystemId, MountTargetDomain: mountTarget}, requestOption)
-  console.log(`Delete mount target successfully.`)
-  
-  await nasClient.request('DeleteFileSystem', {FileSystemId: fileSystemId}, requestOption)
-  console.log('Delete NAS file system successfully.')
+  console.log(`Found auto generated NAS file system: ${fileSystemId}, mount target: ${mountTarget}.`)
+  if (!forceDelete) {
+    let {deleteNas} = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'deleteNas',
+      default: false,
+      message: `Do you want to delete NAS: ${fileSystemId}?`
+    }])
+    forceDelete = deleteNas
+  }
+
+  if (forceDelete) {
+    console.log(`Deleting mount target: ${mountTarget}.`)
+    await nasClient.request('DeleteMountTarget', {FileSystemId: fileSystemId, MountTargetDomain: mountTarget}, requestOption)
+    console.log(`Delete successfully.`)
+    console.log(`Deleting NAS file system: ${fileSystemId}`)
+    await nasClient.request('DeleteFileSystem', {FileSystemId: fileSystemId}, requestOption)
+    console.log(`Delete successfully.`)
+  }
 }
 
 async function createDefaultNasIfNotExist (credentials, region, vpcId, vswitchIds) {
@@ -527,7 +541,7 @@ module.exports = {
   FUN_NAS_FUNCTION,
   FUN_AUTO_FC_MOUNT_DIR,
   findNasFileSystem,
-  deleteDefaultNasIfExist,
+  deleteDefaultNas,
   findMountTarget,
   createMountTarget,
   generateAutoNasConfig,

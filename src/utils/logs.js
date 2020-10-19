@@ -10,6 +10,7 @@ const definition = require('./tpl/definition')
 
 const { promiseRetry } = require('./common')
 const { red, green, yellow } = require('colors')
+const inquirer = require('inquirer')
 
 const FIVE_SPACES = '     '
 const TEN_SPACES = '          '
@@ -240,16 +241,30 @@ class Logs extends Client {
     return await this.slsProjectExist(project)
   }
 
-  async deleteDefaultSlsProject() {
+  async deleteDefaultSlsProject(forceDelete = false) {
     const defaultProjectExist = await this.defaultSlsProjectExist()
     if (!defaultProjectExist) {
       return
     }
 
     const {project} = this.generateDefaultLogConfig()
-    console.log(`Deleting default sls project ${project}.`)
-    await this.slsClient.deleteProject(project)
-    console.log(`Delete sls log project successfully.`)
+    console.log(`Found auto generated sls project: ${project}.`)
+
+    if (!forceDelete) {
+      let {deleteLogs} = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'deleteLogs',
+        default: false,
+        message: `Do you want to delete sls project: ${project}?`
+      }])
+      forceDelete = deleteLogs
+    }
+
+    if (forceDelete) {
+      console.log(`Deleting sls project: ${project}`)
+      await this.slsClient.deleteProject(project)
+      console.log(`Delete sls project successfully.`)
+    }
   }
 
   async slsStoreExist (projectName, logStoreName) {

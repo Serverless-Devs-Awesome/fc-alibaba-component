@@ -38,7 +38,7 @@ class Service extends Client {
       await this.fcClient.deleteService(serviceName)
       console.log(`Delete service ${serviceName} successfully`)
     } catch (err) {
-      throw new Error(`Unable to delete function ${serviceName}: ${err.message}`)
+      throw new Error(`Unable to delete service ${serviceName}: ${err.message}`)
     }
   }
 

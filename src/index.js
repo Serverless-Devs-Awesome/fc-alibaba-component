@@ -273,7 +273,7 @@ class FcComponent extends Component {
       region
     } = this.handlerInputs(inputs)
 
-    const { Commands: commands, Parameters: parameters } = args
+    const { Commands: commands, Parameters: parameters } = this.args(inputs.Args, ['-f, --force'])
     const removeType = commands[0]
     const fcRemove = new Remove(commands, parameters, {credentials, region, serviceProp})
 

@@ -3,11 +3,11 @@
 const vswitch = require('./vswitch')
 const securityGroup = require('./security-group')
 const debug = require('debug')('fun:nas')
-
 const { sleep } = require('./common')
 const { getVpcPopClient, getEcsPopClient } = require('./client')
-
+const inquirer = require('inquirer')
 const _ = require('lodash')
+const { yellow } = require('colors')
 
 const TEN_SPACES = '          '
 
@@ -74,6 +74,45 @@ async function createVpc (vpcClient, region, vpcName) {
   await waitVpcUntilAvaliable(vpcClient, region, vpcId)
 
   return vpcId
+}
+
+async function deleteDefaultVpcAndSwitch (credentials, region, forceDelete = false) {
+  const vpcClient = await getVpcPopClient(credentials)
+  const funDefaultVpc = await findVpc(vpcClient, region, defaultVpcName)
+  if (!funDefaultVpc) {
+    return
+  }
+  const vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
+  const vpcId = funDefaultVpc.VpcId
+
+  let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
+  if (!vswitchId) {
+    return
+  }
+
+  console.log(`Found auto generated vpc: ${vpcId} and vswitch: ${vswitchId}`)
+  if (!forceDelete) {
+    let {deleteVpcAndSwitch} = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'deleteVpcAndSwitch',
+      default: false,
+      message: `Do you want to delete vpc ${vpcId} and vswitch ${vswitchId}?`
+    }])
+    forceDelete = deleteVpcAndSwitch
+  }
+
+  if (forceDelete) {
+    await vswitch.deleteVSwitch(vpcClient, region, vswitchId)
+    deleteVpc(vpcClient, region, vpcId)
+  }
+}
+
+async function deleteVpc (vpcClient, region, vpcId) {
+  const params = {
+    RegionId: region,
+    VpcId: vpcId
+  }
+  await vpcClient.request('DeleteVpc', params, requestOption)
 }
 
 async function waitVpcUntilAvaliable (vpcClient, region, vpcId) {
@@ -193,6 +232,7 @@ async function findDefaultVpcAndSwitch (credentials, region) {
 
 module.exports = {
   createDefaultVpcIfNotExist,
+  deleteDefaultVpcAndSwitch,
   findDefaultVpcAndSwitch,
   findVpc,
   createVpc
