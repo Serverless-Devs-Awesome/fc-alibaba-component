@@ -236,22 +236,22 @@ class Logs extends Client {
   }
 
   async defaultSlsProjectExist () {
-    const {project} = this.generateDefaultLogConfig()
+    const { project } = this.generateDefaultLogConfig()
 
     return await this.slsProjectExist(project)
   }
 
-  async deleteDefaultSlsProject(forceDelete = false) {
+  async deleteDefaultSlsProject (forceDelete = false) {
     const defaultProjectExist = await this.defaultSlsProjectExist()
     if (!defaultProjectExist) {
       return
     }
 
-    const {project} = this.generateDefaultLogConfig()
+    const { project } = this.generateDefaultLogConfig()
     console.log(`Found auto generated sls project: ${project}.`)
 
     if (!forceDelete) {
-      let {deleteLogs} = await inquirer.prompt([{
+      const { deleteLogs } = await inquirer.prompt([{
         type: 'confirm',
         name: 'deleteLogs',
         default: false,
@@ -263,7 +263,7 @@ class Logs extends Client {
     if (forceDelete) {
       console.log(`Deleting sls project: ${project}`)
       await this.slsClient.deleteProject(project)
-      console.log(`Delete sls project successfully.`)
+      console.log('Delete sls project successfully.')
     }
   }
 
@@ -272,7 +272,7 @@ class Logs extends Client {
     try {
       await this.slsClient.getLogStore(projectName, logStoreName)
     } catch (ex) {
-      if (ex.code == 'LogStoreNotExist') {
+      if (ex.code === 'LogStoreNotExist') {
         logStoreExist = false
       } else {
         throw ex

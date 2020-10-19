@@ -81,7 +81,7 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
 async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDelete = false) {
   const nasClient = await getNasPopClient(credentials, region)
 
-  let fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
+  const fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
   if (!fileSystemId) {
     return
   }
@@ -91,7 +91,7 @@ async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDel
   }
   console.log(`Found auto generated NAS file system: ${fileSystemId}, mount target: ${mountTarget}.`)
   if (!forceDelete) {
-    let {deleteNas} = await inquirer.prompt([{
+    const { deleteNas } = await inquirer.prompt([{
       type: 'confirm',
       name: 'deleteNas',
       default: false,
@@ -102,11 +102,11 @@ async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDel
 
   if (forceDelete) {
     console.log(`Deleting mount target: ${mountTarget}.`)
-    await nasClient.request('DeleteMountTarget', {FileSystemId: fileSystemId, MountTargetDomain: mountTarget}, requestOption)
-    console.log(`Delete successfully.`)
+    await nasClient.request('DeleteMountTarget', { FileSystemId: fileSystemId, MountTargetDomain: mountTarget }, requestOption)
+    console.log('Delete successfully.')
     console.log(`Deleting NAS file system: ${fileSystemId}`)
-    await nasClient.request('DeleteFileSystem', {FileSystemId: fileSystemId}, requestOption)
-    console.log(`Delete successfully.`)
+    await nasClient.request('DeleteFileSystem', { FileSystemId: fileSystemId }, requestOption)
+    console.log('Delete successfully.')
   }
 }
 

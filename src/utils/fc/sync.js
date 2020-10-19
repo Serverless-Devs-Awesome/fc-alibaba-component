@@ -248,7 +248,7 @@ class Sync extends Client {
             InvocationRole: invocationRole
           }
           break
-        case 'mns_topic':
+        case 'mns_topic': {
           const arnConfig = sourceArn.split(':')
           type = 'MNSTopic'
           parameters = {
@@ -261,7 +261,8 @@ class Sync extends Client {
             TopicName: arnConfig.pop().split('/').pop()
           }
           break
-        case 'tablestore':
+        }
+        case 'tablestore': {
           const arnOtsConfig = sourceArn.split(':').pop().split('/')
           type = 'TableStore'
           parameters = {
@@ -271,6 +272,7 @@ class Sync extends Client {
             InstanceName: arnOtsConfig[1]
           }
           break
+        }
         default:
           console.log(`Skip sync triggerName: ${item.triggerName}`)
       }

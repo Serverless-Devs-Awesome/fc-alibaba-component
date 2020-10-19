@@ -7,7 +7,6 @@ const { sleep } = require('./common')
 const { getVpcPopClient, getEcsPopClient } = require('./client')
 const inquirer = require('inquirer')
 const _ = require('lodash')
-const { yellow } = require('colors')
 
 const TEN_SPACES = '          '
 
@@ -85,14 +84,14 @@ async function deleteDefaultVpcAndSwitch (credentials, region, forceDelete = fal
   const vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
   const vpcId = funDefaultVpc.VpcId
 
-  let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
+  const vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
   if (!vswitchId) {
     return
   }
 
   console.log(`Found auto generated vpc: ${vpcId} and vswitch: ${vswitchId}`)
   if (!forceDelete) {
-    let {deleteVpcAndSwitch} = await inquirer.prompt([{
+    const { deleteVpcAndSwitch } = await inquirer.prompt([{
       type: 'confirm',
       name: 'deleteVpcAndSwitch',
       default: false,
@@ -219,9 +218,9 @@ async function findDefaultVpcAndSwitch (credentials, region) {
   const vpcClient = await getVpcPopClient(credentials)
   const funDefaultVpc = await findVpc(vpcClient, region, defaultVpcName)
   if (funDefaultVpc) {
-    let vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
-    let vpcId = funDefaultVpc.VpcId
-    let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
+    const vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
+    const vpcId = funDefaultVpc.VpcId
+    const vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
     return {
       vpcId,
       vswitchId

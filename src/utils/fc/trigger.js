@@ -486,7 +486,6 @@ class Trigger extends Client {
         )
       }
     }
-    return undefined
   }
 
   /**

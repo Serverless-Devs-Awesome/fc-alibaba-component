@@ -2,9 +2,8 @@
 const FcFunction = require('./function')
 const FcTrigger = require('./trigger')
 const { FUN_NAS_FUNCTION } = require('../nas/nas')
-const { yellow, red } = require('colors')
+const { yellow } = require('colors')
 const nas = require('../nas/nas')
-const { sleep } = require('../common')
 const { findDefaultVpcAndSwitch } = require('../vpc')
 const Logs = require('../logs')
 const vpc = require('../vpc')
@@ -50,7 +49,7 @@ class Remove {
     // handle nas
     const nasConfig = this.serviceProp.Nas
     if (this.isConfigAsAuto(nasConfig)) {
-      const {vpcId, vswitchId} = await findDefaultVpcAndSwitch(this.credentials, this.region)
+      const { vpcId, vswitchId } = await findDefaultVpcAndSwitch(this.credentials, this.region)
       if (vpcId && vswitchId) {
         try {
           await nas.deleteDefaultNas(this.credentials, this.region, vpcId, vswitchId, forceDelete)

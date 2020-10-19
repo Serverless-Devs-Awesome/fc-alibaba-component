@@ -160,7 +160,7 @@ class FcComponent extends Component {
       // await this.domain(inputs)
       // output.Domains = await this.domain(inputs)
       const doaminResult = await this.domain(inputs)
-      if(!output){
+      if (!output) {
         output.Domains = doaminResult
       }
     }
@@ -269,13 +269,12 @@ class FcComponent extends Component {
       functionName,
       serviceName,
       serviceProp,
-      args = {},
       region
     } = this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = this.args(inputs.Args, ['-f, --force'])
     const removeType = commands[0]
-    const fcRemove = new Remove(commands, parameters, {credentials, region, serviceProp})
+    const fcRemove = new Remove(commands, parameters, { credentials, region, serviceProp })
 
     let isRemoveAll = false
     if (commands.length === 0) {
@@ -623,7 +622,7 @@ class FcComponent extends Component {
     const project = _.cloneDeepWith(inputs.Project)
     const projectName = project.ProjectName
     delete project.ProjectName
-    if (project.AccessAlias) {  
+    if (project.AccessAlias) {
       project.Access = project.AccessAlias
       delete project.AccessAlias
     }
