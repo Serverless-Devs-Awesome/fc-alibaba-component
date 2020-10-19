@@ -11,6 +11,7 @@ const TAG = require('./utils/tag')
 const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 const Metrics = require('./utils/metrics')
+const getHelp = require('./utils/help')
 
 const LocalInvoke = require('./utils/invoke/local/local-invoke')
 const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
@@ -76,6 +77,8 @@ class FcComponent extends Component {
    * @param {*} inputs
    */
   async deploy (inputs) {
+    this.help(inputs, getHelp(inputs).deploy)
+
     const {
       projectName,
       properties,
@@ -155,7 +158,11 @@ class FcComponent extends Component {
 
     if (deployDomain) {
       // await this.domain(inputs)
-      output.Domains = await this.domain(inputs)
+      // output.Domains = await this.domain(inputs)
+      const doaminResult = await this.domain(inputs)
+      if(!output){
+        output.Domains = doaminResult
+      }
     }
 
     // 返回结果
@@ -256,6 +263,7 @@ class FcComponent extends Component {
 
   // 移除
   async remove (inputs) {
+    this.help(inputs, getHelp(inputs).remove)
     const {
       credentials,
       functionName,
@@ -343,6 +351,7 @@ class FcComponent extends Component {
    * @param {*} inputs
    */
   async invoke (inputs) {
+    this.help(inputs, getHelp(inputs).invoke)
     const {
       credentials,
       serviceName,
@@ -370,6 +379,7 @@ class FcComponent extends Component {
 
   // 日志
   async logs (inputs) {
+    this.help(inputs, getHelp(inputs).logs)
     const {
       region,
       serviceProp,
@@ -421,6 +431,7 @@ class FcComponent extends Component {
 
   // 指标
   async metrics (inputs) {
+    this.help(inputs, getHelp(inputs).metrics)
     const { State = {}, Properties } = inputs
     const { Service = {}, Function = {} } = Properties || State || {}
 
@@ -547,6 +558,7 @@ class FcComponent extends Component {
 
   // 发布
   async publish (inputs) {
+    this.help(inputs, getHelp(inputs).publish)
     const { Commands: commands } = this.args(inputs.Args)
     const publishType = commands[0]
 
@@ -563,6 +575,7 @@ class FcComponent extends Component {
 
   // 删除
   async unpublish (inputs) {
+    this.help(inputs, getHelp(inputs).unpublish)
     const { Commands: commands } = this.args(inputs.Args)
     const unPublishType = commands[0]
 
@@ -579,6 +592,7 @@ class FcComponent extends Component {
 
   // 同步
   async sync (inputs) {
+    this.help(inputs, getHelp(inputs).sync)
     const {
       credentials,
       properties,

@@ -149,7 +149,6 @@ class HttpInvoke extends Invoke {
   }
 
   async doInvoke (req, res) {
-    console.log('do invoke')
     // only one invoke can be processed
     await lock.acquire('invoke', async () => {
       debug('http doInvoke, aquire invoke lock success, processing...')

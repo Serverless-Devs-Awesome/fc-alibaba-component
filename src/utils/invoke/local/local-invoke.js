@@ -9,6 +9,7 @@ const uuidGen = require('uuid/v4')
 const { red, green } = require('colors')
 const { eventPriority } = require('../../install/file')
 
+const INITIALIZER = 'initializer'
 const SUPPORT_RUNTIMES = ['nodejs6', 'nodejs8', 'nodejs10', 'nodejs12']
 
 const invocationError = (message, extra) => {
@@ -21,10 +22,12 @@ const invocationError = (message, extra) => {
 }
 
 const CALL_BACK = (error, data) => {
-  console.log(`${green('FC Invoke Result:\n')}`, data)
   if (error) {
     throw invocationError(error.message)
   }
+
+  console.log(`${green('FC Invoke Result:\n')}`, data)
+
   if (_.isBuffer(data)) {
     return data
   }
@@ -54,7 +57,7 @@ class LocalInvoke {
     this.runtime = functionProp.Runtime
   }
 
-  getEntryFilePath () {
+  getEntryFileInfo () {
     const [fileNamePrefix, methodName] = _.split(this.handler, '.')
     const absCodeUri = path.resolve(process.cwd(), this.codeUri)
 
@@ -68,8 +71,8 @@ class LocalInvoke {
     }
 
     return {
-      methodName,
-      entryFilePath
+      entryFilePath,
+      entryMethodName: methodName
     }
   }
 
@@ -91,15 +94,15 @@ class LocalInvoke {
     }
   }
 
-  asyncFunction (func) {
-    return func.constructor.name === 'AsyncFunction'
+  asyncFunction (fn) {
+    return fn.constructor.name === 'AsyncFunction'
   }
 
-  async excuteFunction (func, ...restArgs) {
-    if (this.asyncFunction(func)) {
-      await func(...restArgs)
+  async excuteFunction (fn, ...restArgs) {
+    if (this.asyncFunction(fn)) {
+      await fn(...restArgs)
     } else {
-      func(...restArgs)
+      fn(...restArgs)
     }
   }
 
@@ -109,12 +112,12 @@ class LocalInvoke {
       return
     }
 
-    const { entryFilePath, methodName } = this.getEntryFilePath()
+    const { entryFilePath, entryMethodName } = this.getEntryFileInfo()
 
     const hanlder = require(entryFilePath)
 
-    const initializer = hanlder.initializer
-    const invokefunction = hanlder[methodName]
+    const initializer = hanlder[INITIALIZER]
+    const invokefunction = hanlder[entryMethodName]
 
     const event = await eventPriority(this.eventOptions)
 
