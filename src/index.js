@@ -618,6 +618,10 @@ class FcComponent extends Component {
     const project = _.cloneDeepWith(inputs.Project)
     const projectName = project.ProjectName
     delete project.ProjectName
+    if (project.AccessAlias) {  
+      project.Access = project.AccessAlias
+      delete project.AccessAlias
+    }
     const yData = yaml.dump({
       [projectName]: {
         ...project,
