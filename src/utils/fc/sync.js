@@ -156,7 +156,7 @@ class Sync extends Client {
       CustomContainerConfig: customContainerConfig,
       CaPort: caPort,
       InstanceType: instanceType,
-      EnvironmentVariables: Object.keys(environmentVariables).map(key => ({
+      Environment: Object.keys(environmentVariables).map(key => ({
         key: key,
         Value: environmentVariables[key]
       })),
