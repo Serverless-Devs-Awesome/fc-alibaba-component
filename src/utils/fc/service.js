@@ -539,6 +539,7 @@ class Service extends Client {
       internetAccess,
       description
     })
+    return serviceName
   }
 
   async getService (serviceName) {
