@@ -229,7 +229,7 @@ class FcComponent extends Component {
     }
   }
 
-  // 删除版本
+  // 别名
   async alias (inputs, type) {
     const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
     const { Parameters: parameters = {} } = args
@@ -623,6 +623,10 @@ class FcComponent extends Component {
     const project = _.cloneDeepWith(inputs.Project)
     const projectName = project.ProjectName
     delete project.ProjectName
+    if (project.AccessAlias) {  
+      project.Access = project.AccessAlias
+      delete project.AccessAlias
+    }
     const yData = yaml.dump({
       [projectName]: {
         ...project,

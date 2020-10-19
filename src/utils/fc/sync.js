@@ -156,7 +156,7 @@ class Sync extends Client {
       CustomContainerConfig: customContainerConfig,
       CaPort: caPort,
       InstanceType: instanceType,
-      EnvironmentVariables: Object.keys(environmentVariables).map(key => ({
+      Environment: Object.keys(environmentVariables).map(key => ({
         key: key,
         Value: environmentVariables[key]
       })),
@@ -248,8 +248,31 @@ class Sync extends Client {
             InvocationRole: invocationRole
           }
           break
+        case 'mns_topic':
+          const arnConfig = sourceArn.split(':')
+          type = 'MNSTopic'
+          parameters = {
+            Qualifier: qualifier,
+            InvocationRole: invocationRole,
+            FilterTag: triggerConfig.filterTag,
+            NotifyStrategy: triggerConfig.notifyStrategy,
+            NotifyContentFormat: triggerConfig.notifyContentFormat,
+            Region: arnConfig[2],
+            TopicName: arnConfig.pop().split('/').pop()
+          }
+          break
+        case 'tablestore':
+          const arnOtsConfig = sourceArn.split(':').pop().split('/')
+          type = 'TableStore'
+          parameters = {
+            Qualifier: qualifier,
+            InvocationRole: invocationRole,
+            TableName: arnOtsConfig[3],
+            InstanceName: arnOtsConfig[1]
+          }
+          break
         default:
-          console.log(`Skip sync trigger: ${item.triggerName}`)
+          console.log(`Skip sync triggerName: ${item.triggerName}`)
       }
       const triggerData = {
         Name: item.triggerName,

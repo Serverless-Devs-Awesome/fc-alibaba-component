@@ -333,7 +333,7 @@ class Trigger extends Client {
       parameters.triggerConfig = {
         payload: triggerParameters.Payload,
         cronExpression: triggerParameters.CronExpression,
-        enable: triggerParameters.Enable ? triggerParameters.Enable : true
+        enable: !!triggerParameters.Enable
       }
     } else if (triggerType === 'HTTP') {
       parameters.triggerConfig = {
@@ -354,7 +354,7 @@ class Trigger extends Client {
           logstore: triggerParameters.LogConfig.LogStore
         },
         functionParameter: triggerParameters.FunctionParameter || {},
-        Enable: triggerParameters.Enable ? triggerParameters.Enable : true
+        Enable: !!triggerParameters.Enable
       }
     } else if (triggerType === 'RDS') {
       parameters.triggerConfig = {
@@ -456,6 +456,7 @@ class Trigger extends Client {
       await this.fcClient.getTrigger(serviceName, functionName, triggerName)
       if (triggerType === 'TableStore' || triggerType === 'MNSTopic') {
         console.log('The trigger type: TableStore/MNSTopic does not support updates.')
+        return output
       } else {
         // 更新触发器
         try {
