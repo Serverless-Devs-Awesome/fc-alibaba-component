@@ -454,6 +454,7 @@ class Trigger extends Client {
       await this.fcClient.getTrigger(serviceName, functionName, triggerName)
       if (triggerType === 'TableStore' || triggerType === 'MNSTopic') {
         console.log('The trigger type: TableStore/MNSTopic does not support updates.')
+        return output
       } else {
         // 更新触发器
         try {
