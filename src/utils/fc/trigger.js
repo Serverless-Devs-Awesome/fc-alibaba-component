@@ -89,7 +89,7 @@ class Trigger extends Client {
     const ram = new RAM(this.credentials)
     if (triggerType === 'Log') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
-        `AliyunFcGeneratedInvocationRole-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       const invocationRole = await ram.makeRole(
         invocationRoleName,
@@ -109,7 +109,7 @@ class Trigger extends Client {
         }
       )
       const policyName = ram.normalizeRoleOrPoliceName(
-        `AliyunFcGeneratedInvocationPolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(policyName, {
         Version: '1',
@@ -141,7 +141,7 @@ class Trigger extends Client {
       return invocationRole.Role
     } else if (triggerType === 'RDS' || triggerType === 'MNSTopic') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
-        `FunCreateRole-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       var tMap = {
         RDS: 'rds',
@@ -166,7 +166,7 @@ class Trigger extends Client {
         }
       )
       const policyName = ram.normalizeRoleOrPoliceName(
-        `FunCreatePolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(policyName, {
         Version: '1',
@@ -182,7 +182,7 @@ class Trigger extends Client {
       return invocationRole.Role
     } else if (triggerType === 'TableStore') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
-        `FunCreateRole-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       const invocationRole = await ram.makeRole(
         invocationRoleName,
@@ -202,7 +202,7 @@ class Trigger extends Client {
         }
       )
       const invkPolicyName = ram.normalizeRoleOrPoliceName(
-        `FunCreateInvkPolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(invkPolicyName, {
         Version: '1',
@@ -216,7 +216,7 @@ class Trigger extends Client {
       })
       await ram.attachPolicyToRole(invkPolicyName, invocationRoleName, 'Custom')
       const otsReadPolicyName = ram.normalizeRoleOrPoliceName(
-        `FunCreateOtsReadPolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(otsReadPolicyName, {
         Version: '1',
@@ -232,7 +232,7 @@ class Trigger extends Client {
       return invocationRole.Role
     } else if (triggerType === 'OSS') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
-        `FunCreateRole-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       const invocationRole = await ram.makeRole(
         invocationRoleName,
@@ -252,7 +252,7 @@ class Trigger extends Client {
         }
       )
       const policyName = ram.normalizeRoleOrPoliceName(
-        `FunCreateOSSPolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(policyName, {
         Version: '1',
@@ -270,7 +270,7 @@ class Trigger extends Client {
       return invocationRole.Role
     } else if (triggerType === 'CDN') {
       const invocationRoleName = ram.normalizeRoleOrPoliceName(
-        `FunCreateRole-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       const invocationRole = await ram.makeRole(
         invocationRoleName,
@@ -290,7 +290,7 @@ class Trigger extends Client {
         }
       )
       const policyName = ram.normalizeRoleOrPoliceName(
-        `FunCreateCDNPolicy-${serviceName}-${functionName}`
+        `Fc-${serviceName}-${functionName}`
       )
       await ram.makePolicy(policyName, {
         Version: '1',
@@ -323,8 +323,10 @@ class Trigger extends Client {
       parameters.triggerConfig = {
         events: triggerParameters.Events,
         filter: {
-          prefix: triggerParameters.Filter.Prefix,
-          suffix: triggerParameters.Filter.Suffix
+          key: {
+            prefix: triggerParameters.Filter.Prefix,
+            suffix: triggerParameters.Filter.Suffix
+          }
         }
       }
     } else if (triggerType === 'Timer') {
