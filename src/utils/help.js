@@ -265,13 +265,13 @@ module.exports = (inputs) => ({
     Operate NAS file system. Example:
     * s nas sync : sync directories and files to NAS configured in template.yaml.
     * s nas sync -n : sync directories and files to NAS without overwriting existed files.
-    * s nas ls /mnt/auto : list NAS directories and files under the fc path bound.`,
+    * s nas ls /mnt/auto : list files under /mnt/auto.`,
     commands: [{
       name: 'sync',
-      desc: 'synchronize the local directory to the remote NAS file system. Example:'
+      desc: 'synchronize the local directory to the remote NAS file system.'
     }, {
-      name: 'ls',
-      desc: 'list contents of remote NAS directory.'
+      name: 'ls <FcDir>',
+      desc: 'list files under FcDir.'
     }],
     args: [{
       name: '-n, --no-overwrite',
@@ -281,7 +281,7 @@ module.exports = (inputs) => ({
       desc: 'Synchronize to NAS with this alias.'
     }, {
       name: '--all',
-      desc: 'Show all files as well as hidden directories and files.'
+      desc: `Come with 'ls' command for showing all files.`
     }]
   }
 })

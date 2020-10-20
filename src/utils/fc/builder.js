@@ -167,9 +167,7 @@ class Builder {
     let imageName = customContainer.Image
     // TODO duplicated code in deploy, use a better way to handle this
     if (!imageName) {
-      const defaultNamespace = `${this.credentials.AccountID}-serverless`
-      const defaultRepo = `${serviceName}-${functionName}`.toLocaleLowerCase()
-      imageName = `registry.${this.region}.aliyuncs.com/${defaultNamespace}/${defaultRepo}:latest`
+      imageName = this.getDefaultImageName(this.region, serviceName, functionName)
     }
 
     if (!fs.existsSync(dockerFile)) {
@@ -244,6 +242,9 @@ class Builder {
     const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri)
     if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
       console.log('No need build for this project.')
+      if (runtime === 'custom-container') {
+        console.log(yellow(`This is a custom-container project, maybe you want to use 's build image'?`))
+      }
       return false
     }
     return true
@@ -309,6 +310,25 @@ class Builder {
 
   getBuildCodeRelativePath (serviceName, functionName) {
     return path.join('.fc', 'build', 'code', serviceName, functionName)
+  }
+
+  getDefaultImageName (regionId, serviceName, functionName) {
+    const defaultNamespace = this.getDefaultNamespace()
+    const defaultRepo = this.getDefaultRepo(serviceName, functionName)
+    const defaultRegistry = this.getDefaultRegistry(regionId)
+    return `${defaultRegistry}/${defaultNamespace}/${defaultRepo}:latest`
+  }
+
+  getDefaultNamespace () {
+    return `fc-${this.credentials.AccountID}`
+  }
+
+  getDefaultRepo (serviceName, functionName) {
+    return `${serviceName}-${functionName}`.toLocaleLowerCase()
+  }
+
+  getDefaultRegistry (regionId) {
+    return `registry.${regionId}.aliyuncs.com`
   }
 }
 

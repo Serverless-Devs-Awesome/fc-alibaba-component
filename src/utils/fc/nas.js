@@ -52,7 +52,10 @@ class Nas {
     const existsNasServerFunction = await fcFunction.functionExists(this.serviceName, FUN_NAS_FUNCTION)
     if (!existsNasServerFunction) {
       console.log(`Configuring a function for operating files on NAS: ${FUN_NAS_FUNCTION}.`)
-      await this.nasComponent.deploy(Object.assign({}, this.inputs))
+      const nasDeployInputs = Object.assign({}, this.inputs)
+      process.argv = ['node', 's', 'deploy']
+      nasDeployInputs.Args = 'function trigger' // only deploy function and trigger
+      await this.nasComponent.deploy(nasDeployInputs)
       console.log(`${FUN_NAS_FUNCTION} is up`)
     }
 
@@ -74,7 +77,7 @@ class Nas {
         }
 
         const nasComponentInputs = Object.assign({}, this.inputs)
-        process.argv = ['node', 's', 'cp'] // TODO 修改nas组件，不需要这么处理
+        process.argv = ['node', 's', 'cp']
         if (cmdArgs.noOverwirte) {
           nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
         } else {

@@ -1,3 +1,5 @@
+const { red } = require('colors')
+
 const ROAClient = require('@alicloud/pop-core').ROAClient
 
 class AliyunContainerRegistry {
@@ -34,11 +36,24 @@ class AliyunContainerRegistry {
       console.log(`${namespace} exists.`)
       return
     }
-    const response = await this.createNamespace(namespace)
-    if (response && response.data && response.data.namespaceId) {
-      console.log(`Create namespace:${namespace} successfully.`)
-      return
+
+    let response
+    try {
+      response = await this.createNamespace(namespace)
+      if (response && response.data && response.data.namespaceId) {
+        console.log(`Create namespace:${namespace} successfully.`)
+        return
+      }
+    } catch (e) {
+      if (e.result) {
+        console.log(red(`Failed to create namespace, code:${e.result.code}, message:${e.result.message}`))
+      } else {
+        console.log(red(JSON.stringify(e)))
+      }
+      
+      throw new Error('Create namespace failed.')
     }
+
     throw new Error(`Failed to create namespace:${namespace}, respones: ` + response)
   }
 

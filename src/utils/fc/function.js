@@ -25,6 +25,7 @@ class Function extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.builder = new Builder({}, {}, {credentials, region})
   }
 
   async makeCacheDir (path) {
@@ -69,10 +70,9 @@ class Function extends Client {
         packToParame.include = packToParame.exclude.concat(code.Include)
       }
 
-      const builder = new Builder()
-      const buildArtifactPath = builder.getArtifactPath(baseDir, serviceName, functionName)
-      if (packToParame.codeUri && builder.runtimeMustBuild(runtime)) {
-        if (!builder.hasBuild(baseDir, serviceName, functionName)) {
+      const buildArtifactPath = this.builder.getArtifactPath(baseDir, serviceName, functionName)
+      if (packToParame.codeUri && this.builder.runtimeMustBuild(runtime)) {
+        if (!this.builder.hasBuild(baseDir, serviceName, functionName)) {
           throw new Error("You need to build artifact with 's build' before you deploy.")
         }
         packToParame.codeUri = buildArtifactPath
@@ -192,7 +192,7 @@ class Function extends Client {
         const crAccount = customContainer.CrAccount || {}
         imageName = await this.pushImage(serviceName, functionInput.Name, crAccount.User, crAccount.Password, customContainer.Image)
       } catch (e) {
-        console.log(e)
+        //console.log(e)
         throw e
       }
 
@@ -264,6 +264,7 @@ class Function extends Client {
         )
       }
     } catch (e) {
+      console.log(e)
       try {
         console.log(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
         await this.fcClient.createFunction(serviceName, functionProperties)
@@ -281,7 +282,7 @@ class Function extends Client {
 
   async pushImage (serviceName, functionName, userName, password, imageName) {
     const cr = new AliyunContainerRepository(this.credentials, this.region)
-    const registry = imageName ? imageName.split('/')[0] : this.getDefaultRegistry(this.region)
+    const registry = imageName ? imageName.split('/')[0] : this.builder.getDefaultRegistry(this.region)
 
     if (userName && password) {
       console.log('Login to the registry...')
@@ -309,10 +310,10 @@ class Function extends Client {
 
     if (!imageName) {
       console.log('\'Image\' is not configured in template.yml, use default namespace and repository...')
-      const defaultNamespace = this.getDefaultNamespace()
+      const defaultNamespace = this.builder.getDefaultNamespace()
       console.log(`Ensure default namespace(${defaultNamespace}) exists, will create it if not.`)
       await cr.ensureNamespace(defaultNamespace)
-      imageName = this.getDefaultImageName(this.region, serviceName, functionName)
+      imageName = this.builder.getDefaultImageName(this.region, serviceName, functionName)
     }
 
     try {
@@ -322,30 +323,10 @@ class Function extends Client {
 
       console.log(`Push image(${imageName}) to registry successfully`)
     } catch (e) {
-      console.log(yellow('Push image failed, please confirm that registry is correct and had login to it with \'docker login\' already.'))
       throw e
     }
 
     return imageName
-  }
-
-  getDefaultImageName (regionId, serviceName, functionName) {
-    const defaultNamespace = this.getDefaultNamespace()
-    const defaultRepo = this.getDefaultRepo(serviceName, functionName)
-    const defaultRegistry = this.getDefaultRegistry(regionId)
-    return `${defaultRegistry}/${defaultNamespace}/${defaultRepo}:latest`
-  }
-
-  getDefaultNamespace () {
-    return `${this.credentials.AccountID}-serverless`
-  }
-
-  getDefaultRepo (serviceName, functionName) {
-    return `${serviceName}-${functionName}`.toLocaleLowerCase()
-  }
-
-  getDefaultRegistry (regionId) {
-    return `registry.${regionId}.aliyuncs.com`
   }
 }
 
