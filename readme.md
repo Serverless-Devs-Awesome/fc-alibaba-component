@@ -125,6 +125,7 @@ MyFunction:
         Args: '["server.js"]'
       Handler: function执行的入口，具体格式和语言相关
       MemorySize: function的内存规格
+      InstanceConcurrency: 单实例多并发
       Runtime: function的运行环境
       Environment:
         - Key: Environmentkey
@@ -324,6 +325,7 @@ MyFunction:
 | CodeUri | false(默认为./) | String/Struct | 代码位置 |
 | CAPort | false | String |  CustomContainer/Runtime指定端口 |
 | CustomContainer | false | Struct | 自定义镜像配置 |
+| InstanceConcurrency | false | Number | 单实例多并发 |
 | Handler | true | String | function执行的入口，具体格式和语言相关 |
 | Runtime | true | String | function的运行环境 |
 | Initializer | false | Struct | 初始化方法 | 
