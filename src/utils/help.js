@@ -11,13 +11,13 @@ module.exports = (inputs) => ({
       desc: 'install dependencies.'
     }],
     args: [{
-      name: '-e, --env <env>',
+      name: '-e/--env <env>',
       desc: 'environment variable, ex. -e PATH=/code/bin (default: [])'
     }, {
-      name: '-r, --runtime <runtime>',
+      name: '-r/--runtime <runtime>',
       desc: 'function runtime, avaliable choice is: nodejs6, nodejs8, nodejs10, nodejs12, python2.7, python3, java8, php7.2, dotnetcore2.1, custom, custom-container.'
     }, {
-      name: '-p, --package-type <type>',
+      name: '-p/--package-type <type>',
       desc: 'avaliable package type option: pip, apt, npm.'
     }, {
       name: '--url',
@@ -26,10 +26,10 @@ module.exports = (inputs) => ({
       name: '--save',
       desc: 'save install command to fcfile.'
     }, {
-      name: '-f, --file',
+      name: '-f/--file <fcfile>',
       desc: 'use fcfile before installing, this path should be relative to your codeUri.'
     }, {
-      name: '-c, --cmd <cmd>',
+      name: '-c/--cmd <cmd>',
       desc: 'command with arguments to execute inside the installation docker.'
     }
     ]
@@ -116,7 +116,7 @@ module.exports = (inputs) => ({
       desc: 'only remove the specified trigger name.'
     }],
     args: [{
-      name: '-f, --force',
+      name: '-f/--force',
       desc: 'delete auto generated resource by force.'
     }]
   },
@@ -142,10 +142,10 @@ module.exports = (inputs) => ({
   
     Unpublish service version/alias.`,
     commands: [{
-      name: 'version -v, --versionId [versionId]',
+      name: 'version -v/--versionId [versionId]',
       desc: 'unpublish the specified versionId.'
     }, {
-      name: 'version -n, --name [name]',
+      name: 'version -n/--name [name]',
       desc: 'unpublish the specified alias name.'
     }]
   },
@@ -274,10 +274,10 @@ module.exports = (inputs) => ({
       desc: 'list files under FcDir.'
     }],
     args: [{
-      name: '-n, --no-overwrite',
+      name: '-n/--no-overwrite',
       desc: 'Never overwrite existing files on NAS when synchronizing files.'
     }, {
-      name: '-a, --alias <alias>',
+      name: '-a/--alias <alias>',
       desc: 'Synchronize to NAS with this alias.'
     }, {
       name: '--all',
