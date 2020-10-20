@@ -452,41 +452,7 @@ class FcComponent extends Component {
 
   // 安装
   async install (inputs) {
-    this.help(inputs, {
-      description: `Usage: s install [command] [packageNames...] [-r|--runtime <runtime>] [-p|--package-type <type>] [--save] [-e|--env key=val ...]
-
-        install dependencies for your project.`,
-      commands: [{
-        name: 'docker',
-        desc: 'use docker to install dependencies.'
-      }, {
-        name: 'local',
-        desc: 'install dependencies.'
-      }],
-      args: [{
-        name: '-e, --env <env>',
-        desc: 'environment variable, ex. -e PATH=/code/bin (default: [])'
-      }, {
-        name: '-r, --runtime <runtime>',
-        desc: 'function runtime, avaliable choice is: nodejs6, nodejs8, nodejs10, nodejs12, python2.7, python3, java8, php7.2, dotnetcore2.1, custom, custom-container.'
-      }, {
-        name: '-p, --package-type <type>',
-        desc: 'avaliable package type option: pip, apt, npm.'
-      }, {
-        name: '--url',
-        desc: 'for nodejs this can be configured as custom registry, for python this should be Base URL of Python Package Index (default https://pypi.org/simple).'
-      }, {
-        name: '--save',
-        desc: 'save install command to fcfile.'
-      }, {
-        name: '-f, --file',
-        desc: 'use fcfile before installing, this path should be relative to your codeUri.'
-      }, {
-        name: '-c, --cmd <cmd>',
-        desc: 'command with arguments to execute inside the installation docker.'
-      }
-      ]
-    })
+    this.help(inputs, getHelp(inputs).install)
 
     const {
       credentials,
@@ -516,21 +482,7 @@ class FcComponent extends Component {
 
   // 构建
   async build (inputs) {
-    this.help(inputs, {
-      description: `Usage: s build [command]
-
-      Build the dependencies.`,
-      commands: [{
-        name: 'docker',
-        desc: 'use docker to build dependencies.'
-      }, {
-        name: 'local',
-        desc: 'build dependencies directly.'
-      }, {
-        name: 'image',
-        desc: 'build image for custom-runtime project.'
-      }]
-    })
+    this.help(inputs, getHelp(inputs).build)
     console.log('Start to build artifact.')
     const {
       credentials,
@@ -641,31 +593,7 @@ class FcComponent extends Component {
 
   // NAS操作
   async nas (inputs) {
-    this.help(inputs, {
-      description: `Usage: s nas [command] [options] [arguments]
-
-      Operate NAS file system. Example:
-      * s nas sync : sync directories and files to NAS configured in template.yaml.
-      * s nas sync -n : sync directories and files to NAS without overwriting existed files.
-      * s nas ls /mnt/auto : list NAS directories and files under the fc path bound.`,
-      commands: [{
-        name: 'sync',
-        desc: 'synchronize the local directory to the remote NAS file system. Example:'
-      }, {
-        name: 'ls',
-        desc: 'list contents of remote NAS directory.'
-      }],
-      args: [{
-        name: '-n, --no-overwrite',
-        desc: 'Never overwrite existing files on NAS when synchronizing files.'
-      }, {
-        name: '-a, --alias <alias>',
-        desc: 'Synchronize to NAS with this alias.'
-      }, {
-        name: '--all',
-        desc: 'Show all files as well as hidden directories and files.'
-      }]
-    })
+    this.help(inputs, getHelp(inputs).nas)
     const {
       credentials,
       serviceName,
