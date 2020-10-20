@@ -310,6 +310,11 @@ Properties:
             Example: 'key: value'
             Type:
               - Struct
+          InstanceConcurrency: 
+            Required: false
+            Description: 单实例多并发
+            Type:
+              - Number
           Initializer:
             Required: false
             Description: 初始化方法
