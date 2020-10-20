@@ -116,6 +116,7 @@ MyFunction:
           - path2
       CAPort: 8080 #指定端口
       CustomContainer:
+        Dockerfile: ./dockerfile
         CrAccount:
           User: xx  #如指定则会自动进行登录
           Password: xx #如指定则会自动进行登录
