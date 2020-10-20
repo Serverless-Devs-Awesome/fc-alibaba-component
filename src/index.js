@@ -12,13 +12,11 @@ const Builder = require('./utils/fc/builder')
 const Install = require('./utils/fc/install')
 const Metrics = require('./utils/metrics')
 const getHelp = require('./utils/help')
-
 const LocalInvoke = require('./utils/invoke/local/local-invoke')
 const DockerInvoke = require('./utils/invoke/docker/docker-invoke')
 const RemoteInvoke = require('./utils/invoke/remote/remote-invoke')
-
 const { Component } = require('@serverless-devs/s-core')
-const { green, yellow } = require('colors')
+const Logger = require('./utils/logger')
 const { Service, FcFunction, Trigger, CustomDomain, Alias, Version, Sync, Remove, Nas } = require('./utils/fc')
 
 const DEFAULT = {
@@ -27,6 +25,11 @@ const DEFAULT = {
 }
 
 class FcComponent extends Component {
+  constructor () {
+    super()
+    this.logger = new Logger()
+  }
+
   // 解析入参
   handlerInputs (inputs) {
     const projectName = inputs.Project.ProjectName
@@ -114,9 +117,9 @@ class FcComponent extends Component {
       const beforeDeployLog = deployAllConfig ? 'config to be updated' : 'to be deployed'
       const afterDeployLog = deployAllConfig ? 'config update success' : 'deploy success'
 
-      console.log(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
+      this.logger.info(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
       output.Service = await fcService.deploy(serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig)
-      console.log(green(`service ${serviceName} ${afterDeployLog}\n`))
+      this.logger.success(`service ${serviceName} ${afterDeployLog}\n`)
     }
 
     // Function
@@ -129,7 +132,7 @@ class FcComponent extends Component {
       const beforeDeployLog = onlyDelpoyConfig ? 'config to be updated' : 'to be deployed'
       const afterDeployLog = onlyDelpoyConfig || deployAllConfig ? 'config update success' : 'deploy success'
 
-      console.log(`Waiting for function ${functionName} ${beforeDeployLog}...`)
+      this.logger.info(`Waiting for function ${functionName} ${beforeDeployLog}...`)
       output.Function = await fcFunction.deploy({
         projectName,
         serviceName,
@@ -139,7 +142,7 @@ class FcComponent extends Component {
         onlyDelpoyCode,
         onlyDelpoyConfig
       })
-      console.log(green(`function ${functionName} ${afterDeployLog}\n`))
+      this.logger.success(`function ${functionName} ${afterDeployLog}\n`)
     }
 
     // Triggers
@@ -411,7 +414,7 @@ class FcComponent extends Component {
         to = (new Date(cmdParameters.e || cmdParameters.endTime)).getTime() / 1000
       } else {
         // 20 minutes ago
-        console.log(yellow('By default, find logs within 20 minutes...\n'))
+        this.logger.warn('By default, find logs within 20 minutes...\n')
         from = moment().subtract(20, 'minutes').unix()
         to = moment().unix()
       }
@@ -483,7 +486,7 @@ class FcComponent extends Component {
   // 构建
   async build (inputs) {
     this.help(inputs, getHelp(inputs).build)
-    console.log('Start to build artifact.')
+    this.logger.info('Start to build artifact.')
     const {
       credentials,
       serviceName,
@@ -607,9 +610,9 @@ class FcComponent extends Component {
       ['--alias', '-a', '-n', '--no-overwrite', '--all']
     )
 
-    console.log('Loading NAS component, this may cost a few minutes...')
+    this.logger.info('Loading nas component, this may cost a few minutes...')
     const nasComponent = await this.load('nas', 'Component')
-    console.log('Load NAS component successfully.')
+    this.logger.success('Load nas component successfully.')
 
     const nas = new Nas(commands, parameters, {
       credentials,

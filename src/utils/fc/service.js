@@ -15,10 +15,11 @@ const definition = require('../tpl/definition')
 
 const { sleep } = require('../common')
 const { promiseRetry } = require('../common')
-const { green, red, yellow } = require('colors')
+const { red } = require('colors')
 const { DEFAULT_VPC_CONFIG, DEFAULT_NAS_CONFIG, FUN_GENERATED_SERVICE } = require('./static')
+const Logger = require('../logger')
 
-const FIVE_SPACES = '     '
+// const FIVE_SPACES = '     '
 const EXTREME_PATH_PREFIX = '/share'
 
 class Service extends Client {
@@ -26,6 +27,7 @@ class Service extends Client {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
     this.ram = new RAM(credentials)
+    this.logger = new Logger()
   }
 
   /**
@@ -34,10 +36,14 @@ class Service extends Client {
    */
   async remove (serviceName) {
     try {
-      console.log(`Deleting service ${serviceName}`)
+      this.logger.info(`Deleting service ${serviceName}`)
       await this.fcClient.deleteService(serviceName)
-      console.log(`Delete service ${serviceName} successfully`)
+      this.logger.success(`Delete service ${serviceName} successfully`)
     } catch (err) {
+      if (err.code === 'ServiceNotFound') {
+        this.logger.info(`Service ${serviceName} not exists`)
+        return
+      }
       throw new Error(`Unable to delete service ${serviceName}: ${err.message}`)
     }
   }
@@ -230,7 +236,7 @@ class Service extends Client {
         }
       }
 
-      console.log(`\tChecking if nas directories ${nasRemoteDirs} exists, if not, it will be created automatically`)
+      this.logger.info(`Check nas directory ${nasRemoteDirs} if exists`)
 
       const utilFunctionName = await this.makeFcUtilsFunctionNasDirChecker(role, vpcConfig, modifiedNasConfig)
       await sleep(1000)
@@ -239,7 +245,7 @@ class Service extends Client {
         event: JSON.stringify(nasDirsNeedToCheck)
       })
 
-      console.log(green('\tChecking nas directories done', JSON.stringify(nasRemoteDirs)))
+      this.logger.info('Nas directory checked')
     }
   }
 
@@ -269,7 +275,7 @@ class Service extends Client {
   }
 
   printAttachPolicyLog (policyName, roleName) {
-    console.log(`${FIVE_SPACES}attached police ${yellow(policyName)} to role: ` + roleName)
+    this.logger.info(`Attached police ${policyName} to role: ` + roleName)
   }
 
   async generateServiceRole ({
@@ -302,9 +308,9 @@ class Service extends Client {
     // https://github.com/aliyun/fun/pull/223
     if (!roleArn && (policies || !_.isEmpty(vpcConfig) || !_.isEmpty(logConfig) || !_.isEmpty(nasConfig))) {
       // create role
-      console.log(`${FIVE_SPACES}make sure role '${roleName}' is exist...`)
+      this.logger.info(`Make sure role '${roleName}' exists...`)
       role = await this.ram.makeRole(roleName, createRoleIfNotExist)
-      console.log(green(`${FIVE_SPACES}role '${roleName}' is already exist`))
+      this.logger.info(`Role '${roleName}' already exists`)
     }
 
     if (!roleArn && policies) { // if roleArn exist, then ignore polices
@@ -419,15 +425,15 @@ class Service extends Client {
       } catch (ex) {
         if (ex.code === 'AccessDenied' || !ex.code || ex.code === 'ENOTFOUND') {
           if (ex.message.indexOf('FC service is not enabled for current user') !== -1) {
-            console.error(red('\nFC service is not enabled for current user. Please enable FC service before using fun.\nYou can enable FC service on this page https://www.aliyun.com/product/fc .\n'))
+            this.logger.error('\nFC service is not enabled for current user. Please enable FC service before using fun.\nYou can enable FC service on this page https://www.aliyun.com/product/fc .\n')
           } else {
-            console.error(red('\nThe accountId you entered is incorrect. You can only use the primary account id, whether or not you use a sub-account or a primary account ak. You can get primary account ID on this page https://account.console.aliyun.com/#/secure .\n'))
+            this.logger.error('\nThe accountId you entered is incorrect. You can only use the primary account id, whether or not you use a sub-account or a primary account ak. You can get primary account ID on this page https://account.console.aliyun.com/#/secure .\n')
           }
           throw ex
         } else if (ex.code !== 'ServiceNotFound') {
           debug('error when getService, serviceName is %s, error is: \n%O', serviceName, ex)
 
-          console.log(red(`\tretry ${times} times`))
+          this.logger.info(`retry ${times} times`)
           retry(ex)
         }
       }
@@ -454,9 +460,9 @@ class Service extends Client {
 
     if (!_.isEmpty(vpcConfig) || isNasAuto) {
       if (isVpcAuto || (_.isEmpty(vpcConfig) && isNasAuto)) {
-        console.log(`${FIVE_SPACES}using 'Vpc: Auto', try to generate related vpc resources automatically`)
+        this.logger.info('Using \'Vpc: Auto\'')
         vpcConfig = await vpc.createDefaultVpcIfNotExist(this.credentials, this.region)
-        console.log(green(`${FIVE_SPACES}generated default Vpc config done:`, JSON.stringify(vpcConfig)))
+        this.logger.success('Default vpc config generated:' + JSON.stringify(vpcConfig))
 
         debug('generated vpcConfig: %j', vpcConfig)
       }
@@ -470,9 +476,9 @@ class Service extends Client {
       const vpcId = vpcConfig.vpcId || vpcConfig.VpcId
       const vswitchIds = vpcConfig.vswitchIds || vpcConfig.VSwitchIds
 
-      console.log(`${FIVE_SPACES}using 'Nas: Auto', Fun will try to generate related nas file system automatically`)
+      this.logger.info('Using \'Nas: Auto\'')
       nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
-      console.log(green(`${FIVE_SPACES}generated auto NasConfig done: `, JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig))))
+      this.logger.success('Default nas config generated: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
     } else {
       // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
@@ -491,7 +497,7 @@ class Service extends Client {
         }
         debug('error when createService or updateService, serviceName is %s, options is %j, error is: \n%O', serviceName, options, ex)
 
-        console.log(red(`\tretry ${times} times`))
+        this.logger.info(`retry ${times} times`)
         retry(ex)
       }
     })

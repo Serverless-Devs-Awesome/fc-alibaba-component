@@ -10,8 +10,8 @@ const ncp = require('../ncp')
 const util = require('util')
 const ncpAsync = util.promisify(ncp)
 const { processorTransformFactory } = require('../error/error-processor')
-const { yellow, red } = require('colors')
 const Install = require('./install')
+const Logger = require('../logger')
 const execSync = require('child_process').execSync
 
 class Builder {
@@ -31,23 +31,24 @@ class Builder {
     this.functionName = functionName
     this.functionProp = functionProp
     this.region = region
+    this.logger = new Logger()
   }
 
   async handle () {
     if (this.commands.length === 0) {
-      console.log(red('input error, use \'s build --help\' for info.'))
-      throw new Error('input error.')
+      this.logger.error('Input error, use \'s build --help\' for info.')
+      throw new Error('Input error.')
     }
     const buildCommand = this.commands[0]
     if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`))
+      this.logger.error(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`)
       throw new Error('Input error.')
     }
 
     const buildImage = buildCommand === 'image'
     if (buildImage) {
       if (this.functionProp.Runtime !== 'custom-container') {
-        console.log(red(`'image' should only be used to build 'custom-container' project, your project is ${this.functionProp.Runtime}`))
+        this.logger.error(`'image' should only be used to build 'custom-container' project, your project is ${this.functionProp.Runtime}`)
         throw new Error('Input error.')
       }
       await this.buildImage(this.serviceName, this.serviceProp, this.functionName, this.functionProp)
@@ -57,11 +58,11 @@ class Builder {
     // serviceName, serviceProps, functionName, functionProps, useDocker, verbose
     const useDocker = buildCommand === 'docker'
     if (useDocker) {
-      console.log('Use docker for building.')
+      this.logger.info('Use docker for building.')
     }
     await this.build(this.serviceName, this.serviceProp, this.functionName, this.functionProp, useDocker, true)
 
-    console.log('Build artifact successfully.')
+    this.logger.success('Build artifact successfully.')
   }
 
   // constructor (credentials, region) {
@@ -103,7 +104,7 @@ class Builder {
     let imageTag
     const funfilePath = path.resolve(baseDir, codeUri, 'fcfile')
     if (fs.existsSync(funfilePath)) {
-      console.log(yellow('Found fcfile in your codrUri directory.'))
+      this.logger.info('Found fcfile in your codrUri directory.')
       const installer = new Install()
       imageTag = await installer.processFunfile(serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName)
     }
@@ -125,7 +126,7 @@ class Builder {
     if (!imageTag) {
       await docker.pullImageIfNeed(usedImage)
     }
-    console.log('\nbuild function using image: ' + usedImage)
+    this.logger.info('\nBuild function using image: ' + usedImage)
 
     // todo: 1. create container, copy source code to container
     // todo: 2. build and then copy artifact output
@@ -149,7 +150,7 @@ class Builder {
     // detect fcfile
     const fcfilePath = path.resolve(codePath, 'fcfile')
     if (fs.existsSync(fcfilePath)) {
-      console.log(yellow('Found fcfile in src directory, maybe \'s build docker\' is better.'))
+      this.logger.warn('Found fcfile in src directory, maybe you want to use \'s build docker\' ?')
     }
     const builder = new fcBuilders.Builder(serviceName, functionName, codePath, runtime, artifactPath, verbose, stages)
     await builder.build()
@@ -175,13 +176,13 @@ class Builder {
     }
 
     try {
-      console.log('Building image...')
+      this.logger.info('Building image...')
       execSync(`docker build -t ${imageName} -f ${dockerFile} .`, {
         stdio: 'inherit'
       })
-      console.log(`Build image(${imageName}) successfully`)
+      this.logger.success(`Build image(${imageName}) successfully`)
     } catch (e) {
-      console.log(e.message)
+      this.logger.error(e.message)
       throw e
     }
   }
@@ -218,21 +219,21 @@ class Builder {
   async codeNeedBuild (baseDir, codeUri, runtime) {
     // check codeUri
     if (!codeUri) {
-      console.warn('No code uri configured, skip building.')
+      this.logger.info('No code uri configured, skip building.')
       return false
     }
     if (typeof codeUri === 'string') {
       if (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
-        console.log('Artifact configured, skip building.')
+        this.logger.info('Artifact configured, skip building.')
         return false
       }
     } else {
       if (!codeUri.Src) {
-        console.log('No Src configured, skip building.')
+        this.logger.info('No Src configured, skip building.')
         return false
       }
       if (codeUri.Src.endsWith('.zip') || codeUri.Src.endsWith('.jar') || codeUri.Src.endsWith('.war')) {
-        console.log('Artifact configured, skip building.')
+        this.logger.info('Artifact configured, skip building.')
         return false
       }
     }
@@ -241,9 +242,9 @@ class Builder {
     const absCodeUri = path.resolve(baseDir, codeUri)
     const taskFlows = await Builder.detectTaskFlow(runtime, absCodeUri)
     if (_.isEmpty(taskFlows) || this.isOnlyDefaultTaskFlow(taskFlows)) {
-      console.log('No need build for this project.')
+      this.logger.info('No need build for this project.')
       if (runtime === 'custom-container') {
-        console.log(yellow(`This is a custom-container project, maybe you want to use 's build image'?`))
+        this.logger.warn('This is a custom-container project, maybe you want to use \'s build image\'?')
       }
       return false
     }
@@ -264,28 +265,28 @@ class Builder {
         }
       })
     } catch (e) {
-      console.log(e)
+      this.logger.error(e.message)
     }
   }
 
   codeUriCanBuild (codeUri) {
     if (!codeUri) {
-      console.warn('No code uri configured, skip building.')
+      this.logger.info('No code uri configured, skip building.')
       return false
     }
 
     if (typeof codeUri === 'string') {
       if (codeUri.endsWith('.zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war')) {
-        console.log('Artifact configured, skip building.')
+        this.logger.info('Artifact configured, skip building.')
         return false
       }
     } else {
       if (!codeUri.Src) {
-        console.log('No Src configured, skip building.')
+        this.logger.info('No Src configured, skip building.')
         return false
       }
       if (codeUri.Src.endsWith('.zip') || codeUri.Src.endsWith('.jar') || codeUri.Src.endsWith('.war')) {
-        console.log('Artifact configured, skip building.')
+        this.logger.info('Artifact configured, skip building.')
         return false
       }
     }

@@ -2,11 +2,10 @@
 const FcFunction = require('./function')
 const FcTrigger = require('./trigger')
 const { FUN_NAS_FUNCTION } = require('../nas/nas')
-const { yellow } = require('colors')
 const nas = require('../nas/nas')
 const { findDefaultVpcAndSwitch } = require('../vpc')
 const Logs = require('../logs')
-const vpc = require('../vpc')
+const Logger = require('../logger')
 
 class Remove {
   constructor (commands = {}, parameters = {}, {
@@ -20,6 +19,7 @@ class Remove {
     this.functionName = functionName
     this.functionProp = functionProp
     this.region = region
+    this.logger = new Logger()
   }
 
   async removeNasFunctionIfExists (serviceName) {
@@ -33,14 +33,14 @@ class Remove {
     try {
       await fcTrigger.remove(serviceName, FUN_NAS_FUNCTION)
     } catch (e) {
-      console.log(yellow(`Unable to remove trigger for ${FUN_NAS_FUNCTION}`))
+      this.logger.warn(`Unable to remove trigger for ${FUN_NAS_FUNCTION}`)
     }
 
     try {
       await fcFunction.remove(serviceName, FUN_NAS_FUNCTION)
-      console.log(`Remove function for NAS successfuly: ${FUN_NAS_FUNCTION}`)
+      this.logger.success(`Remove function for nas successfuly: ${FUN_NAS_FUNCTION}`)
     } catch (e) {
-      console.log(yellow(`Unable to remove function: ${FUN_NAS_FUNCTION}`))
+      this.logger.warn(`Unable to remove function: ${FUN_NAS_FUNCTION}`)
     }
   }
 
@@ -54,7 +54,7 @@ class Remove {
         try {
           await nas.deleteDefaultNas(this.credentials, this.region, vpcId, vswitchId, forceDelete)
         } catch (e) {
-          console.log(yellow(`Failed to delete auto generated nas: ${e}`))
+          this.logger.warn(`Failed to delete auto generated nas: ${e}`)
         }
       }
     }
@@ -66,19 +66,19 @@ class Remove {
       try {
         await logs.deleteDefaultSlsProject(forceDelete)
       } catch (e) {
-        console.log(yellow(`Failed to delete auto generated sls project: ${e}`))
+        this.logger.warn(`Failed to delete auto generated sls project: ${e}`)
       }
     }
 
     // handle vpc and vswitch
-    const vpcConfig = this.serviceProp.Vpc
-    if (this.isConfigAsAuto(vpcConfig)) {
-      try {
-        await vpc.deleteDefaultVpcAndSwitch(this.credentials, this.region, forceDelete)
-      } catch (e) {
-        console.log(yellow(`Failed to delete auto generated vpc and vswitch: ${e}`))
-      }
-    }
+    // const vpcConfig = this.serviceProp.Vpc
+    // if (this.isConfigAsAuto(vpcConfig)) {
+    //   try {
+    //     await vpc.deleteDefaultVpcAndSwitch(this.credentials, this.region, forceDelete)
+    //   } catch (e) {
+    //     this.logger.warn(`Failed to delete auto generated vpc and vswitch: ${e}`)
+    //   }
+    // }
   }
 
   isConfigAsAuto (config) {

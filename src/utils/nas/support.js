@@ -173,7 +173,7 @@ ${e}
 
 After .nas.yml is configured correctly. You may be able to redeploy resources by following two steps:
 
-1. Execute 'fun nas sync' to upload local NAS resources to the NAS service.
+1. Execute 'fun nas sync' to upload local nas resources to the nas service.
 2. Execute ‘fun deploy’ to deploy resources to function computer.
 `)
   }

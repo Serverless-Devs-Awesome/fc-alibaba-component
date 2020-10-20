@@ -4,12 +4,12 @@ const path = require('path')
 const fs = require('fs-extra')
 const os = require('os')
 const execSync = require('child_process').execSync
-
 const httpx = require('httpx')
 const kitx = require('kitx')
-
 const debug = require('debug')('fun:deps')
 const archiver = require('archiver')
+const Logger = require('./logger')
+const logger = new Logger()
 
 function read (readable, encoding) {
   return new Promise((resolve, reject) => {
@@ -77,7 +77,7 @@ const zip = function (rootDir) {
     })
 
     archive.on('progress', (p) => {
-      console.log('progress')
+      logger.info('progress')
       debug('progress: %j', p)
     })
   }

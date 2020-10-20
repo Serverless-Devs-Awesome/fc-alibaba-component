@@ -1,4 +1,4 @@
-const { red } = require('colors')
+const Logger = require('./logger')
 
 const ROAClient = require('@alicloud/pop-core').ROAClient
 
@@ -13,6 +13,7 @@ class AliyunContainerRegistry {
       endpoint: `https://cr.${this.region}.aliyuncs.com`,
       apiVersion: '2016-06-07'
     })
+    this.logger = new Logger()
   }
 
   async getAuthorizationToken () {
@@ -33,7 +34,7 @@ class AliyunContainerRegistry {
 
   async ensureNamespace (namespace) {
     if (await this.namespaceExists(namespace)) {
-      console.log(`${namespace} exists.`)
+      this.logger.info(`Namespace ${namespace} already exists`)
       return
     }
 
@@ -41,16 +42,16 @@ class AliyunContainerRegistry {
     try {
       response = await this.createNamespace(namespace)
       if (response && response.data && response.data.namespaceId) {
-        console.log(`Create namespace:${namespace} successfully.`)
+        this.logger.success(`Create namespace:${namespace} successfully.`)
         return
       }
     } catch (e) {
       if (e.result) {
-        console.log(red(`Failed to create namespace, code:${e.result.code}, message:${e.result.message}`))
+        this.logger.error(`Failed to create namespace, code:${e.result.code}, message:${e.result.message}`)
       } else {
-        console.log(red(JSON.stringify(e)))
+        this.logger.error(JSON.stringify(e))
       }
-      
+
       throw new Error('Create namespace failed.')
     }
 

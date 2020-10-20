@@ -9,16 +9,18 @@ const moment = require('moment')
 const definition = require('./tpl/definition')
 
 const { promiseRetry } = require('./common')
-const { red, green, yellow } = require('colors')
+const { red } = require('colors')
 const inquirer = require('inquirer')
+const Logger = require('./logger')
 
-const FIVE_SPACES = '     '
-const TEN_SPACES = '          '
+// const FIVE_SPACES = '     '
+// const TEN_SPACES = '          '
 
 class Logs extends Client {
   constructor (credentials, region, useAliyunSdk = true) {
     super(credentials, region)
     this.slsClient = this.buildSlsClient(useAliyunSdk)
+    this.logger = new Logger()
   }
 
   sleep (ms) {
@@ -124,7 +126,7 @@ class Logs extends Client {
 
   printLogs (historyLogs) {
     _.values(historyLogs).forEach((data) => {
-      console.log(`\n${data.message}`)
+      this.logger.info(`\n${data.message}`)
     })
   }
 
@@ -227,8 +229,8 @@ class Logs extends Client {
         } else if (ex.code === 'ProjectNotExist') {
           throw new Error(red('Please go to https://sls.console.aliyun.com/ to open the LogServce.'))
         } else {
-          console.log(yellow(`\terror when createProject, projectName is ${projectName}, error is: ${ex}`))
-          console.log(red(`\tretry ${times} times`))
+          this.logger.warn(`error when createProject, projectName is ${projectName}, error is: ${ex}`)
+          this.logger.warn(`retry ${times} times`)
           retry(ex)
         }
       }
@@ -248,7 +250,7 @@ class Logs extends Client {
     }
 
     const { project } = this.generateDefaultLogConfig()
-    console.log(`Found auto generated sls project: ${project}.`)
+    this.logger.info(`Found auto generated sls project: ${project}.`)
 
     if (!forceDelete) {
       const { deleteLogs } = await inquirer.prompt([{
@@ -261,9 +263,9 @@ class Logs extends Client {
     }
 
     if (forceDelete) {
-      console.log(`Deleting sls project: ${project}`)
+      this.logger.info(`Deleting sls project: ${project}`)
       await this.slsClient.deleteProject(project)
-      console.log('Delete sls project successfully.')
+      this.logger.success('Delete sls project successfully.')
     }
   }
 
@@ -291,7 +293,7 @@ class Logs extends Client {
           throw new Error(red(`Log Service '${projectName}' may create by others, you should use a unique project name.`))
         } else if (ex.code !== 'ProjectNotExist') {
           debug('error when getProject, projectName is %s, error is: \n%O', projectName, ex)
-          console.log(red(`\tretry ${times} times`))
+          this.logger.info(`retry ${times} times`)
           retry(ex)
         } else { projectExist = false }
       }
@@ -328,7 +330,7 @@ class Logs extends Client {
       } catch (ex) {
         if (ex.code !== 'LogStoreNotExist') {
           debug('error when getLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
-          console.log(red(`\t\tretry ${times} times`))
+          this.logger.info(`retry ${times} times`)
           retry(ex)
         } else { exists = false }
       }
@@ -346,7 +348,7 @@ class Logs extends Client {
             throw ex
           }
           debug('error when createLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
-          console.log(red(`\t\tretry ${times} times`))
+          this.logger.info(`retry ${times} times`)
           retry(ex)
         }
       })
@@ -363,7 +365,7 @@ class Logs extends Client {
             throw ex
           }
           if (ex.code !== 'ParameterInvalid' && ex.message !== 'no parameter changed') {
-            console.log(red(`\t\tretry ${times} times`))
+            this.logger.info(`retry ${times} times`)
             retry(ex)
           } else {
             throw ex
@@ -402,7 +404,7 @@ class Logs extends Client {
       } catch (ex) {
         debug('error when createIndex, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
 
-        console.log(red(`\t\t\tretry ${times} times`))
+        this.logger.info(`retry ${times} times`)
         retry(ex)
       }
     })
@@ -423,11 +425,11 @@ class Logs extends Client {
     if (definition.isLogConfigAuto(logConfig)) {
       const defaultLogConfig = this.generateDefaultLogConfig()
 
-      console.log(`${FIVE_SPACES}using 'Log: Auto'. serverless tool will generate default sls project.`)
+      this.logger.info('using \'Log: Auto\'')
       const description = 'create default log project by serverless tool'
+      this.logger.info('Generating default sls project')
       await this.makeSlsAuto(defaultLogConfig.project, description, defaultLogConfig.logStore)
-      console.log(`${TEN_SPACES}project: ${defaultLogConfig.project}, logStore: ${defaultLogConfig.logStore}`)
-      console.log(green(`${FIVE_SPACES}generated default Log config done.`))
+      this.logger.info(`Default sls project generated, project: ${defaultLogConfig.project}, logStore: ${defaultLogConfig.logStore}`)
 
       return defaultLogConfig
     }

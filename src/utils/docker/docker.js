@@ -322,7 +322,7 @@ async function pullImage (imageName) {
   const registry = await dockerOpts.resolveDockerRegistry()
 
   return await new Promise((resolve, reject) => {
-    console.log(`begin pulling image ${resolveImageName}, you can also use ` + yellow(`'docker pull ${resolveImageName}'`) + ' to pull image by yourself.')
+    console.log(`Begin pulling image ${resolveImageName}, you can also use ` + yellow(`'docker pull ${resolveImageName}'`) + ' to pull image by yourself.')
 
     const onFinished = async (err) => {
       containers.delete(stream)
@@ -465,7 +465,7 @@ async function pullImageIfNeed (imageName) {
     await pullImage(imageName)
   } else {
     debug(`skip pulling image ${imageName}...`)
-    console.log(`skip pulling image ${imageName}...`)
+    console.log(`Skip pulling image ${imageName}...`)
   }
 }
 

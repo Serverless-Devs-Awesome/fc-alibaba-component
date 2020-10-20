@@ -1,11 +1,13 @@
 'use strict'
 
 const Client = require('./client')
+const Logger = require('../logger')
 
 class Alias extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   async publish (alias, serviceName) {
@@ -19,9 +21,9 @@ class Alias extends Client {
       option.additionalVersionWeight = alias.additionalVersionWeight
     }
     try {
-      console.log(`Create alias: ${name}`)
+      this.logger.info(`Create alias: ${name}`)
       await this.fcClient.createAlias(serviceName, name, versionId, option)
-      console.log(`Create alias successfully: ${name}`)
+      this.logger.success(`Create alias successfully: ${name}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -52,9 +54,9 @@ class Alias extends Client {
 
   async delete (serviceName, aliasName) {
     try {
-      console.log(`Delete alias: ${aliasName}`)
+      this.logger.info(`Delete alias: ${aliasName}`)
       await this.fcClient.deleteAlias(serviceName, aliasName)
-      console.log(`Delete alias successfully: ${aliasName}`)
+      this.logger.success(`Delete alias successfully: ${aliasName}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -69,9 +71,9 @@ class Alias extends Client {
     option.additionalVersionWeight = alias.additionalVersionWeight
 
     try {
-      console.log(`Update alias: ${name}`)
+      this.logger.info(`Update alias: ${name}`)
       await this.fcClient.updateAlias(serviceName, name, versionId, option)
-      console.log(`Update alias successfully: ${name}`)
+      this.logger.success(`Update alias successfully: ${name}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -87,9 +89,9 @@ class Version extends Client {
 
   async publish (serviceName, description) {
     try {
-      console.log('Publish version.')
+      this.logger.info('Publish version.')
       const { data } = await this.fcClient.publishVersion(serviceName, description)
-      console.log(`Publish version successfully: ${data.versionId}`)
+      this.logger.success(`Publish version successfully: ${data.versionId}`)
       return true
     } catch (ex) {
       throw new Error(ex.message)
@@ -106,9 +108,9 @@ class Version extends Client {
 
   async delete (serviceName, versionId) {
     try {
-      console.log(`Deleting version: ${versionId}`)
+      this.logger.info(`Deleting version: ${versionId}`)
       await this.fcClient.deleteVersion(serviceName, versionId)
-      console.log(`Delete version successfully: ${versionId}`)
+      this.logger.success(`Delete version successfully: ${versionId}`)
       return true
     } catch (ex) {
       return ex.message

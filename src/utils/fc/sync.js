@@ -7,12 +7,13 @@ const path = require('path')
 const httpx = require('httpx')
 const unzipper = require('unzipper')
 const Client = require('./client')
-const { red } = require('colors')
+const Logger = require('../logger')
 
 class Sync extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   async sync ({
@@ -35,43 +36,43 @@ class Sync extends Client {
     const pro = _.cloneDeepWith(properties)
     // --service，只同步服务
     if (syncAllFlag || onlySyncType === 'service') {
-      console.log(`Starting sync ${serviceName} config.`)
+      this.logger.info(`Starting sync ${serviceName} config.`)
       pro.Service = await this.syncService(serviceName, pro.Service)
-      console.log(`End sync ${serviceName} config.`)
+      this.logger.info(`End sync ${serviceName} config.`)
     }
     // --tags，只同步标签
     if (syncAllFlag || onlySyncType === 'tags') {
-      console.log(`Starting sync ${serviceName} tags.`)
+      this.logger.info(`Starting sync ${serviceName} tags.`)
       pro.Service.Tags = await this.syncTags(`services/${serviceName}`)
-      console.log(`End sync ${serviceName} tags.`)
+      this.logger.info(`End sync ${serviceName} tags.`)
     }
     // --function，只同步函数
     if (syncAllFlag || onlySyncType === 'function') {
       findFunction()
-      console.log(`Starting sync ${serviceName}/${functionName} config.`)
+      this.logger.info(`Starting sync ${serviceName}/${functionName} config.`)
       pro.Function = await this.syncFunction(serviceName, functionName, pro.Function)
-      console.log(`End sync ${serviceName}/${functionName} config.`)
+      this.logger.info(`End sync ${serviceName}/${functionName} config.`)
     }
     // --code，只同步代码
     if (syncAllFlag || onlySyncType === 'code') {
       findFunction()
-      console.log(`Starting sync ${serviceName}/${functionName} code.`)
+      this.logger.info(`Starting sync ${serviceName}/${functionName} code.`)
       const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName)
       try {
         await this.outputFunctionCode(serviceName, functionName, codeUri)
       } catch (e) {
-        console.log(red('Failed to sync function code.'))
+        this.logger.error('Failed to sync function code.')
         throw e
       }
       pro.Function.CodeUri = codeUri
-      console.log(`End ${serviceName}/${functionName} code.`)
+      this.logger.info(`End ${serviceName}/${functionName} code.`)
     }
     // --trigger，只同步触发器
     if (syncAllFlag || onlySyncType === 'trigger') {
       findFunction()
-      console.log(`Starting sync ${serviceName}/${functionName} trigger.`)
+      this.logger.info(`Starting sync ${serviceName}/${functionName} trigger.`)
       pro.Function.Triggers = await this.syncTrigger(serviceName, functionName)
-      console.log(`End ${serviceName}/${functionName} trigger.`)
+      this.logger.info(`End ${serviceName}/${functionName} trigger.`)
     }
 
     return JSON.parse(JSON.stringify(pro))
@@ -274,7 +275,7 @@ class Sync extends Client {
           break
         }
         default:
-          console.log(`Skip sync triggerName: ${item.triggerName}`)
+          this.logger.info(`Skip sync triggerName: ${item.triggerName}`)
       }
       const triggerData = {
         Name: item.triggerName,

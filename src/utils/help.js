@@ -281,7 +281,7 @@ module.exports = (inputs) => ({
       desc: 'Synchronize to NAS with this alias.'
     }, {
       name: '--all',
-      desc: `Come with 'ls' command for showing all files.`
+      desc: 'Come with \'ls\' command for showing all files.'
     }]
   }
 })

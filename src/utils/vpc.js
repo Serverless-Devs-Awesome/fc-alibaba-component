@@ -7,8 +7,10 @@ const { sleep } = require('./common')
 const { getVpcPopClient, getEcsPopClient } = require('./client')
 const inquirer = require('inquirer')
 const _ = require('lodash')
+const Logger = require('./logger')
+const logger = new Logger()
 
-const TEN_SPACES = '          '
+// const TEN_SPACES = '          '
 
 var requestOption = {
   method: 'POST'
@@ -89,7 +91,7 @@ async function deleteDefaultVpcAndSwitch (credentials, region, forceDelete = fal
     return
   }
 
-  console.log(`Found auto generated vpc: ${vpcId} and vswitch: ${vswitchId}`)
+  logger.info(`Found auto generated vpc: ${vpcId} and vswitch: ${vswitchId}`)
   if (!forceDelete) {
     const { deleteVpcAndSwitch } = await inquirer.prompt([{
       type: 'confirm',
@@ -126,7 +128,7 @@ async function waitVpcUntilAvaliable (vpcClient, region, vpcId) {
       VpcId: vpcId
     }
 
-    await sleep(800)
+    await sleep(1000)
 
     const rs = await vpcClient.request('DescribeVpcs', params, requestOption)
     const vpcs = rs.Vpcs.Vpc
@@ -135,7 +137,7 @@ async function waitVpcUntilAvaliable (vpcClient, region, vpcId) {
 
       debug('vpc status is: ' + status)
 
-      console.log(`\t\tVPC already created, waiting for status to be 'Available', the status is ${status} currently`)
+      logger.info(`VPC already created, waiting for status to be 'Available', the status is ${status} currently`)
     }
   } while (count < 15 && status !== 'Available')
 
@@ -146,11 +148,11 @@ async function createDefaultVSwitchIfNotExist (credentials, vpcClient, region, v
   let vswitchId = await vswitch.findVswitchExistByName(vpcClient, region, vswitchIds, defaultVSwitchName)
 
   if (!vswitchId) { // create vswitch
-    console.log(`${TEN_SPACES}could not find default vswitch, ready to generate one.`)
+    logger.info('Generating default vswitch')
     vswitchId = await vswitch.createDefaultVSwitch(credentials, vpcClient, region, vpcId, defaultVSwitchName)
-    console.log(`${TEN_SPACES}default vswitch has been generated, vswitchId is: ` + vswitchId)
+    logger.success('Default vswitch has been generated, vswitchId is: ' + vswitchId)
   } else {
-    console.log(`${TEN_SPACES}vswitch already generated, vswitchId is: ` + vswitchId)
+    logger.info('Vswitch already generated, vswitchId is: ' + vswitchId)
   }
   return vswitchId
 }
@@ -162,19 +164,19 @@ async function createDefaultSecurityGroupIfNotExist (ecsClient, region, vpcId) {
 
   // create security group
   if (_.isEmpty(defaultSecurityGroup)) {
-    console.log(`${TEN_SPACES}could not find default security group, ready to generate one`)
+    logger.info('Generating default security group')
     const securityGroupId = await securityGroup.createSecurityGroup(ecsClient, region, vpcId, defaultSecurityGroupName)
 
-    console.log(`${TEN_SPACES}setting default security group rules`)
+    logger.success(`Default security group generated, securityGroupId is: ${securityGroupId}`)
+    logger.info('Generating default security group rules')
     await securityGroup.authDefaultSecurityGroupRules(ecsClient, region, securityGroupId)
-    console.log(`${TEN_SPACES}default security group rules has been generated`)
-    console.log(`${TEN_SPACES}default security group has been generated, security group is: ` + securityGroupId)
+    logger.info('Security group rules generated')
 
     return securityGroupId
   }
 
   const securityGroupId = defaultSecurityGroup[0].SecurityGroupId
-  console.log(`${TEN_SPACES}security group already generated, security group is: ` + securityGroupId)
+  logger.info('Security group already exists, security group is: ' + securityGroupId)
   return securityGroupId
 }
 
@@ -193,11 +195,11 @@ async function createDefaultVpcIfNotExist (credentials, region) {
     vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
     vpcId = funDefaultVpc.VpcId
 
-    console.log(`${TEN_SPACES}vpc already generated, vpcId is: ` + vpcId)
+    logger.info('Vpc already generated, vpcId is: ' + vpcId)
   } else { // create
-    console.log(`${TEN_SPACES}could not find default vpc, ready to generate one`)
+    logger.info('Generating default vpc')
     vpcId = await createVpc(vpcClient, region, defaultVpcName)
-    console.log(`${TEN_SPACES}default vpc has been generated, vpcId is: ` + vpcId)
+    logger.success('Default vpc has been generated, vpcId is: ' + vpcId)
   }
 
   debug('vpcId is %s', vpcId)

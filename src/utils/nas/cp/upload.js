@@ -32,7 +32,7 @@ async function uploadFolder (credentials, region, srcPath, dstPath, nasHttpTrigg
   const fileName = path.basename(zipFilePath)
 
   const remoteNasTmpDir = path.posix.join(dstPath, '.fun_nas_tmp')
-  debug(`checking NAS tmp dir ${remoteNasTmpDir}`)
+  debug(`checking nas tmp dir ${remoteNasTmpDir}`)
   await checkRemoteNasTmpDir(credentials, region, nasHttpTriggerPath, remoteNasTmpDir)
   debug(`${green('✔')} check done`)
   const nasZipFile = path.posix.join(remoteNasTmpDir, fileName)
@@ -43,7 +43,7 @@ async function uploadFolder (credentials, region, srcPath, dstPath, nasHttpTrigg
 
   await uploadFileByChunk(credentials, region, nasHttpTriggerPath, nasZipFile, zipFilePath, fileOffSetCutByChunkSize)
 
-  debug(`checking uploaded NAS zip file ${nasZipFile} hash`)
+  debug(`checking uploaded nas zip file ${nasZipFile} hash`)
   await checkFileHash(credentials, region, nasHttpTriggerPath, nasZipFile, zipHash)
   debug(`${green('✔')} hash unchanged`)
 

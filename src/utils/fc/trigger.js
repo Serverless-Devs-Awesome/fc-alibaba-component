@@ -8,6 +8,7 @@ const RAM = require('../ram')
 const Client = require('./client')
 
 const { CustomDomain } = require('./customDomain')
+const Logger = require('../logger')
 
 const triggerTypeMapping = {
   Datahub: 'datahub',
@@ -34,6 +35,7 @@ class Trigger extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   sleep (ms) {
@@ -455,7 +457,7 @@ class Trigger extends Client {
     try {
       await this.fcClient.getTrigger(serviceName, functionName, triggerName)
       if (triggerType === 'TableStore' || triggerType === 'MNSTopic') {
-        console.log('The trigger type: TableStore/MNSTopic does not support updates.')
+        this.logger.info('The trigger type: TableStore/MNSTopic does not support updates.')
         return output
       } else {
         // 更新触发器
@@ -508,22 +510,28 @@ class Trigger extends Client {
           triggerList.push(curTriggerList.triggers[i].triggerName)
         }
       } catch (ex) {
-        if (ex.code !== 'FunctionNotFound') {
-          throw new Error(`Unable to get triggers: ${ex.message}`)
+        if (ex.code === 'ServiceNotFound') {
+          this.logger.info('Service not exists, skip deleting trigger')
+          return
         }
+        if (ex.code === 'FunctionNotFound') {
+          this.logger.info('Function not exists, skip deleting trigger')
+          return
+        }
+        throw new Error(`Unable to get triggers: ${ex.message}`)
       }
     }
 
     // 删除触发器
     for (let i = 0; i < triggerList.length; i++) {
-      console.log(`Deleting trigger: ${triggerList[i]}`)
+      this.logger.info(`Deleting trigger: ${triggerList[i]}`)
       try {
         await this.fcClient.deleteTrigger(serviceName, functionName, triggerList[i])
       } catch (ex) {
         throw new Error(`Unable to delete trigger: ${ex.message}`)
       }
 
-      console.log(`Delete trigger successfully: ${triggerList[i]}`)
+      this.logger.success(`Delete trigger successfully: ${triggerList[i]}`)
     }
   }
 
@@ -543,15 +551,15 @@ class Trigger extends Client {
     }
     if (properties.Function.Triggers) {
       const handlerDeployTrigger = async (deployTriggerConfig, deployTriggerName) => {
-        console.log(
+        this.logger.info(
           `Trigger: ${serviceName}@${functionName}${deployTriggerName} deploying ...`
         )
         triggerOutput.push(
           await this.deployTrigger(serviceName, functionName, deployTriggerConfig, onlyDeployTrigger)
         )
         thisTriggerList.push(deployTriggerName)
-        console.log(
-          `Trigger: ${serviceName}@${functionName}-${deployTriggerName} deployment successful.`
+        this.logger.info(
+          `Trigger: ${serviceName}@${functionName}-${deployTriggerName} deploy successfully`
         )
       }
 
@@ -575,7 +583,7 @@ class Trigger extends Client {
     // 删除触发器
     for (let i = 0; i < releaseTriggerList.length; i++) {
       if (thisTriggerList.indexOf(releaseTriggerList[i]) === -1) {
-        console.log(`Deleting trigger: ${releaseTriggerList[i]}.`)
+        this.logger.info(`Deleting trigger: ${releaseTriggerList[i]}.`)
         await this.fcClient.deleteTrigger(serviceName, functionName, releaseTriggerList[i])
       }
     }

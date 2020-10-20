@@ -8,7 +8,6 @@ const util = require('util')
 const ncp = require('../ncp')
 const moment = require('moment')
 const ncpAsync = util.promisify(ncp)
-const { red, yellow } = require('colors')
 const AliyunContainerRepository = require('../cr')
 const _ = require('lodash')
 
@@ -20,12 +19,14 @@ const { DEFAULT } = require('./static')
 const { packTo } = require('@serverless-devs/s-zip')
 const { execSync } = require('child_process')
 const { addEnv } = require('../install/env')
+const Logger = require('../logger')
 
 class Function extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
-    this.builder = new Builder({}, {}, {credentials, region})
+    this.builder = new Builder({}, {}, { credentials, region })
+    this.logger = new Logger()
   }
 
   async makeCacheDir (path) {
@@ -78,7 +79,7 @@ class Function extends Client {
         packToParame.codeUri = buildArtifactPath
       } else if (packToParame.codeUri && fs.existsSync(buildArtifactPath)) {
         // has execute build before, copy code to build artifact path and zip
-        console.log(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`)
+        this.logger.info(`Found build artifact directory: ${buildArtifactPath}, now composing your code and dependencies with those built before.`)
         await ncpAsync(packToParame.codeUri, buildArtifactPath, {
           filter: (source) => {
             if (source.endsWith('.s') || source.endsWith('.fc') || source.endsWith('.git')) {
@@ -129,11 +130,17 @@ class Function extends Client {
    */
   async remove (serviceName, functionName) {
     try {
-      console.log(`Deleting function ${serviceName}@${functionName}`)
+      this.logger.info(`Deleting function ${serviceName}@${functionName}`)
       await this.fcClient.deleteFunction(serviceName, functionName)
-      console.log(`Delete function ${serviceName}@${functionName} successfully`)
+      this.logger.success(`Delete function ${serviceName}@${functionName} successfully`)
     } catch (err) {
-      if (err.code !== 'FunctionNotFound') {
+      if (err.code === 'ServiceNotFound') {
+        this.logger.info('Service not exists, skip deleting function')
+        return
+      }
+      if (err.code === 'FunctionNotFound') {
+        this.logger.info(`Function ${serviceName}@${functionName} not exists.`)
+      } else {
         throw new Error(`Unable to delete function ${serviceName}@${functionName}: ${err.message}`)
       }
     }
@@ -188,13 +195,8 @@ class Function extends Client {
       }
       const customContainer = functionInput.CustomContainer
       let imageName = customContainer.Image
-      try {
-        const crAccount = customContainer.CrAccount || {}
-        imageName = await this.pushImage(serviceName, functionInput.Name, crAccount.User, crAccount.Password, customContainer.Image)
-      } catch (e) {
-        //console.log(e)
-        throw e
-      }
+      const crAccount = customContainer.CrAccount || {}
+      imageName = await this.pushImage(serviceName, functionInput.Name, crAccount.User, crAccount.Password, customContainer.Image)
 
       // code和customContainerConfig不能同时存在
       functionProperties.code = undefined
@@ -237,10 +239,10 @@ class Function extends Client {
     functionProp.Runtime = functionProp.Runtime ? functionProp.Runtime : DEFAULT.Runtime
     let functionProperties
     if (onlyDelpoyConfig) {
-      console.log('Only deploy function config.')
+      this.logger.info('Only deploy function config.')
       functionProperties = this.handlerConfig(functionProp)
     } else if (onlyDelpoyCode) {
-      console.log('Only deploy function code.')
+      this.logger.info('Only deploy function code.')
       functionProperties = await this.handlerCode(serviceProp, functionProp, serviceName, projectName)
     } else {
       functionProperties = {
@@ -252,7 +254,7 @@ class Function extends Client {
     try {
       await this.fcClient.getFunction(serviceName, functionName)
       try {
-        console.log(`Function: ${serviceName}@${functionName} updating ...`)
+        this.logger.info(`Function: ${serviceName}@${functionName} updating ...`)
         await this.fcClient.updateFunction(
           serviceName,
           functionName,
@@ -264,9 +266,8 @@ class Function extends Client {
         )
       }
     } catch (e) {
-      console.log(e)
       try {
-        console.log(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
+        this.logger.info(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
         await this.fcClient.createFunction(serviceName, functionProperties)
       } catch (ex) {
         throw new Error(
@@ -275,7 +276,7 @@ class Function extends Client {
       }
     }
 
-    console.log(`Deployment function ${functionName} successful.`)
+    this.logger.success(`Deploy function ${functionName} successfully`)
 
     return functionName
   }
@@ -285,46 +286,42 @@ class Function extends Client {
     const registry = imageName ? imageName.split('/')[0] : this.builder.getDefaultRegistry(this.region)
 
     if (userName && password) {
-      console.log('Login to the registry...')
+      this.logger.info('Login to the registry...')
       try {
         execSync(`docker login --username=${userName} ${registry} --password-stdin`, {
           input: password
         })
-        console.log(`Successfully login to registry with user: ${userName}`)
+        this.logger.success(`Login to registry with user: ${userName}`)
       } catch (e) {
-        console.log(red('Login to registry failed.'))
+        this.logger.error('Login to registry failed.')
         throw e
       }
     } else {
-      console.log('Now try to use a temporary token for login...')
+      this.logger.info('Try to use a temporary token for login')
       const { User: tmpUser, Password: tmpPassword } = await cr.getAuthorizationToken()
       try {
         execSync(`docker login --username=${tmpUser} ${registry} --password-stdin`, {
           input: tmpPassword
         })
-        console.log(`Successfully login to registry with user: ${tmpUser}`)
+        this.logger.success(`Login to registry with user: ${tmpUser}`)
       } catch (e) {
-        console.log('Login to registry failed with temporary token, now fallback to your current context.')
+        this.logger.warn('Login to registry failed with temporary token, now fallback to your current context.')
       }
     }
 
     if (!imageName) {
-      console.log('\'Image\' is not configured in template.yml, use default namespace and repository...')
+      this.logger.info('Use default namespace and repository')
       const defaultNamespace = this.builder.getDefaultNamespace()
-      console.log(`Ensure default namespace(${defaultNamespace}) exists, will create it if not.`)
+      this.logger.info(`Ensure default namespace exists: ${defaultNamespace}`)
       await cr.ensureNamespace(defaultNamespace)
       imageName = this.builder.getDefaultImageName(this.region, serviceName, functionName)
     }
 
-    try {
-      execSync(`docker push ${imageName}`, {
-        stdio: 'inherit'
-      })
-
-      console.log(`Push image(${imageName}) to registry successfully`)
-    } catch (e) {
-      throw e
-    }
+    this.logger.info('Pushing image to registry')
+    execSync(`docker push ${imageName}`, {
+      stdio: 'inherit'
+    })
+    this.logger.success(`Push image to registry successfully: ${imageName}`)
 
     return imageName
   }

@@ -8,19 +8,18 @@ const definition = require('../tpl/definition')
 const getProfile = require('../tpl/profile').getProfile
 const getAvailableVSwitchId = require('../vswitch').getAvailableVSwitchId
 const inquirer = require('inquirer')
-
-const { green } = require('colors')
 const { sleep } = require('./time')
 const { getNasPopClient, getVpcPopClient } = require('../client')
 const { throwProcessedException } = require('../error/error-message')
-
 const _ = require('lodash')
+const Logger = require('../logger')
 
 const requestOption = {
   method: 'POST'
 }
+const logger = new Logger()
 
-const FIVE_SPACES = '     '
+// const FIVE_SPACES = '     '
 
 const NAS_DEFAULT_DESCRIPTION = 'default_nas_created_by_fc_fun'
 const FUN_NAS_SERVICE_PREFIX = '_FUN_NAS_'
@@ -65,14 +64,14 @@ async function waitMountPointUntilAvaliable (nasClient, region, fileSystemId, mo
       MountTargetDomain: mountTargetDomain
     }
 
-    await sleep(800)
+    await sleep(1000)
 
     const rs = await nasClient.request('DescribeMountTargets', params, requestOption)
     status = rs.MountTargets.MountTarget[0].Status
 
     debug('nas status is: ' + status)
 
-    console.log(`\t\tnas mount target domain already created, waiting for status to be 'Active', now is ${status}`)
+    logger.info(`Nas mount target domain already created, waiting for status to be 'Active', now is ${status}`)
   } while (count < 15 && status !== 'Active')
 
   if (status !== 'Active') { throw new Error(`Timeout while waiting for MountPoint ${mountTargetDomain} status to be 'Active'`) }
@@ -89,7 +88,7 @@ async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDel
   if (!mountTarget) {
     return
   }
-  console.log(`Found auto generated NAS file system: ${fileSystemId}, mount target: ${mountTarget}.`)
+  logger.info(`Found auto generated nas file system: ${fileSystemId}, mount target: ${mountTarget}.`)
   if (!forceDelete) {
     const { deleteNas } = await inquirer.prompt([{
       type: 'confirm',
@@ -101,12 +100,12 @@ async function deleteDefaultNas (credentials, region, vpcId, vswitchId, forceDel
   }
 
   if (forceDelete) {
-    console.log(`Deleting mount target: ${mountTarget}.`)
+    logger.info(`Deleting mount target: ${mountTarget}.`)
     await nasClient.request('DeleteMountTarget', { FileSystemId: fileSystemId, MountTargetDomain: mountTarget }, requestOption)
-    console.log('Delete successfully.')
-    console.log(`Deleting NAS file system: ${fileSystemId}`)
+    logger.success('Delete successfully.')
+    logger.info(`Deleting nas file system: ${fileSystemId}`)
     await nasClient.request('DeleteFileSystem', { FileSystemId: fileSystemId }, requestOption)
-    console.log('Delete successfully.')
+    logger.success('Delete successfully.')
   }
 }
 
@@ -154,17 +153,17 @@ async function createMountTargetIfNotExist (nasClient, region, fileSystemId, vpc
   let mountTargetDomain = await findMountTarget(nasClient, region, fileSystemId, vpcId, vswitchId)
 
   if (mountTargetDomain) {
-    console.log(green(`${FIVE_SPACES}nas file system mount target is already created, mountTargetDomain is: ` + mountTargetDomain))
+    logger.info('Nas file system mount target is already created, mountTargetDomain is: ' + mountTargetDomain)
     return mountTargetDomain
   }
 
   // create mountTarget if not exist
 
-  console.log('\t\tcould not find default nas file system mount target, ready to generate one')
+  logger.info('Generating default nas file system mount target')
 
   mountTargetDomain = await createMountTarget(nasClient, region, fileSystemId, vpcId, vswitchId)
 
-  console.log(green('\t\tdefault nas file system mount target has been generated, mount domain is: ' + mountTargetDomain))
+  logger.info('Default nas file system mount target generated, mount domain is: ' + mountTargetDomain)
 
   return mountTargetDomain
 }
@@ -173,13 +172,13 @@ async function createNasFileSystemIfNotExist (nasClient, region, zoneId, storage
   let fileSystemId = await findNasFileSystem(nasClient, region, NAS_DEFAULT_DESCRIPTION)
 
   if (!fileSystemId) {
-    console.log(`${FIVE_SPACES}could not find default nas file system, ready to generate one`)
+    logger.info('Generating default nas file system')
 
     fileSystemId = await createNasFileSystem({ nasClient, region, zoneId, storageType })
 
-    console.log(green(`${FIVE_SPACES}default nas file system has been generated, fileSystemId is: ` + fileSystemId))
+    logger.success('Default nas file system generated, fileSystemId is: ' + fileSystemId)
   } else {
-    console.log(green(`${FIVE_SPACES}nas file system already generated, fileSystemId is: ` + fileSystemId))
+    logger.success('Default nas file system already exists, fileSystemId is: ' + fileSystemId)
   }
 
   return fileSystemId

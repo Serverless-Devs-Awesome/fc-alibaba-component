@@ -228,7 +228,7 @@ async function getAvailableVSwitchId (credentials, vpcClient, region, vswitchIds
     const msg = `Region ${region} only supports capacity NAS. Do you want to create it automatically?`
     const yes = await promptForConfirmContinue(msg)
     if (yes) { return convertZones(_.head(capacities), availableZones, 'Capacity') }
-    throw new Error(`No NAS service available under region ${region}.`)
+    throw new Error(`No nas service available under region ${region}.`)
   }
 
   return processDifferentZones(nasZones, _.head(fcZones).vswitchId)

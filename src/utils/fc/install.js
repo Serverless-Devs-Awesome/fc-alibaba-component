@@ -16,8 +16,8 @@ const { FunModule } = require('../install/module')
 const parser = require('../build/parser')
 const nas = require('../nas/nas')
 const uuid = require('uuid')
-const { yellow } = require('colors')
 const { DEFAULT_NAS_PATH_SUFFIX } = require('../tpl/tpl')
+const Logger = require('../logger')
 
 class Install {
   constructor (commands, parameters, { credentials, serviceName, serviceProp, functionName, functionProp, region }) {
@@ -29,26 +29,26 @@ class Install {
     this.functionName = functionName
     this.functionProp = functionProp
     this.region = region
+    this.logger = new Logger()
   }
 
   async handle () {
     const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = this.parameters
 
     if (this.commands.length === 0) {
-      console.log(red('input error, use \'s install --help\' for info.'))
-      throw new Error('input error.')
+      this.logger.error('Input error, use \'s install --help\' for info.')
+      throw new Error('Input error.')
     }
 
     const installCommand = this.commands[0]
     if (!_.includes(['docker', 'local'], installCommand)) {
-      console.log(red(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`))
+      this.logger.error(`Install command error, unknown subcommand '${installCommand}', use 's install --help' for info.`)
       throw new Error('Input error.')
     }
 
     // commands
     const useDocker = installCommand === 'docker'
     let installAll = true; let packages = []
-    // console.log(commands);
     if (this.commands.length > 1) {
       packages = this.commands.slice(1)
       installAll = false
@@ -69,24 +69,24 @@ class Install {
 
     if (!useDocker) {
       if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
-        console.log(red('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.'))
+        this.logger.error('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.')
         throw new Error('Input error.')
       }
     }
 
     if (cmdArgs.interactive && cmdArgs.cmd) {
-      console.log(red('\'--interactive\' should not be used with \'--cmd\''))
+      this.logger.error('\'--interactive\' should not be used with \'--cmd\'')
       throw new Error('Input error.')
     }
 
     if (installAll && (cmdArgs.save || cmdArgs.packageType || cmdArgs.url)) {
-      console.log(red('Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.'))
+      this.logger.warn('Missing arguments [packageNames...], so --save|--package-type|--url option is ignored.')
     }
 
-    console.log('Start to install dependency.')
+    this.logger.info('Start to install dependency.')
 
     if (useDocker) {
-      console.log('Start installing functions using docker.')
+      this.logger.info('Start installing functions using docker.')
       await this.installInDocker({
         serviceName: this.serviceName,
         serviceProps: this.serviceProp,
@@ -95,7 +95,7 @@ class Install {
         cmdArgs
       })
     } else {
-      console.log('Start installing functions.')
+      this.logger.info('Start installing functions.')
       await this.install({
         serviceName: this.serviceName,
         serviceProps: this.serviceProp,
@@ -114,7 +114,7 @@ class Install {
     // detect fcfile
     const fcfilePath = path.resolve(absCodeUri, 'fcfile')
     if (fs.existsSync(fcfilePath)) {
-      console.log(yellow('Found fcfile in src directory, maybe \'s install docker\' is better.'))
+      this.logger.warn('Found fcfile in src directory, maybe you want to use \'s install docker\' ?')
     }
 
     const stages = ['install']
@@ -205,7 +205,7 @@ class Install {
     }
 
     if (cmdArgs.interactive || cmdArgs.cmd) {
-      console.log('Now entering docker environment for installing dependency.')
+      this.logger.info('Now entering docker environment for installing dependency.')
       // serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, isInteractive, cmd, envs
       await this.installInteractiveInDocker(serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, cmdArgs.interactive, cmdArgs.cmd, envs)
       return
@@ -242,7 +242,7 @@ class Install {
       await docker.pullImageIfNeed(usedImage)
     }
 
-    console.log('\nbuild function using image: ' + usedImage)
+    this.logger.info('\nbuild function using image: ' + usedImage)
 
     // todo: 1. create container, copy source code to container
     // todo: 2. build and then copy artifact output
@@ -253,7 +253,6 @@ class Install {
       errorStream: process.stderr
     })
 
-    // console.log(opts);
     const exitRs = await docker.run(opts, null, process.stdout, errorTransform)
     if (exitRs.StatusCode !== 0) {
       throw new Error(`build function ${serviceName}/${functionName} error`)
@@ -267,8 +266,6 @@ class Install {
   }
 
   async processFunfile (serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName) {
-    // console.log(yellow('fcfile exist, will use container to build forcely'));
-
     const dockerfilePath = path.join(codeUri, '.Funfile.generated.dockerfile')
     await this.convertFunfileToDockerfile(funfilePath, dockerfilePath, runtime, serviceName, functionName)
 
@@ -282,7 +279,7 @@ class Install {
     const imageTag = await docker.buildImage(codeUri, dockerfilePath, tag)
 
     // copy fun install generated artifact files to artifact dir
-    console.log(`copying function artifact to ${funcArtifactDir}`)
+    this.logger.info(`copying function artifact to ${funcArtifactDir}`)
     await docker.copyFromImage(imageTag, '/code/.', funcArtifactDir)
 
     // process nas folder
@@ -298,7 +295,7 @@ class Install {
     const rootNasFolder = path.join(rootArtifactsDir, DEFAULT_NAS_PATH_SUFFIX)
 
     if (await fs.pathExists(funcNasFolder) && funcNasFolder !== rootNasFolder) {
-      console.log(`moving ${funcNasFolder} to ${rootNasFolder}`)
+      this.logger.info(`moving ${funcNasFolder} to ${rootNasFolder}`)
 
       await fs.ensureDir(rootNasFolder)
 
@@ -316,11 +313,11 @@ class Install {
         }
 
         try {
-          console.log('copy from container ' + remoteNasDir + '.' + ' to localNasDir')
+          this.logger.info('copy from container ' + remoteNasDir + '.' + ' to localNasDir')
           await docker.copyFromImage(imageTag, remoteNasDir + '.', localNasDir)
         } catch (e) {
-          console.log(red(`copy from image ${imageTag} directory ${remoteNasDir} to ${localNasDir} error`))
-          console.log(e)
+          this.logger.error(`copy from image ${imageTag} directory ${remoteNasDir} to ${localNasDir} error`)
+          throw e
         }
       }
     }
@@ -334,7 +331,7 @@ class Install {
       } else if (options.runtime.includes('python')) {
         pkgType = 'pip'
       } else {
-        console.log(red(`please specify 'packageType', can't know packageType for current runtime: ${options.runtime}`))
+        this.logger.warn(`please specify 'packageType', can't know packageType for current runtime: ${options.runtime}`)
         throw new Error('Unknown packageType.')
       }
     }
@@ -402,14 +399,13 @@ class Install {
       resolvedEnv = ' ' + resolvedEnv
     }
 
-    console.log(`\nsave package install commnad to ${funfilePath}`)
+    this.logger.info(`\nsave package install commnad to ${funfilePath}`)
 
     for (const pkg of packages) {
       const cmd = await this.convertPackageToCmd(pkgType === 'apt' ? 'apt-get' : pkgType, pkg)
       cmds.push(`RUN${resolvedEnv} ${cmd}`)
     }
 
-    console.log()
     await fs.appendFile(funfilePath, `\n${cmds.join('\n')}\n`)
   }
 

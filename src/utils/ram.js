@@ -4,14 +4,14 @@ const _ = require('lodash')
 
 const debug = require('debug')('fun:ram')
 const Client = require('./fc/client')
-
-const { red } = require('colors')
 const { promiseRetry } = require('./common')
+const Logger = require('./logger')
 
 class RAM extends Client {
   constructor (credentials) {
     super(credentials)
     this.ramClient = this.buildRamClient()
+    this.logger = new Logger()
   }
 
   normalizeRoleOrPoliceName (roleName) {
@@ -86,7 +86,7 @@ class RAM extends Client {
         } else if (ex.code && ex.code === 'NoPermission') {
           throw ex
         } else {
-          console.log(red(`retry ${times} times`))
+          this.logger.info(`retry ${times} times`)
           retry(ex)
         }
       }
@@ -149,7 +149,7 @@ class RAM extends Client {
         if (ex.code && ex.code === 'NoPermission') {
           throw ex
         }
-        console.log(red(`retry ${times} times`))
+        this.logger.info(`retry ${times} times`)
         retry(ex)
       }
     })
@@ -178,7 +178,7 @@ class RAM extends Client {
         }
         debug('error when attachPolicyToRole: %s, policyName %s, error is: \n%O', roleName, policyName, ex)
 
-        console.log(red(`retry ${times} times`))
+        this.logger.info(`retry ${times} times`)
         retry(ex)
       }
     })

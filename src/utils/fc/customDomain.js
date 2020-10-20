@@ -4,11 +4,13 @@ const _ = require('lodash')
 const fs = require('fs')
 const requestP = require('request-promise')
 const Client = require('./client')
+const Logger = require('../logger')
 
 class CustomDomain extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   async deployDomain (domain, ServiceName, FunctionName) {
@@ -45,7 +47,7 @@ class CustomDomain extends Client {
       domainName = autoDomain.domainName
       options.protocol = 'HTTP'
       if (!domainName) {
-        console.error('获取临时域名失败')
+        this.logger.error('获取临时域名失败')
         return false
       }
 
@@ -114,7 +116,7 @@ class CustomDomain extends Client {
 
   async remove (domains, ServiceName, FunctionName, onlyDomainName) {
     const deleteDomain = async (domainName) => {
-      console.log(`Deleting domain: ${domainName}`)
+      this.logger.info(`Deleting domain: ${domainName}`)
       try {
         await this.fcClient.deleteCustomDomain(domainName)
       } catch (e) {
@@ -122,7 +124,7 @@ class CustomDomain extends Client {
           throw new Error(e.message)
         }
       }
-      console.log(`Delete domain successfully: ${domainName}`)
+      this.logger.success(`Delete domain successfully: ${domainName}`)
     }
 
     if (onlyDomainName) {
@@ -236,7 +238,7 @@ module.exports.handler = function (request, response, context) {
       return domainRs.domain
     } catch (e) {
       await this.deleteFcUtilsFunctionTmpDomain(cacheFunctionConfig)
-      console.warn(e.message)
+      this.logger.warn(e.message)
     }
   }
 

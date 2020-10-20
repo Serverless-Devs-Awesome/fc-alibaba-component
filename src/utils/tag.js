@@ -1,11 +1,13 @@
 'use strict'
 const _ = require('lodash')
 const Client = require('./fc/client')
+const Logger = require('./logger')
 
 class TAG extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   /**
@@ -29,15 +31,20 @@ class TAG extends Client {
           }
         }
       } catch (ex) {
+        if (ex.code === 'ServiceNotFound') {
+          this.logger.info('Service not exists, skip deleting tags')
+          return
+        }
+        console.log(ex.code)
         throw new Error(`Unable to get tags: ${ex.message}`)
       }
     }
     if (tagKeys.length !== 0) {
-      console.log('Tags: untag resource: ', tagKeys)
+      this.logger.info('Tags: untag resource: ' + JSON.stringify(tagKeys))
       await this.fcClient.untagResource(resourceArn, tagKeys)
-      console.log('Tags: untag resource successfully: ', tagKeys)
+      this.logger.success('Tags: untag resource successfully: ' + JSON.stringify(tagKeys))
     } else {
-      console.log('tags length is 0, skip deleting.')
+      this.logger.info('Tags empty, skip deleting.')
     }
   }
 
@@ -80,7 +87,7 @@ class TAG extends Client {
     // }
 
     // 打标签
-    console.log('Tags: tagging resource ...')
+    this.logger.info('Tags: tagging resource ...')
     await this.fcClient.tagResource(resourceArn, tags)
 
     return tags
