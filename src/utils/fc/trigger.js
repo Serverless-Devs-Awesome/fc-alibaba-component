@@ -22,10 +22,10 @@ const triggerTypeMapping = {
   CDN: 'cdn_events'
 }
 
-function displayDomainInfo (domainName, triggerName, triggerProperties, EndPoint) {
+function displayDomainInfo (domainName, triggerName, triggerProperties, EndPoint, isDomain) {
   console.log(`\tTriggerName: ${triggerName}`)
   console.log(`\tMethods: ${triggerProperties.Methods || triggerProperties.methods}`)
-  if (triggerName) {
+  if (isDomain) {
     console.log(`\tUrl: ${domainName}`)
   }
   console.log(`\tEndPoint: ${EndPoint}`)
@@ -425,7 +425,7 @@ class Trigger extends Client {
     // 部署 http 域名
     const deployDomain = async (domains) => {
       if (!domains) {
-        return displayDomainInfo(endPoint, undefined, triggerParameters, endPoint)
+        return displayDomainInfo(endPoint, triggerName, triggerParameters, endPoint)
       }
       try {
         let domainNames
@@ -447,9 +447,9 @@ class Trigger extends Client {
             }
           }
         }
-        domainNames.forEach(domainName => displayDomainInfo(domainName, triggerName, triggerParameters, endPoint))
+        domainNames.forEach(domainName => displayDomainInfo(domainName, triggerName, triggerParameters, endPoint, true))
       } catch (e) {
-        displayDomainInfo(endPoint, undefined, triggerParameters, endPoint)
+        displayDomainInfo(endPoint, triggerName, triggerParameters, endPoint)
         output.Domains = endPoint
       }
     }

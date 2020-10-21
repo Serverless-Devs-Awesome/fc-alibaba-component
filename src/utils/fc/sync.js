@@ -185,14 +185,14 @@ class Sync extends Client {
 
     const { data } = await this.fcClient.getFunctionCode(serviceName, functionName)
     await fse.ensureDir(fullOutputDir)
-    const response = await httpx.request(data.url, { method: 'GET' })
 
-    await new Promise((resolve, reject) => {
-      const unzipExtractor = unzipper.Extract({ path: fullOutputDir })
-      unzipExtractor.on('error', err => reject(err)).on('close', resolve)
-
-      response.pipe(unzipExtractor).on('error', err => reject(err))
-    })
+    const res = await require('make-fetch-happen')(data.url)
+    const buffer = await res.buffer();
+    await unzipper.Open.buffer(buffer)
+    .then(d => d.extract({ path: path.join(process.cwd(), fullOutputDir) }))
+    .catch(e => {
+      throw e
+    });
     return fullOutputDir;
   }
 

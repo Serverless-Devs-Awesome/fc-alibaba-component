@@ -85,6 +85,7 @@ class Version extends Client {
   constructor (credentials, region) {
     super(credentials, region)
     this.fcClient = this.buildFcClient()
+    this.logger = new Logger()
   }
 
   async publish (serviceName, description) {
