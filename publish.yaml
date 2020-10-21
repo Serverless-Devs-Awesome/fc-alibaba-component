@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.32
+Version: 0.0.33
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -244,7 +244,7 @@ Properties:
             Required: false
             Description: CustomContainer/Runtime指定端口
             Type:
-              - String
+              - Number
           CustomContainer:
             Required: false
             Description: 自定义镜像配置
@@ -291,7 +291,7 @@ Properties:
             Default: 512
             Description: function的内存规格
             Type:
-              - String
+              - Number
           Runtime:
             Required: false
             Default: Nodejs10
@@ -303,7 +303,7 @@ Properties:
             Default: 60
             Description: function运行的超时时间
             Type:
-              - String
+              - Number
           Environment:
             Required: false
             Description: 环境变量
