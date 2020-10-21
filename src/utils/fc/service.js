@@ -496,7 +496,7 @@ class Service extends Client {
       const vpcId = vpcConfig.vpcId || vpcConfig.VpcId
       const vswitchIds = vpcConfig.vswitchIds || vpcConfig.VSwitchIds
 
-      this.logger.info('Using \'Nas: Auto\'')
+      this.logger.info(`Using 'Nas: Auto'`)
       nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
       this.logger.success('Default nas config: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
     } else {

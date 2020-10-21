@@ -222,7 +222,10 @@ class Logs extends Client {
           description
         })
       } catch (ex) {
-        if (ex.code === 'Unauthorized') {
+        if (ex.code === 'InvalidAccessKeyId') {
+          this.logger.error('Failed to create sls project for log, error code is InvalidAccessKeyId, please confirm that you had enabled sls service: https://sls.console.aliyun.com/')
+          throw new Error('Create sls project failed: InvalidAccessKeyId')
+        } else if (ex.code === 'Unauthorized') {
           throw ex
         } else if (ex.code === 'ProjectAlreadyExist') {
           throw new Error(red(`error: sls project ${projectName} already exist, it may be in other region or created by other users.`))
@@ -395,6 +398,7 @@ class Logs extends Client {
 
         // create default logstore index. index configuration is same with sls console.
         debug('logstore index not exist, try to create a default index for project %s logstore %s', projectName, logstoreName)
+        this.logger.info('Generating log store index')
         await this.slsClient.createIndex(projectName, logstoreName, {
           ttl: 10,
           line: {
@@ -403,6 +407,7 @@ class Logs extends Client {
             token: [...', \'";=()[]{}?@&<>/:\n\t\r']
           }
         })
+        this.logger.info('Log store index generated')
         debug('create default index success for project %s logstore %s', projectName, logstoreName)
       } catch (ex) {
         debug('error when createIndex, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)

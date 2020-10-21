@@ -6,6 +6,9 @@ const debug = require('debug')('fun:ram')
 const Client = require('./fc/client')
 const { promiseRetry } = require('./common')
 const Logger = require('./logger')
+const {
+  throwProcessedPopPermissionError
+} = require('./error/error-message')
 
 class RAM extends Client {
   constructor (credentials) {
@@ -24,9 +27,10 @@ class RAM extends Client {
         RoleName: roleName
       })
     } catch (ex) {
-      if (ex.name !== 'EntityNotExist.RoleError') {
-        console.error('error when getRole: %s, error is: \n%O', roleName, ex)
-        throw ex
+      if (ex.name === 'EntityNotExist.RoleError') {
+        this.logger.info(`Role not exists: ${roleName}`)
+      } else {
+        await throwProcessedPopPermissionError(ex, 'getRole')
       }
     }
   }
