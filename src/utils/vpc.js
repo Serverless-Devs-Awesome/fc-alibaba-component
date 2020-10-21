@@ -152,7 +152,7 @@ async function createDefaultVSwitchIfNotExist (credentials, vpcClient, region, v
     vswitchId = await vswitch.createDefaultVSwitch(credentials, vpcClient, region, vpcId, defaultVSwitchName)
     logger.success('Default vswitch has been generated, vswitchId is: ' + vswitchId)
   } else {
-    logger.info('Vswitch already generated, vswitchId is: ' + vswitchId)
+    logger.info('Vswitch already exists, vswitchId is: ' + vswitchId)
   }
   return vswitchId
 }
@@ -195,7 +195,7 @@ async function createDefaultVpcIfNotExist (credentials, region) {
     vswitchIds = funDefaultVpc.VSwitchIds.VSwitchId
     vpcId = funDefaultVpc.VpcId
 
-    logger.info('Vpc already generated, vpcId is: ' + vpcId)
+    logger.info('Vpc already exists, vpcId is: ' + vpcId)
   } else { // create
     logger.info('Generating default vpc')
     vpcId = await createVpc(vpcClient, region, defaultVpcName)

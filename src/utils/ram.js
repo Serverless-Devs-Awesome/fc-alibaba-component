@@ -86,7 +86,7 @@ class RAM extends Client {
         } else if (ex.code && ex.code === 'NoPermission') {
           throw ex
         } else {
-          this.logger.info(`retry ${times} times`)
+          this.logger.info(`Retry ${times} times`)
           retry(ex)
         }
       }
@@ -149,7 +149,7 @@ class RAM extends Client {
         if (ex.code && ex.code === 'NoPermission') {
           throw ex
         }
-        this.logger.info(`retry ${times} times`)
+        this.logger.info(`Retry ${times} times`)
         retry(ex)
       }
     })
@@ -178,7 +178,7 @@ class RAM extends Client {
         }
         debug('error when attachPolicyToRole: %s, policyName %s, error is: \n%O', roleName, policyName, ex)
 
-        this.logger.info(`retry ${times} times`)
+        this.logger.info(`Retry ${times} times`)
         retry(ex)
       }
     })

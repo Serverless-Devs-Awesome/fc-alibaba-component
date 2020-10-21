@@ -433,7 +433,7 @@ class Service extends Client {
         } else if (ex.code !== 'ServiceNotFound') {
           debug('error when getService, serviceName is %s, error is: \n%O', serviceName, ex)
 
-          this.logger.info(`retry ${times} times`)
+          this.logger.info(`Retry ${times} times`)
           retry(ex)
         }
       }
@@ -462,7 +462,7 @@ class Service extends Client {
       if (isVpcAuto || (_.isEmpty(vpcConfig) && isNasAuto)) {
         this.logger.info('Using \'Vpc: Auto\'')
         vpcConfig = await vpc.createDefaultVpcIfNotExist(this.credentials, this.region)
-        this.logger.success('Default vpc config generated:' + JSON.stringify(vpcConfig))
+        this.logger.success('Default vpc config:' + JSON.stringify(vpcConfig))
 
         debug('generated vpcConfig: %j', vpcConfig)
       }
@@ -478,7 +478,7 @@ class Service extends Client {
 
       this.logger.info('Using \'Nas: Auto\'')
       nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
-      this.logger.success('Default nas config generated: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
+      this.logger.success('Default nas config: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
     } else {
       // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
@@ -497,7 +497,7 @@ class Service extends Client {
         }
         debug('error when createService or updateService, serviceName is %s, options is %j, error is: \n%O', serviceName, options, ex)
 
-        this.logger.info(`retry ${times} times`)
+        this.logger.info(`Retry ${times} times`)
         retry(ex)
       }
     })

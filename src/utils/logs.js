@@ -229,8 +229,8 @@ class Logs extends Client {
         } else if (ex.code === 'ProjectNotExist') {
           throw new Error(red('Please go to https://sls.console.aliyun.com/ to open the LogServce.'))
         } else {
-          this.logger.warn(`error when createProject, projectName is ${projectName}, error is: ${ex}`)
-          this.logger.warn(`retry ${times} times`)
+          this.logger.warn(`Error when createProject, projectName is ${projectName}, error is: ${ex}`)
+          this.logger.warn(`Retry ${times} times`)
           retry(ex)
         }
       }
@@ -293,7 +293,7 @@ class Logs extends Client {
           throw new Error(red(`Log Service '${projectName}' may create by others, you should use a unique project name.`))
         } else if (ex.code !== 'ProjectNotExist') {
           debug('error when getProject, projectName is %s, error is: \n%O', projectName, ex)
-          this.logger.info(`retry ${times} times`)
+          this.logger.info(`Retry ${times} times`)
           retry(ex)
         } else { projectExist = false }
       }
@@ -306,11 +306,11 @@ class Logs extends Client {
 
     let create = false
     if (projectExist) {
-      // no update project api
-      // only description can be updated by console.
-      debug('sls project exists, but could not be updated')
+      this.logger.info('Default sls project already exists')
     } else {
+      this.logger.info('Generating default sls project')
       await this.createSlsProject(projectName, description)
+      this.logger.info(`Default sls project generated: ${projectName}`)
       create = true
     }
 
@@ -330,7 +330,7 @@ class Logs extends Client {
       } catch (ex) {
         if (ex.code !== 'LogStoreNotExist') {
           debug('error when getLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
-          this.logger.info(`retry ${times} times`)
+          this.logger.info(`Retry ${times} times`)
           retry(ex)
         } else { exists = false }
       }
@@ -339,20 +339,23 @@ class Logs extends Client {
     if (!exists) {
       await promiseRetry(async (retry, times) => {
         try {
+          this.logger.info(`Generating default log store: ${logStoreName}`)
           await this.slsClient.createLogStore(projectName, logStoreName, {
             ttl,
             shardCount
           })
+          this.logger.info('Default log store generated')
         } catch (ex) {
           if (ex.code === 'Unauthorized') {
             throw ex
           }
           debug('error when createLogStore, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logStoreName, ex)
-          this.logger.info(`retry ${times} times`)
+          this.logger.info(`Retry ${times} times`)
           retry(ex)
         }
       })
     } else {
+      this.logger.info(`Default log store already exists: ${logStoreName}`)
       await promiseRetry(async (retry, times) => {
         try {
           await this.slsClient.updateLogStore(projectName, logStoreName, {
@@ -365,7 +368,7 @@ class Logs extends Client {
             throw ex
           }
           if (ex.code !== 'ParameterInvalid' && ex.message !== 'no parameter changed') {
-            this.logger.info(`retry ${times} times`)
+            this.logger.info(`Retry ${times} times`)
             retry(ex)
           } else {
             throw ex
@@ -404,7 +407,7 @@ class Logs extends Client {
       } catch (ex) {
         debug('error when createIndex, projectName is %s, logstoreName is %s, error is: \n%O', projectName, logstoreName, ex)
 
-        this.logger.info(`retry ${times} times`)
+        this.logger.info(`Retry ${times} times`)
         retry(ex)
       }
     })
@@ -427,9 +430,8 @@ class Logs extends Client {
 
       this.logger.info('using \'Log: Auto\'')
       const description = 'create default log project by serverless tool'
-      this.logger.info('Generating default sls project')
       await this.makeSlsAuto(defaultLogConfig.project, description, defaultLogConfig.logStore)
-      this.logger.info(`Default sls project generated, project: ${defaultLogConfig.project}, logStore: ${defaultLogConfig.logStore}`)
+      this.logger.info(`Default sls project: ${defaultLogConfig.project}, logStore: ${defaultLogConfig.logStore}`)
 
       return defaultLogConfig
     }
