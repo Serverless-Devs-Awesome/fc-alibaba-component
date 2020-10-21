@@ -164,6 +164,9 @@ class Function extends Client {
     if (functionInput.Initializer && functionInput.Initializer.Timeout) {
       functionProperties.initializationTimeout = functionInput.Initializer.Timeout
     }
+    if (functionInput.InstanceConcurrency) {
+      functionProperties.instanceConcurrency = functionInput.InstanceConcurrency
+    }
     if (functionInput.Environment) {
       const EnvironmentAttr = {}
       for (let i = 0; i < functionInput.Environment.length; i++) {
