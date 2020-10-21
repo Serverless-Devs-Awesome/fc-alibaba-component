@@ -175,8 +175,11 @@ class Sync extends Client {
 
   async outputFunctionCode (serviceName, functionName, fullOutputDir) {
     const { data: configData } = await this.fcClient.getFunction(serviceName, functionName)
-    if (configData.customContainerConfig) {
+    if (configData.runtime === 'custom-container') {
       this.logger.warn(`${serviceName}/${functionName} is custom-container, skipping the sync code.`)
+      return undefined
+    } else if (configData.runtime.includes('java')) {
+      this.logger.warn(`${serviceName}/${functionName} is ${configData.runtime}, skipping the sync code.`)
       return undefined
     }
 
