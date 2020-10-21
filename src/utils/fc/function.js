@@ -266,6 +266,7 @@ class Function extends Client {
         )
       }
     } catch (e) {
+      console.log(e)
       try {
         this.logger.info(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
         await this.fcClient.createFunction(serviceName, functionProperties)

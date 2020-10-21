@@ -56,16 +56,21 @@ class Sync extends Client {
     // --code，只同步代码
     if (syncAllFlag || onlySyncType === 'code') {
       findFunction()
-      this.logger.info(`Starting sync ${serviceName}/${functionName} code.`)
-      const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName)
-      try {
-        await this.outputFunctionCode(serviceName, functionName, codeUri)
-      } catch (e) {
-        this.logger.error('Failed to sync function code.')
-        throw e
+      const codeExists = pro.Function.Runtime !== 'custom-container' && !pro.Function.Runtime.includes('java')
+      if (codeExists) {
+        this.logger.info(`Starting sync ${serviceName}/${functionName} code.`)
+        const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName)
+        try {
+          await this.outputFunctionCode(serviceName, functionName, codeUri)
+        } catch (e) {
+          this.logger.error('Failed to sync function code.')
+          throw e
+        }
+        pro.Function.CodeUri = codeUri
+        this.logger.info(`End ${serviceName}/${functionName} code.`)
+      } else {
+        this.logger.info(`Skip sync code for ${pro.Function.Runtime} project`)
       }
-      pro.Function.CodeUri = codeUri
-      this.logger.info(`End ${serviceName}/${functionName} code.`)
     }
     // --trigger，只同步触发器
     if (syncAllFlag || onlySyncType === 'trigger') {
@@ -154,7 +159,7 @@ class Sync extends Client {
       InitializationTimeout: initializationTimeout,
       MemorySize: memorySize,
       InstanceConcurrency: instanceConcurrency,
-      CustomContainerConfig: customContainerConfig,
+      CustomContainer: customContainerConfig,
       CaPort: caPort,
       InstanceType: instanceType,
       Environment: Object.keys(environmentVariables).map(key => ({

@@ -69,13 +69,17 @@ class RAM extends Client {
           }
         }
 
-        if (!role && createRoleIfNotExist) {
+        if (role) {
+          this.logger.info(`Role ${roleName} already exists`)
+        } else if (createRoleIfNotExist) {
+          this.logger.info(`Generating role: ${roleName}`)
           role = await this.ramClient.createRole({
             RoleName: roleName,
             Description: description,
             AssumeRolePolicyDocument: JSON.stringify(assumeRolePolicy)
           })
-        } else if (!role) {
+          this.logger.info(`Role generated: ${roleName}`)
+        } else {
           throw new Error(`role ${roleName} not exist`)
         }
       } catch (ex) {

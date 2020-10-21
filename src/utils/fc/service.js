@@ -48,6 +48,26 @@ class Service extends Client {
     }
   }
 
+  getRoleArnFromServiceProps (serviceProp) {
+    let roleArn, policies
+    if (serviceProp.Role) {
+      if (typeof serviceProp.Role === 'string') {
+        roleArn = serviceProp.Role
+      } else {
+        roleArn = serviceProp.Role.Name
+      }
+      policies = serviceProp.Role.Policies
+    }
+    // name to arn
+    if (roleArn && !roleArn.includes('acs:')) {
+      roleArn = `acs:ram::${this.credentials.AccountID}:role/${roleArn}`.toLocaleLowerCase()
+    }
+    return {
+      roleArn,
+      policies
+    }
+  }
+
   extractFcRole (role) {
     const [, , , , path] = role.split(':')
     const [, roleName] = path.split('/')
@@ -308,9 +328,9 @@ class Service extends Client {
     // https://github.com/aliyun/fun/pull/223
     if (!roleArn && (policies || !_.isEmpty(vpcConfig) || !_.isEmpty(logConfig) || !_.isEmpty(nasConfig))) {
       // create role
-      this.logger.info(`Make sure role '${roleName}' exists...`)
+      this.logger.info(`Using default role: '${roleName}'`)
       role = await this.ram.makeRole(roleName, createRoleIfNotExist)
-      this.logger.info(`Role '${roleName}' already exists`)
+      // this.logger.info(`Default role '${roleName}' already exists`)
     }
 
     if (!roleArn && policies) { // if roleArn exist, then ignore polices
@@ -521,9 +541,7 @@ class Service extends Client {
     const vpcConfig = serviceProp.Vpc
     const nasConfig = serviceProp.Nas
     const logConfig = serviceProp.Log || {}
-
-    const roleArn = (serviceProp.Role || {}).Name
-    const policies = (serviceProp.Role || {}).Policies
+    const {roleArn, policies} = this.getRoleArnFromServiceProps(serviceProp)
 
     const role = await this.generateServiceRole({
       hasFunctionAsyncConfig,
