@@ -367,6 +367,10 @@ class FcComponent extends Component {
       region
     } = this.handlerInputs(inputs)
 
+    if (commands.length === 0) {
+      throw new Error('Input error, use \'s invoke --help\' for info.')
+    }
+
     if (commands[0] === 'remote') {
       const remoteInvoke = new RemoteInvoke(credentials, region, serviceName, functionName, options)
       await remoteInvoke.invoke()

@@ -8,6 +8,7 @@ const uuidGen = require('uuid/v4')
 
 const { red, green } = require('colors')
 const { eventPriority } = require('../../install/file')
+const Logger = require('../../logger')
 
 const INITIALIZER = 'initializer'
 const SUPPORT_RUNTIMES = ['nodejs6', 'nodejs8', 'nodejs10', 'nodejs12']
@@ -55,6 +56,7 @@ class LocalInvoke {
     this.handler = functionProp.Handler
     this.codeUri = functionProp.CodeUri
     this.runtime = functionProp.Runtime
+    this.logger = new Logger()
   }
 
   getEntryFileInfo () {
@@ -108,7 +110,7 @@ class LocalInvoke {
 
   async invoke () {
     if (!_.includes(SUPPORT_RUNTIMES, this.runtime)) {
-      console.log(red(`runtime: ${this.runtime} is not supported yet.`))
+      this.logger.error(`Invoke local currently support ${SUPPORT_RUNTIMES.join("/")}, runtime '${this.runtime}' is not supported yet.`)
       return
     }
 

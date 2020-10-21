@@ -36,20 +36,17 @@ class Builder {
 
   async handle () {
     if (this.commands.length === 0) {
-      this.logger.error('Input error, use \'s build --help\' for info.')
-      throw new Error('Input error.')
+      throw new Error('Input error, use \'s build --help\' for info.')
     }
     const buildCommand = this.commands[0]
     if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
-      this.logger.error(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`)
-      throw new Error('Input error.')
+      throw new Error(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`)
     }
 
     const buildImage = buildCommand === 'image'
     if (buildImage) {
       if (this.functionProp.Runtime !== 'custom-container') {
-        this.logger.error(`'image' should only be used to build 'custom-container' project, your project is ${this.functionProp.Runtime}`)
-        throw new Error('Input error.')
+        throw new Error(`'image' should only be used to build 'custom-container' project, your project is ${this.functionProp.Runtime}`)
       }
       await this.buildImage(this.serviceName, this.serviceProp, this.functionName, this.functionProp)
       return

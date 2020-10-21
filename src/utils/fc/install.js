@@ -36,8 +36,7 @@ class Install {
     const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = this.parameters
 
     if (this.commands.length === 0) {
-      this.logger.error('Input error, use \'s install --help\' for info.')
-      throw new Error('Input error.')
+      throw new Error('Input error, use \'s install --help\' for info.')
     }
 
     const installCommand = this.commands[0]

@@ -18,8 +18,7 @@ class Nas {
 
   async handle () {
     if (this.commands.length === 0) {
-      this.logger.error('Input error, use \'s nas --help\' for info.')
-      throw new Error('Input error.')
+      throw new Error('Input error, use \'s nas --help\' for info.')
     }
 
     const nasCommand = this.commands[0]
