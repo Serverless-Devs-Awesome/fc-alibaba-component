@@ -588,7 +588,13 @@ class FcComponent extends Component {
         // ...(_.assign(properties, pro)),
       }
     })
-    await fse.outputFile('./template.yaml', yData)
+    
+    const exists = await fse.pathExists('./template.yaml')
+    if (exists) {
+      await fse.outputFile('./template.yaml', yData)
+    } else {
+      await fse.outputFile('./template.yml', yData)
+    }
   }
 
   // 打包
