@@ -81,7 +81,7 @@ MyFunction:
         VpcId: VPC ID
 #      Nas: Auto
       Nas:
-        UseId: userID
+        UserId: userID
         GroupId: groupID # s nas sync
         MountPoints:
           - Alias: demo # 选填
