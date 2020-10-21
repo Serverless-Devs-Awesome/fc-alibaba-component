@@ -56,21 +56,15 @@ class Sync extends Client {
     // --code，只同步代码
     if (syncAllFlag || onlySyncType === 'code') {
       findFunction()
-      const codeExists = pro.Function.Runtime !== 'custom-container' && !pro.Function.Runtime.includes('java')
-      if (codeExists) {
-        this.logger.info(`Starting sync ${serviceName}/${functionName} code.`)
-        const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName)
-        try {
-          await this.outputFunctionCode(serviceName, functionName, codeUri)
-        } catch (e) {
-          this.logger.error('Failed to sync function code.')
-          throw e
-        }
-        pro.Function.CodeUri = codeUri
-        this.logger.info(`End ${serviceName}/${functionName} code.`)
-      } else {
-        this.logger.info(`Skip sync code for ${pro.Function.Runtime} project`)
+      this.logger.info(`Starting sync ${serviceName}/${functionName} code.`)
+      const codeUri = pro.Function.CodeUri || path.join('./', serviceName, functionName)
+      try {
+        pro.Function.CodeUri = await this.outputFunctionCode(serviceName, functionName, codeUri)
+      } catch (e) {
+        this.logger.error('Failed to sync function code.')
+        throw e
       }
+      this.logger.info(`End ${serviceName}/${functionName} code.`)
     }
     // --trigger，只同步触发器
     if (syncAllFlag || onlySyncType === 'trigger') {
@@ -148,6 +142,15 @@ class Sync extends Client {
       caPort,
       instanceType
     } = data
+
+    let customContainer
+    if (customContainerConfig) {
+      customContainer = {
+        Image: customContainerConfig.image,
+        Command: customContainerConfig.command,
+        Args: customContainerConfig.args
+      }
+    }
     return {
       Name: functionName,
       CodeUri: proFunction.CodeUri,
@@ -159,7 +162,7 @@ class Sync extends Client {
       InitializationTimeout: initializationTimeout,
       MemorySize: memorySize,
       InstanceConcurrency: instanceConcurrency,
-      CustomContainer: customContainerConfig,
+      CustomContainer: customContainer,
       CaPort: caPort,
       InstanceType: instanceType,
       Environment: Object.keys(environmentVariables).map(key => ({
@@ -171,21 +174,31 @@ class Sync extends Client {
   }
 
   async outputFunctionCode (serviceName, functionName, fullOutputDir) {
+    const { data: configData } = await this.fcClient.getFunction(serviceName, functionName)
+    if (configData.customContainerConfig) {
+      this.logger.warn(`${serviceName}/${functionName} is custom-container, skipping the sync code.`)
+      return undefined
+    }
+
     const { data } = await this.fcClient.getFunctionCode(serviceName, functionName)
     await fse.ensureDir(fullOutputDir)
     const response = await httpx.request(data.url, { method: 'GET' })
 
-    return await new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       const unzipExtractor = unzipper.Extract({ path: fullOutputDir })
       unzipExtractor.on('error', err => reject(err)).on('close', resolve)
 
       response.pipe(unzipExtractor).on('error', err => reject(err))
     })
+    return fullOutputDir;
   }
 
   async syncTrigger (serviceName, functionName, proFunction) {
     const { data } = await this.fcClient.listTriggers(serviceName, functionName)
     const { triggers = [] } = data || {}
+    if (triggers.length === 0) {
+      return undefined
+    }
     return triggers.map(item => {
       const { triggerConfig = {}, qualifier, triggerType, sourceArn, invocationRole } = item
       let type = triggerType
