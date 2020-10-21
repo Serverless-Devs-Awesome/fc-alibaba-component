@@ -266,6 +266,9 @@ class Function extends Client {
         )
       }
     } catch (e) {
+      if (e.code !== 'FunctionNotFound') {
+        throw e
+      }
       try {
         this.logger.info(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
         await this.fcClient.createFunction(serviceName, functionProperties)
