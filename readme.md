@@ -67,9 +67,9 @@ MyFunction:
       Log:
         LogStore: loghub中的logstore名称
         Project: loghub中的project名称
-#      Role: acs:ram::1234567890:role/fc-test
+#      Role: <角色名称> 或 <角色ARN>
       Role: # 授予函数计算所需权限的RAM role
-          Name: abc
+          Name: <角色名称>
           Policies:
             - AliyunECSNetworkInterfaceManagementAccess
             - AliyunFCFullAccess
