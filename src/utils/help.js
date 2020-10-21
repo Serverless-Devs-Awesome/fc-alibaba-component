@@ -69,19 +69,19 @@ module.exports = (inputs) => ({
       name: 'tags',
       desc: 'only deploy service tags.'
     }, {
-      name: 'tags -k, --key <name>',
+      name: 'tags -k/--key <name>',
       desc: 'only the specified service tag are deploy.'
     }, {
       name: 'domain',
       desc: 'only deploy domain.'
     }, {
-      name: 'domain -d, --domain <name>',
+      name: 'domain -d/--domain <name>',
       desc: 'only deploy the specified domain name.'
     }, {
       name: 'trigger',
       desc: 'only deploy trigger.'
     }, {
-      name: 'trigger -n, --name <name>',
+      name: 'trigger -n/--name <name>',
       desc: 'only deploy the specified trigger name.'
     }],
     args: [{
