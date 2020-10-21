@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.28
+Version: 0.0.32
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -17,7 +17,7 @@ Commands:
   install: 安装依赖
   build: 构建项目
   publish: 发布版本/别名
-  package: 打包代码包
+  unpublish: 下线版本/别名
   nas: 操作NAS文件系统
   sync: 线上资源同步到本地
 Service:
@@ -102,7 +102,7 @@ Properties:
                     Required: true
                     Description: 策略列表
                     Type:
-                      - <String>List
+                      - List<String>
           Vpc:
             Required: false
             Description: vpc配置, 配置后function可以访问指定VPC
@@ -119,7 +119,7 @@ Properties:
                     Required: false
                     Description: 一个或多个VSwitch ID
                     Type:
-                      - <String>List
+                      - List<String>
                   VpcId:
                     Required: false
                     Description: VPC ID
@@ -146,7 +146,7 @@ Properties:
                     Required: false
                     Description: 挂载点
                     Type:
-                      - <Struct>List:
+                      - List<Struct>:
                           Alias:
                             Required: false
                             Description: 针对组件生效的别名
@@ -176,7 +176,7 @@ Properties:
             Required: false
             Description: 标签配置
             Type:
-              - <Struct>List:
+              - List<Struct>:
                   Key:
                     Required: true
                     Description: 标签名
@@ -234,12 +234,12 @@ Properties:
                     Required: false
                     Description: 本地路径
                     Type:
-                      - <String>List
+                      - List<String>
                   Include:
                     Required: false
                     Description: 本地路径
                     Type:
-                      - <String>List
+                      - List<String>
           CAPort:
             Required: false
             Description: CustomContainer/Runtime指定端口
@@ -329,7 +329,7 @@ Properties:
             Required: false
             Description: 触发器
             Type:
-              - <Struct>List:
+              - List<Struct>:
                   Name:
                     Required: true
                     Description: 触发器名称
@@ -438,7 +438,7 @@ Properties:
                                     Required: false
                                     Description: 网址
                                     Type:
-                                      - <String>List
+                                      - List<String>
                           InvocationRole:
                             Required: false
                             Description: 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。
@@ -526,7 +526,7 @@ Properties:
                             Required: false
                             Description:  订阅对象，当前支持到表级别，只有这些表的更新才会触发函数执行
                             Type:
-                              - <String>List
+                              - List<String>
                           Retry:
                             Required: false
                             Description: 重试次数，可选值：[0,3], 默认值为3。
@@ -645,13 +645,13 @@ Properties:
                             Required: false
                             Description: 自定义域名配置。
                             Type:
-                              - Struct:
+                              - List<Struct>[自动配置]:
                                   Domain:
                                     equired: true
                                     Description: 域名
                                     Type:
                                       - String
-                              - <Struct>List:
+                              - List<Struct>[自定义配置]:
                                   Domain:
                                     equired: true
                                     Description: 域名
@@ -661,7 +661,7 @@ Properties:
                                     Required: true
                                     Description: 协议
                                     Type:
-                                      - <Enum>List:
+                                      - List<Enum>:
                                           - HTTP
                                           - HTTPS
                                   CertConfig:
@@ -688,7 +688,7 @@ Properties:
                                     Required: false
                                     Description: 路径配置。
                                     Type:
-                                      - <Struct>List:
+                                      - List<Struct>:
                                           Path:
                                             Required: false
                                             Description: 路径
