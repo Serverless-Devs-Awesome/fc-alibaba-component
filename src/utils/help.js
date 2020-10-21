@@ -31,6 +31,9 @@ module.exports = (inputs) => ({
     }, {
       name: '-c/--cmd <cmd>',
       desc: 'command with arguments to execute inside the installation docker.'
+    }, {
+      name: '-i/--interactive',
+      desc: 'run as interactive mode. Keep STDIN open and allocate a pseudo-TTY when in a interactive shell.'
     }
     ]
   },

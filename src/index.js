@@ -469,7 +469,7 @@ class FcComponent extends Component {
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
       ['i', 'interactive', 'save'],
       [],
-      ['--cmd', '-c', '-e', '--env', '-f', '--file', '--save', '--url', '-p', '--package-type', '-r', '--runtime'])
+      ['--cmd', '-c', '-e', '--env', '-f', '--file', '--save', '--url', '-p', '--package-type', '-r', '--runtime', '-i', '--interactive'])
 
     const installer = new Install(commands, parameters, {
       credentials,
