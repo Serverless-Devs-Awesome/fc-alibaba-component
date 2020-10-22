@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.38
+Version: 0.0.39
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -131,7 +131,7 @@ Properties:
             Type:
               - Enum[简单配置]:
                   - Auto
-              - Struct[半自动配置]
+              - Struct[半自动配置]:
                   Type:
                     Required: true
                     Description: 自动化配置
