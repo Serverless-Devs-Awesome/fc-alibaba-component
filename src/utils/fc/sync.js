@@ -183,13 +183,21 @@ class Sync extends Client {
       return undefined
     }
 
+    let dir = fullOutputDir;
+    if (typeof fullOutputDir !== 'string') {
+      if (fullOutputDir.Src) {
+        fullOutputDir.Src = path.join('./', serviceName, functionName)
+      }
+      dir = fullOutputDir.Src
+    }
+
     const { data } = await this.fcClient.getFunctionCode(serviceName, functionName)
-    await fse.ensureDir(fullOutputDir)
+    await fse.ensureDir(dir)
 
     const res = await require('make-fetch-happen')(data.url)
     const buffer = await res.buffer();
     await unzipper.Open.buffer(buffer)
-    .then(d => d.extract({ path: path.join(process.cwd(), fullOutputDir) }))
+    .then(d => d.extract({ path: path.join(process.cwd(), dir) }))
     .catch(e => {
       throw e
     });
