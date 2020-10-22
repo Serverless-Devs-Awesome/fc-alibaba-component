@@ -4,6 +4,7 @@ const _ = require('lodash')
 
 const fse = require('fs-extra')
 const yaml = require('js-yaml')
+const path = require('path')
 const moment = require('moment')
 
 const Logs = require('./utils/logs')
@@ -562,7 +563,10 @@ class FcComponent extends Component {
 
     const serviceName = serviceProp.Name
     const functionName = functionProp.Name
-    const { Commands: commands } = args
+    const { Commands: commands, Parameters: parameters } = args
+    if (parameters.save && typeof parameters.save !== 'string') {
+      throw new Error('Save is empty.')
+    }
     if (commands.length > 1) {
       throw new Error('Commands error.')
     }
@@ -592,13 +596,22 @@ class FcComponent extends Component {
         // ...(_.assign(properties, pro)),
       }
     })
-    
-    const exists = await fse.pathExists('./template.yaml')
-    if (exists) {
-      await fse.outputFile('./template.yaml', yData)
-    } else {
-      await fse.outputFile('./template.yml', yData)
+    const { ConfigPath } = inputs.Path || {};
+    let u = ConfigPath;
+    if (args.Parameters.save) {
+      u = path.resolve(process.cwd(), args.Parameters.save)
     }
+    await fse.outputFile(u, yData)
+
+    const sourceData = yaml.dump({
+      [projectName]: {
+        ...project,
+        Properties: properties
+      }
+    })
+    const extname = path.extname(ConfigPath)
+    const basename = path.basename(ConfigPath, path.extname(ConfigPath))
+    await fse.outputFile(`./.s/${basename}.${projectName}.source_config${extname}`, sourceData)
   }
 
   // 打包

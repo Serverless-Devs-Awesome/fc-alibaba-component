@@ -171,6 +171,10 @@ module.exports = (inputs) => ({
     }, {
       name: 'trigger',
       desc: 'only sync trigger.'
+    }],
+    args: [{
+      name: '--save <filePath>',
+      desc: 'Sync the configuration file save path.'
     }]
   },
   invoke: {
