@@ -24,7 +24,7 @@ class Alias extends Client {
       this.logger.info(`Create alias: ${name}`)
       await this.fcClient.createAlias(serviceName, name, versionId, option)
       this.logger.success(`Create alias successfully: ${name}`)
-      return true
+      return name
     } catch (ex) {
       throw new Error(ex.message)
     }
@@ -57,7 +57,7 @@ class Alias extends Client {
       this.logger.info(`Delete alias: ${aliasName}`)
       await this.fcClient.deleteAlias(serviceName, aliasName)
       this.logger.success(`Delete alias successfully: ${aliasName}`)
-      return true
+      return aliasName
     } catch (ex) {
       throw new Error(ex.message)
     }
@@ -93,7 +93,7 @@ class Version extends Client {
       this.logger.info('Publish version.')
       const { data } = await this.fcClient.publishVersion(serviceName, description)
       this.logger.success(`Publish version successfully: ${data.versionId}`)
-      return true
+      return data.versionId
     } catch (ex) {
       throw new Error(ex.message)
     }
@@ -112,7 +112,7 @@ class Version extends Client {
       this.logger.info(`Deleting version: ${versionId}`)
       await this.fcClient.deleteVersion(serviceName, versionId)
       this.logger.success(`Delete version successfully: ${versionId}`)
-      return true
+      return versionId
     } catch (ex) {
       return ex.message
     }

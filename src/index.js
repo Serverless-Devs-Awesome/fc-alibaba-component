@@ -224,9 +224,9 @@ class FcComponent extends Component {
     const { Parameters: parameters = {} } = args
 
     if (type === 'publish') {
-      await fcVersion.publish(serviceName, parameters.d)
+      return await fcVersion.publish(serviceName, parameters.d)
     } else if (type === 'unpublish') {
-      await fcVersion.delete(serviceName, parameters.v || parameters.versionId)
+      return await fcVersion.delete(serviceName, parameters.v || parameters.versionId)
     } else {
       throw new Error(`${type} command not found.`)
     }
@@ -255,9 +255,9 @@ class FcComponent extends Component {
       }
       const alias = await fcAlias.findAlias(serviceName, configName)
       if (alias) {
-        await fcAlias.update(config, serviceName)
+        return await fcAlias.update(config, serviceName)
       } else {
-        await fcAlias.publish(config, serviceName)
+        return await fcAlias.publish(config, serviceName)
       }
     } else if (type === 'unpublish') {
       await fcAlias.delete(serviceName, configName)
