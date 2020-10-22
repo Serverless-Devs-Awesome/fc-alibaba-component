@@ -123,20 +123,13 @@ class Function extends Client {
       }
     }
 
-    if (singlePathConfigued) {
+    if (singlePathConfigued || (!singlePathConfigued && !code.Bucket)) {
       // artifact configured
       const data = await fs.readFileSync(zipPath)
       return {
         zipFile: Buffer.from(data).toString('base64')
       }
     } else {
-      // OSS configured
-      if (!codeUri) {
-        return {
-          ossBucketName: code.Bucket,
-          ossObjectName: code.Object
-        }
-      }
       const oss = new OSS(this.credentials, `oss-${this.region}`, code.Bucket)
       const object = `${projectName}-${moment().format('YYYY-MM-DD')}.zip`
       await oss.uploadFile(zipPath, object)
