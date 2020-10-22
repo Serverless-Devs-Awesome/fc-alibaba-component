@@ -80,6 +80,12 @@ MyFunction:
           - 一个或多个VSwitch ID
         VpcId: VPC ID
 #      Nas: Auto
+#      Nas:
+#        Type: Auto
+#        FcDir: /home/aaaaaa
+#        LocalDir: ./ssss
+#        LocalDir: 
+#          - ./ssss
       Nas:
         UserId: userID
         GroupId: groupID # s nas sync
@@ -92,7 +98,8 @@ MyFunction:
           - NasAddr: 3e3544a894-qjf60.cn-shanghai.nas.aliyuncs.com
             NasDir: /demo
             FcDir: /home/aaaaaa
-            LocalDir: ./ssss
+            LocalDir: 
+              - path
       Tags:
         - Key: 标签名
           Value: 标签值
@@ -291,6 +298,16 @@ MyFunction:
 
 如果是String类型，可以直接写Auto，如果是Struct类型：
 
+- 
+
+| 参数名 |  必填|  类型|  参数描述 | 
+| --- |  --- |  --- |  --- | 
+| Type | true | String | 只可填写Auto |
+| FcDir | false | String | 函数计算目录 |
+| LocalDir | false | List<String>/String  | 本地目录 |
+
+- 
+
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
 | UserId | false | String | userID |
@@ -437,7 +454,7 @@ MyFunction:
     | Routes | false | Struct | 路径配置 |
 
 
-###### Parameters[OSS]
+###### OSS
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
@@ -453,7 +470,7 @@ MyFunction:
 | Prefix | true | String | 前缀 |
 | Suffix | true | String | 后缀 |
 
-###### Parameters[Timer]
+###### Timer
 
 
 | 参数名 |  必填|  类型|  参数描述 | 
@@ -464,7 +481,7 @@ MyFunction:
 | Qualifier | false | String | Prod # 版本（可选) |
 
 
-###### Parameters[Log]
+###### Log
             
             
 | 参数名 |  必填|  类型|  参数描述 | 
@@ -500,7 +517,7 @@ MyFunction:
 | FunctionParameter | false | String | 当事件触发时，会连同它的内容一起发送给函数 |
 
 
-###### Parameters[RDS]
+###### RDS
 
 
 | 参数名 |  必填|  类型|  参数描述 | 
@@ -513,7 +530,7 @@ MyFunction:
 | InvocationRole | false | String | 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。 |
 | Qualifier | false | String | Prod # 版本（可选) |
 
-###### Parameters[MNSTopic]
+###### MNSTopic
 
             
 | 参数名 |  必填|  类型|  参数描述 | 
@@ -526,7 +543,7 @@ MyFunction:
 | InvocationRole | false | String | 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。 |
 | Qualifier | false | String | Prod # 版本（可选) |
 
-###### Parameters[TableStore]
+###### TableStore
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 
@@ -535,7 +552,7 @@ MyFunction:
 | InvocationRole | false | String | 使用一个 RAM 角色的 ARN 为函数指定执行角色，事件源会使用该角色触发函数执行，请确保该角色有调用函数的权限。 |
 | Qualifier | false | String | Prod # 版本（可选) |
 
-###### Parameters[CDN]
+###### CDN
 
 | 参数名 |  必填|  类型|  参数描述 | 
 | --- |  --- |  --- |  --- | 

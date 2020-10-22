@@ -131,6 +131,24 @@ Properties:
             Type:
               - Enum[简单配置]:
                   - Auto
+              - Struct[半自动配置]
+                  Type:
+                    Required: true
+                    Description: 自动化配置
+                    Type:
+                      - Enum:
+                          - Auto
+                  FcDir:
+                    Required: false
+                    Description: 函数计算目录
+                    Type:
+                      - String
+                  LocalDir:
+                    Required: false
+                    Description: 本地目录
+                    Type:
+                      - String[单一目录]
+                      - List<String>[多目录配置]
               - Struct[详细配置]:
                   UserId:
                     Required: false
@@ -171,7 +189,8 @@ Properties:
                             Required: false
                             Description: 本地目录
                             Type:
-                              - String
+                              - String[单一目录]
+                              - List<String>[多目录配置]
           Tag:
             Required: false
             Description: 标签配置
@@ -219,7 +238,7 @@ Properties:
                     Description: code zip包的object name
                     Type:
                       - String
-              - Struct[OSS上传部署]:
+              - Struct[复杂配置]:
                   Bucket:
                     Required: false
                     Description: function code包的bucket name
