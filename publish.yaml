@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.37
+Version: 0.0.38
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -644,7 +644,7 @@ Properties:
                             Required: true
                             Description:  HTTP 触发器支持的访问方法.
                             Type:
-                              - Enum:
+                              - List<Enum>:
                                   - GET
                                   - POST
                                   - PUT
