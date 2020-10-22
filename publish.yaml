@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.34
+Version: 0.0.35
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -295,7 +295,7 @@ Properties:
           Runtime:
             Required: false
             Default: Nodejs10
-            Description: function的内存规格
+            Description: 运行时
             Type:
               - String
           Timeout:
@@ -307,9 +307,18 @@ Properties:
           Environment:
             Required: false
             Description: 环境变量
-            Example: 'key: value'
             Type:
-              - Struct
+              - Struct:
+                  Key:
+                    Required: false
+                    Description: 环境变量Key
+                    Type:
+                      - String
+                  Value:
+                    Required: false
+                    Description: 环境变量Value
+                    Type:
+                      - String
           Initializer:
             Required: false
             Description: 初始化方法
