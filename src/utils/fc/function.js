@@ -35,16 +35,40 @@ class Function extends Client {
     }
   }
 
-  async getFunctionCode (baseDir, serviceName, functionName, runtime, code, projectName) {
+  getNasLocalConfig ({ Nas: nas }) {
+    if (!nas || typeof nas === 'string' ) {
+      return []
+    }
+
+    if (nas.Type) {
+      if (nas.LocalDir) {
+        return [].concat(nas.LocalDir)
+      }
+      return [];
+    }
+    let localDirs = [];
+    if (nas.MountPoints) {
+      nas.MountPoints.forEach(({ LocalDir: localDir }) => {
+        localDirs = localDirs.concat(localDir)
+      })
+    }
+    return localDirs;
+  }
+
+  async getFunctionCode (baseDir, serviceName, functionName, runtime, code, projectName, serviceInput) {
     const cachePath = path.join(process.cwd(), '.s', 'cache')
     const zipPath = path.join(cachePath, `${projectName}.zip`)
     const singlePathConfigued = typeof code === 'string'
     const codeUri = singlePathConfigued ? code : code.Src
     const artifactConfigured = codeUri && (codeUri.endsWith('.zip') || codeUri.endsWith('.s-zip') || codeUri.endsWith('.jar') || codeUri.endsWith('.war'))
 
-    // check if configured valid
-    if (!singlePathConfigued) {
-      if (!code.Bucket || !code.Object) {
+    if (!singlePathConfigued && !code.Src) {
+      if (code.Bucket && code.Object) {
+        return {
+          ossBucketName: code.Bucket,
+          ossObjectName: code.Object
+        }
+      } else {
         throw new Error('CodeUri configuration does not meet expectations.')
       }
     }
@@ -67,8 +91,8 @@ class Function extends Client {
         packToParame.codeUri = code
       } else {
         packToParame.codeUri = code.Src
-        packToParame.exclude = packToParame.exclude.concat(code.Exclude)
-        packToParame.include = packToParame.exclude.concat(code.Include)
+        packToParame.exclude = packToParame.exclude.concat(code.Exclude || [], this.getNasLocalConfig(serviceInput))
+        packToParame.include = packToParame.include.concat(code.Include || [])
       }
 
       const buildArtifactPath = this.builder.getArtifactPath(baseDir, serviceName, functionName)
@@ -217,7 +241,7 @@ class Function extends Client {
       const functionName = functionInput.Name
       const runtime = functionInput.Runtime
       const codeUri = functionInput.CodeUri
-      functionProperties.code = await this.getFunctionCode(baseDir, serviceName, functionName, runtime, codeUri, projectName)
+      functionProperties.code = await this.getFunctionCode(baseDir, serviceName, functionName, runtime, codeUri, projectName, serviceInput)
       // functionProperties.code = await this.getFunctionCode(functionInput.CodeUri, projectName)
     }
     return functionProperties
@@ -273,7 +297,7 @@ class Function extends Client {
         throw e
       }
       try {
-        this.logger.info(`Function: ${serviceName}@${functionProperties.functionName} creating ...`)
+        this.logger.info(`Function: ${serviceName}@${functionName} creating ...`)
         await this.fcClient.createFunction(serviceName, functionProperties)
       } catch (ex) {
         throw new Error(
