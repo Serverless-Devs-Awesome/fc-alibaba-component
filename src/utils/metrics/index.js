@@ -4,6 +4,7 @@ const express = require('express')
 const path = require('path')
 const StartServer = require('../start-server')
 const { Version, Alias } = require('../fc')
+const Logger = require('../logger')
 
 const requestOption = {
   method: 'GET'
@@ -30,6 +31,7 @@ class Metrics {
     })
     this.version = new Version(credentials, region)
     this.alias = new Alias(credentials, region)
+    this.logger = new Logger()
   }
 
   async get ({
@@ -61,7 +63,7 @@ class Metrics {
     }
     params.Dimensions = JSON.stringify(params.Dimensions)
 
-    console.log('params:: ', params)
+    this.logger.log('params:: ', params)
 
     return await this.cmsClient.request('QueryMetricList', params, requestOption)
   }
@@ -90,10 +92,10 @@ class Metrics {
 
       app.get('/get/metric', async (req, res) => {
         const { query } = req
-        console.log('收到 /get/metric 请求：', query.metric)
+        this.logger.log('Get /get/metric Reuqest：', query.metric)
         const result = await that.get({ ...params, ...query })
-        console.log('result: ', result.Datapoints)
-        console.log('')
+        this.logger.log('result: ', result.Datapoints)
+        this.logger.log('')
         if (result.Datapoints) {
           res.send(result.Datapoints)
         } else {
@@ -102,7 +104,7 @@ class Metrics {
       })
 
       app.get('/get/version', async (req, res) => {
-        console.log('收到 /get/version 请求')
+        this.logger.log('Get /get/version Request')
         const list = await that.version.list(params.serviceName)
         if (list.data && list.data.versions) {
           res.send(list.data.versions)
@@ -115,7 +117,7 @@ class Metrics {
       })
 
       app.get('/get/alias', async (req, res) => {
-        console.log('收到 /get/alias 请求')
+        this.logger.log('Get /get/alias Request')
         const list = await that.alias.list(params.serviceName)
         if (list.data && list.data.aliases) {
           res.send(list.data.aliases)

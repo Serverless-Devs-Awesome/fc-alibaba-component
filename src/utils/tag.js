@@ -35,7 +35,7 @@ class TAG extends Client {
           this.logger.info('Service not exists, skip deleting tags')
           return
         }
-        console.log(ex.code)
+        this.logger.error(ex.code)
         throw new Error(`Unable to get tags: ${ex.message}`)
       }
     }
