@@ -133,7 +133,7 @@ module.exports = (inputs) => ({
       name: 'version -d [description]',
       desc: 'publish version'
     }, {
-      name: 'alias -d [description] -v <versionId> -gv [grayVersionId] -w [grayVersionWeight]',
+      name: 'alias -n/--name [aliasName] -d [description] -v <versionId> -gv [grayVersionId] -w [grayVersionWeight]',
       desc: 'publish alias.'
     }]
   },
@@ -145,7 +145,7 @@ module.exports = (inputs) => ({
       name: 'version -v/--versionId [versionId]',
       desc: 'unpublish the specified versionId.'
     }, {
-      name: 'version -n/--name [name]',
+      name: 'alias -n/--name [name]',
       desc: 'unpublish the specified alias name.'
     }]
   },
