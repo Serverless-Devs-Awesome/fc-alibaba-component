@@ -1,6 +1,6 @@
 {
   "name": "@serverless-devs/fc-alibaba",
-  "version": "0.0.17",
+  "version": "0.0.36",
   "description": "Serverless Devs Tool FC Component For Alibaba Cloud",
   "keywords": [
     "Serverless",
@@ -9,7 +9,7 @@
     "Serverless-Tool",
     "Fc"
   ],
-  "homepage": "https://www.serverlessfans.com",
+  "homepage": "https://www.serverless-devs.com",
   "author": "Serverless-Devs",
   "contributors": [
     "Shoushuai Wang",
