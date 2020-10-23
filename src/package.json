@@ -1,6 +1,6 @@
 {
   "name": "@serverless-devs/fc-alibaba",
-  "version": "0.0.39",
+  "version": "0.0.41",
   "description": "Serverless Devs Tool FC Component For Alibaba Cloud",
   "keywords": [
     "Serverless",
@@ -42,7 +42,7 @@
     "@alicloud/mns": "^1.0.0",
     "@alicloud/pop-core": "^1.7.9",
     "@alicloud/ram": "^1.0.0",
-    "@serverless-devs/s-core": "^0.0.20",
+    "@serverless-devs/s-core": "^0.0.22",
     "@serverless-devs/s-zip": "0.0.8",
     "ali-oss": "^6.10.0",
     "aliyun-sdk": "^1.12.3",
