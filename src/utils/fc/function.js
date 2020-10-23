@@ -36,7 +36,6 @@ class Function extends Client {
   }
 
   getNasLocalConfig ({ Nas: nas }) {
-    console.log(nas)
     if (!nas || typeof nas === 'string' ) {
       return []
     }

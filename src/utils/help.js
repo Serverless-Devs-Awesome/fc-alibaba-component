@@ -280,8 +280,11 @@ module.exports = (inputs) => ({
       name: 'sync',
       desc: 'synchronize the local directory to the remote NAS file system.'
     }, {
-      name: 'ls <FcDir>',
+      name: 'ls',
       desc: 'list files under FcDir.'
+    }, {
+      name: 'rm',
+      desc: 'Delete files on NAS.'
     }],
     args: [{
       name: '-n/--no-overwrite',
