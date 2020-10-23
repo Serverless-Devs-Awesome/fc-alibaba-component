@@ -3,6 +3,7 @@
 const _ = require('lodash')
 
 const fse = require('fs-extra')
+const fs = require('fs')
 const yaml = require('js-yaml')
 const path = require('path')
 const moment = require('moment')
@@ -589,29 +590,15 @@ class FcComponent extends Component {
       project.Access = project.AccessAlias
       delete project.AccessAlias
     }
-    const yData = yaml.dump({
-      [projectName]: {
-        ...project,
-        Properties: pro
-        // ...(_.assign(properties, pro)),
-      }
-    })
-    const { ConfigPath } = inputs.Path || {};
-    let u = ConfigPath;
-    if (args.Parameters.save) {
-      u = path.resolve(process.cwd(), args.Parameters.save)
-    }
-    await fse.outputFile(u, yData)
-
-    const sourceData = yaml.dump({
-      [projectName]: {
-        ...project,
-        Properties: properties
-      }
-    })
+    const { ConfigPath } = inputs.Path || {}
     const extname = path.extname(ConfigPath)
     const basename = path.basename(ConfigPath, path.extname(ConfigPath))
-    await fse.outputFile(`./.s/${basename}.${projectName}.source_config${extname}`, sourceData)
+    const sourceConfig = yaml.safeLoad(fs.readFileSync(ConfigPath))
+    await fse.outputFile(`./.s/${basename}.source_config${extname}`, yaml.dump(sourceConfig))
+
+    sourceConfig[projectName] = { ...project, Properties: pro }
+    const u = args.Parameters.save ? path.resolve(process.cwd(), args.Parameters.save): ConfigPath
+    await fse.outputFile(u, yaml.dump(sourceConfig))
   }
 
   // 打包

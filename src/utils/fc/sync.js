@@ -87,6 +87,7 @@ class Sync extends Client {
       Name: serviceName,
       Tags: service.Tags
     }
+
     if (vpcConfig) {
       serviceData.Vpc = {
         SecurityGroupId: vpcConfig.securityGroupId,
@@ -95,15 +96,39 @@ class Sync extends Client {
       }
     }
     if (nasConfig) {
+      const nas = service.Nas
+
+      const handlerDir = ({ serverAddr, mountDir }) => {
+        const subscript = serverAddr.indexOf(':/')
+        const itemConfig = {
+          NasAddr: serverAddr.substr(0, subscript),
+          NasDir: serverAddr.substr(subscript + 1),
+          FcDir: mountDir
+        }
+        if (!nas || nas === 'Auto') {
+          return itemConfig
+        }
+        if (nas.Type === 'Auto') {
+          if (!nas.FcDir || nas.FcDir === itemConfig.FcDir) {
+            itemConfig.LocalDir = nas.LocalDir
+          }
+          return itemConfig
+        }
+        (nas.MountPoints || []).forEach(item => {
+          if (`${item.NasAddr}:${item.NasDir}` === serverAddr && mountDir === item.FcDir) {
+            itemConfig.LocalDir = item.LocalDir
+          }
+        })
+        return itemConfig
+      }
+
       serviceData.Nas = {
         UserId: nasConfig.userId,
         GroupId: nasConfig.groupId,
-        MountPoints: nasConfig.mountPoints.map(({ serverAddr, mountDir }) => ({
-          ServerAddr: serverAddr,
-          MountDir: mountDir
-        }))
+        MountPoints: nasConfig.mountPoints.map(item => handlerDir(item))
       }
     }
+
     if (logConfig) {
       serviceData.Log = {
         LogStore: logConfig.logstore,
@@ -183,13 +208,21 @@ class Sync extends Client {
       return undefined
     }
 
+    let dir = fullOutputDir;
+    if (typeof fullOutputDir !== 'string') {
+      if (fullOutputDir.Src) {
+        fullOutputDir.Src = path.join('./', serviceName, functionName)
+      }
+      dir = fullOutputDir.Src
+    }
+
     const { data } = await this.fcClient.getFunctionCode(serviceName, functionName)
-    await fse.ensureDir(fullOutputDir)
+    await fse.ensureDir(dir)
 
     const res = await require('make-fetch-happen')(data.url)
     const buffer = await res.buffer();
     await unzipper.Open.buffer(buffer)
-    .then(d => d.extract({ path: path.join(process.cwd(), fullOutputDir) }))
+    .then(d => d.extract({ path: path.join(process.cwd(), dir) }))
     .catch(e => {
       throw e
     });
