@@ -68,7 +68,7 @@ class Install {
 
     if (!useDocker) {
       if (packages.length > 0 || cmdArgs.save || cmdArgs.packageType || cmdArgs.interactive || cmdArgs.cmd || cmdArgs.runtime) {
-        this.logger.error('\'local\' should be only used to install all dependencies in manifest, please use \'s install local\' without packageNames or params.')
+        this.logger.error('\'local\' should be only used to install all dependencies in manifest, please use \'s install docker\' if you need to install with packages or params.')
         throw new Error('Input error.')
       }
     }

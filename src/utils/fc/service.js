@@ -454,8 +454,12 @@ class Service extends Client {
     if (this.parameters.skipSync) {
       return
     }
+    if (!this.inputs.Path || !this.inputs.Path.ConfigPath) {
+      this.logger.warn('Unknown template file path, failed to save back config')
+      return
+    }
     this.logger.warn(`Save '${type}' config back to the template file, use --skip-sync if you don't need this`)
-    const tplFile = 'template.yaml' //todo
+    const tplFile = this.inputs.Path.ConfigPath
     let doc = yaml.safeLoad(fs.readFileSync(tplFile, 'utf8'))
     const projectName = this.inputs.Project.ProjectName
     const project = doc[projectName]
