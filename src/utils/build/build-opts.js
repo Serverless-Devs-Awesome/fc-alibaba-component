@@ -7,14 +7,14 @@ const nas = require('../nas/nas')
 const _ = require('lodash')
 
 async function generateBuildContainerBuildOpts (
-  serviceName, serviceProps, functionName, functionProps, nasProps, baseDir,
+  credentials, region, serviceName, serviceProps, functionName, functionProps, nasProps, baseDir,
   codeUri, funcArtifactDir, verbose, preferredImage, stages, custom = {}) {
   // TODO use properties directly
   const runtime = custom.Runtime || functionProps.Runtime
 
   const containerName = docker.generateRamdomContainerName()
 
-  const envs = await docker.generateDockerEnvs(baseDir, serviceName, serviceProps, functionName, functionProps, null, null)
+  const envs = await docker.generateDockerEnvs(credentials, region, baseDir, serviceName, serviceProps, functionName, functionProps, null, null)
   if (custom.Env) {
     Object.assign(envs, custom.Env)
   }

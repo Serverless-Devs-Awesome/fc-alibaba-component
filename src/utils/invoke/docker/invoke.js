@@ -40,7 +40,9 @@ async function processZipCodeIfNecessary (codeUri) {
   })
 }
 class Invoke {
-  constructor (serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir) {
+  constructor (credentials, region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir) {
+    this.credentials = credentials
+    this.region = region
     this.serviceName = serviceName
     this.serviceProps = serviceProps
     this.functionName = functionName

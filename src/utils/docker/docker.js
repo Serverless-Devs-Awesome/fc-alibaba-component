@@ -405,7 +405,7 @@ function generateRamdomContainerName () {
   return `fun_local_${new Date().getTime()}_${Math.random().toString(36).substr(2, 7)}`
 }
 
-async function generateDockerEnvs (baseDir, serviceName, serviceProps, functionName, functionProps, debugPort, httpParams, nasConfig, ishttpTrigger, debugIde, debugArgs) {
+async function generateDockerEnvs (credentials, region, baseDir, serviceName, serviceProps, functionName, functionProps, debugPort, httpParams, nasConfig, ishttpTrigger, debugIde, debugArgs) {
   const envs = {}
 
   if (httpParams) {
@@ -436,14 +436,16 @@ async function generateDockerEnvs (baseDir, serviceName, serviceProps, functionN
 
   Object.assign(envs, generateFunctionEnvs(functionProps))
 
-  const profile = await getProfile()
+  //const profile = await getProfile()
+  this.accessKeyID = credentials.AccessKeyID
+  this.accessKeySecret = credentials.AccessKeySecret
 
   Object.assign(envs, {
     local: true,
-    FC_ACCESS_KEY_ID: profile.accessKeyId,
-    FC_ACCESS_KEY_SECRET: profile.accessKeySecret,
-    FC_ACCOUND_ID: profile.accountId,
-    FC_REGION: profile.defaultRegion,
+    FC_ACCESS_KEY_ID: credentials.AccessKeyID,
+    FC_ACCESS_KEY_SECRET: credentials.AccessKeySecret,
+    FC_ACCOUND_ID: credentials.AccountID,
+    FC_REGION: region,
     FC_FUNCTION_NAME: functionName,
     FC_HANDLER: functionProps.Handler,
     FC_MEMORY_SIZE: functionProps.MemorySize || 128,

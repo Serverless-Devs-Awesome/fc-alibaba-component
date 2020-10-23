@@ -226,7 +226,10 @@ class Install {
     if (cmdArgs.runtime) {
       custom.Runtime = cmdArgs.runtime
     }
-    const opts = await buildOpts.generateBuildContainerBuildOpts(serviceName,
+    const opts = await buildOpts.generateBuildContainerBuildOpts(
+      this.credentials,
+      this.region,
+      serviceName,
       serviceProps,
       functionName,
       functionProps,

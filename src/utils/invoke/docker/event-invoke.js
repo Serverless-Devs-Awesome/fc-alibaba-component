@@ -6,15 +6,15 @@ const dockerOpts = require('../../docker/docker-opts')
 const Invoke = require('./invoke')
 
 class EventInvoke extends Invoke {
-  constructor (serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, reuse, nasBaseDir) {
-    super(serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir)
+  constructor (credentials, region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, reuse, nasBaseDir) {
+    super(credentials, region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir)
     this.reuse = reuse
   }
 
   async init () {
     await super.init()
 
-    this.envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, false, this.debugIde, this.debugArgs)
+    this.envs = await docker.generateDockerEnvs(this.credentials, this.region, this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, false, this.debugIde, this.debugArgs)
     this.cmd = docker.generateDockerCmd(this.functionProps, false)
     this.opts = await dockerOpts.generateLocalInvokeOpts(this.runtime,
       this.containerName,

@@ -12,8 +12,9 @@ const { green, yellow } = require('colors')
 const { setCORSHeaders } = require('./cors')
 
 class HttpSupport {
-  constructor (credentials) {
+  constructor (credentials, region) {
     this.credentials = credentials
+    this.region = region
   }
 
   async registerHttpTriggers (serviceName, serviceProps, functionName, functionProps, app, router, serverPort, httpTriggers, debugPort, debugIde, baseDir, debuggerPath, debugArgs, nasBaseDir, tplPath) {
@@ -52,7 +53,7 @@ class HttpSupport {
 
     const tmpDir = await ensureTmpDir(null, tplPath, serviceName, functionName)
 
-    const httpInvoke = new HttpInvoke(this.credentials, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, authType, endpointPrefix, debuggerPath, debugArgs, nasBaseDir)
+    const httpInvoke = new HttpInvoke(this.credentials, this.region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, authType, endpointPrefix, debuggerPath, debugArgs, nasBaseDir)
 
     if (eager) {
       await httpInvoke.initAndStartRunner()
