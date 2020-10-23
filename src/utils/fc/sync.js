@@ -87,6 +87,7 @@ class Sync extends Client {
       Name: serviceName,
       Tags: service.Tags
     }
+
     if (vpcConfig) {
       serviceData.Vpc = {
         SecurityGroupId: vpcConfig.securityGroupId,
@@ -95,15 +96,39 @@ class Sync extends Client {
       }
     }
     if (nasConfig) {
+      const nas = service.Nas
+
+      const handlerDir = ({ serverAddr, mountDir }) => {
+        const subscript = serverAddr.indexOf(':/')
+        const itemConfig = {
+          NasAddr: serverAddr.substr(0, subscript),
+          NasDir: serverAddr.substr(subscript + 1),
+          FcDir: mountDir
+        }
+        if (!nas || nas === 'Auto') {
+          return itemConfig
+        }
+        if (nas.Type === 'Auto') {
+          if (!nas.FcDir || nas.FcDir === itemConfig.FcDir) {
+            itemConfig.LocalDir = nas.LocalDir
+          }
+          return itemConfig
+        }
+        (nas.MountPoints || []).forEach(item => {
+          if (`${item.NasAddr}:${item.NasDir}` === serverAddr && mountDir === item.FcDir) {
+            itemConfig.LocalDir = item.LocalDir
+          }
+        })
+        return itemConfig
+      }
+
       serviceData.Nas = {
         UserId: nasConfig.userId,
         GroupId: nasConfig.groupId,
-        MountPoints: nasConfig.mountPoints.map(({ serverAddr, mountDir }) => ({
-          ServerAddr: serverAddr,
-          MountDir: mountDir
-        }))
+        MountPoints: nasConfig.mountPoints.map(item => handlerDir(item))
       }
     }
+
     if (logConfig) {
       serviceData.Log = {
         LogStore: logConfig.logstore,
