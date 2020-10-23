@@ -77,14 +77,28 @@ class Nas {
 
         const nasComponentInputs = Object.assign({}, this.inputs)
         process.argv = ['node', 's', 'cp']
-        if (cmdArgs.noOverwirte) {
-          nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
-        } else {
-          nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+        if (typeof localDir === 'string') {
+          if (cmdArgs.noOverwirte) {
+            nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
+          } else {
+            nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+          }
+  
+          this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
+          await this.nasComponent.cp(nasComponentInputs)
+        } else if (localDir instanceof Array) {
+          for (const d of localDir) {
+            if (cmdArgs.noOverwirte) {
+              nasComponentInputs.Args = `-r -n ${d} nas://${remoteDir}`
+            } else {
+              nasComponentInputs.Args = `-r ${d} nas://${remoteDir}`
+            }
+    
+            this.logger.info(`Sync ${d} to remote ${remoteDir}`)
+            await this.nasComponent.cp(nasComponentInputs)
+          }
         }
 
-        this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
-        await this.nasComponent.cp(nasComponentInputs)
         hadSync = true
       }
       if (!hadSync && cmdArgs.alias) {

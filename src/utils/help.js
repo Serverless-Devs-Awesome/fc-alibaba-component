@@ -90,6 +90,9 @@ module.exports = (inputs) => ({
     args: [{
       name: '--config',
       desc: 'only deploy config.'
+    },{
+      name: '--skip-sync',
+      desc: 'skip sync auto generated configuration back to template file.'
     }]
   },
   remove: {

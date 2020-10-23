@@ -12,23 +12,44 @@ const RAM = require('../ram')
 const Logs = require('../logs')
 const Client = require('./client')
 const definition = require('../tpl/definition')
-
 const { sleep } = require('../common')
 const { promiseRetry } = require('../common')
 const { red } = require('colors')
 const { DEFAULT_VPC_CONFIG, DEFAULT_NAS_CONFIG, FUN_GENERATED_SERVICE } = require('./static')
 const Logger = require('../logger')
+const yaml = require('js-yaml')
 
 // const FIVE_SPACES = '     '
 const EXTREME_PATH_PREFIX = '/share'
 
 class Service extends Client {
-  constructor (credentials, region) {
+  constructor (commands = {}, parameters = {}, {
+    credentials = {},
+    serviceName = '',
+    serviceProp = {},
+    functionName = '',
+    functionProp = {},
+    region = '',
+    inputs = {}
+  } = {}) {
     super(credentials, region)
+    this.commands = commands
+    this.parameters = parameters
+    this.serviceName = serviceName
+    this.serviceProp = serviceProp
+    this.functionName = functionName
+    this.functionProp = functionProp
+    this.inputs = inputs
     this.fcClient = this.buildFcClient()
     this.ram = new RAM(credentials)
     this.logger = new Logger()
   }
+  // constructor (credentials, region) {
+  //   super(credentials, region)
+  //   this.fcClient = this.buildFcClient()
+  //   this.ram = new RAM(credentials)
+  //   this.logger = new Logger()
+  // }
 
   /**
    * Remove service
@@ -429,6 +450,31 @@ class Service extends Client {
     } while (slsRetry < retryTimes)
   }
 
+  async saveConfigToTemplate(type, config) {
+    if (this.parameters.skipSync) {
+      return
+    }
+    this.logger.warn(`Save '${type}' config back to the template file, use --skip-sync if you don't need this`)
+    const tplFile = 'template.yaml' //todo
+    let doc = yaml.safeLoad(fs.readFileSync(tplFile, 'utf8'))
+    const projectName = this.inputs.Project.ProjectName
+    const project = doc[projectName]
+    if (!project) {
+      return
+    }
+    const properties = project.Properties
+    if (!properties) {
+      return
+    }
+    const service = properties.Service
+    if (!service) {
+      return
+    }
+    service[type] = config
+    fs.writeFileSync(tplFile, yaml.safeDump(doc))
+    this.logger.success('Save successfully')
+  }
+
   async makeService ({
     serviceName,
     role,
@@ -460,7 +506,11 @@ class Service extends Client {
     })
 
     const logs = new Logs(this.credentials, this.region, false)
+    const isConfigLogAuto = definition.isLogConfigAuto(logConfig)
     const resolvedLogConfig = await logs.transformLogConfig(logConfig)
+    if (isConfigLogAuto) {
+      await this.saveConfigToTemplate('Log', resolvedLogConfig)
+    }
 
     const options = {
       description,
@@ -484,7 +534,7 @@ class Service extends Client {
         vpcConfig = await vpc.createDefaultVpcIfNotExist(this.credentials, this.region)
         this.logger.success('Default vpc config:' + JSON.stringify(vpcConfig))
 
-        debug('generated vpcConfig: %j', vpcConfig)
+        await this.saveConfigToTemplate('Vpc', vpcConfig)
       }
     }
 
@@ -497,8 +547,11 @@ class Service extends Client {
       const vswitchIds = vpcConfig.vswitchIds || vpcConfig.VSwitchIds
 
       this.logger.info(`Using 'Nas: Auto'`)
-      nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId)
+      nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId, nasConfig.FcDir, nasConfig.LocalDir)
       this.logger.success('Default nas config: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
+
+      const saveConfig = nas.transformClientConfigToToolConfig(nasConfig)
+      await this.saveConfigToTemplate('Nas', saveConfig)
     } else {
       // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)

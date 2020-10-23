@@ -238,7 +238,7 @@ async function createNasFileSystem ({
   return rs.FileSystemId
 }
 
-async function generateAutoNasConfig (credentials, region, serviceName, vpcId, vswitchIds, userId, groupId) {
+async function generateAutoNasConfig (credentials, region, serviceName, vpcId, vswitchIds, userId, groupId, mountDir, localDir) {
   const mountPointDomain = await createDefaultNasIfNotExist(credentials, region, vpcId, vswitchIds)
 
   // fun nas 创建的服务名比其对应的服务多了 '_FUN_NAS_' 前缀
@@ -246,16 +246,22 @@ async function generateAutoNasConfig (credentials, region, serviceName, vpcId, v
   if (serviceName.startsWith(FUN_NAS_SERVICE_PREFIX)) {
     serviceName = serviceName.substring(FUN_NAS_SERVICE_PREFIX.length)
   }
-  return {
+  const config = {
     UserId: userId || 10003,
     GroupId: groupId || 10003,
     MountPoints: [
       {
         ServerAddr: `${mountPointDomain}:/${serviceName}`,
-        MountDir: FUN_AUTO_FC_MOUNT_DIR
+        MountDir: mountDir || FUN_AUTO_FC_MOUNT_DIR
       }
     ]
   }
+
+  if (localDir) {
+    config.MountPoints[0].LocalDir = localDir
+  }
+
+  return config
 }
 
 const serverAddrReGe = /^[a-z0-9-.]*.nas.[a-z]+.com:\//
@@ -521,11 +527,18 @@ function transformClientConfigToToolConfig (nasConfig) {
   if (!_.isEmpty(nasConfig.MountPoints)) {
     for (const mountPoint of nasConfig.MountPoints) {
       if (mountPoint.ServerAddr && mountPoint.MountDir) {
-        toolMountPoints.push({
+        const config = {
           NasAddr: mountPoint.ServerAddr.split(':')[0],
           NasDir: mountPoint.ServerAddr.split(':')[1],
           FcDir: mountPoint.MountDir
-        })
+        }
+        if (mountPoint.Alias) {
+          config.Alias = mountPoint.Alias
+        }
+        if (mountPoint.LocalDir) {
+          config.LocalDir = mountPoint.LocalDir
+        }
+        toolMountPoints.push(config)
       }
     }
   }

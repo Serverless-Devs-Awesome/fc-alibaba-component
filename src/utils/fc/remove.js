@@ -82,7 +82,15 @@ class Remove {
   }
 
   isConfigAsAuto (config) {
-    return config && typeof config === 'string' && config.toLocaleLowerCase() === 'auto'
+    if (config && typeof config === 'string' && config.toLocaleLowerCase() === 'auto') {
+      return true
+    }
+
+    if (config && config.Type === 'Auto') {
+      return true
+    }
+
+    return false
   }
 }
 

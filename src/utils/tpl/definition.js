@@ -389,15 +389,15 @@ function findServiceByCertainServiceAndFunctionName (resources, certainServiceNa
   throw new Error(`could not found service: ${certainServiceName}`)
 }
 
-function ensureNasParams (nasConfig) {
-  const propsRequired = ['Auto', 'UserId', 'GroupId']
+function ensureNasTypeAutoParams (nasConfig) {
+  const propsRequired = ['FcDir', 'LocalDir']
 
   const notExistParams = propsRequired.filter(paramter => {
     return !Object.prototype.hasOwnProperty.call(nasConfig, paramter)
   })
 
   if (!_.isEmpty(notExistParams)) {
-    throw new Error(red(`Missing '${notExistParams.join(', ')}' in NasConfig.`))
+    throw new Error(red(`Missing '${notExistParams.join(', ')}' in Nas config.`))
   }
   if (!_.isEmpty(nasConfig.MountPoints)) {
     throw new Error(red('Additional properties: \'MountPoints\' in NasConfig.'))
@@ -407,8 +407,8 @@ function ensureNasParams (nasConfig) {
 function isNasAutoConfig (nasConfig) {
   if (nasConfig === 'Auto') { return true }
 
-  if ((nasConfig || {}).Auto) {
-    ensureNasParams(nasConfig)
+  if ((nasConfig || {}).Type === 'Auto') {
+    ensureNasTypeAutoParams(nasConfig)
     return true
   }
   return false

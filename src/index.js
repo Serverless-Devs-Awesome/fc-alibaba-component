@@ -97,7 +97,7 @@ class FcComponent extends Component {
     const commands = args.Commands
     const parameters = args.Parameters
 
-    const deployAll = (_.isEmpty(commands) && _.isEmpty(parameters))
+    const deployAll = _.isEmpty(commands)
     const deployAllConfig = (_.isEmpty(commands) && parameters.config)
 
     const deployService = commands[0] === 'service' || deployAllConfig || deployAll
@@ -110,7 +110,7 @@ class FcComponent extends Component {
 
     // Service
     if (deployService) {
-      const fcService = new Service(credentials, region)
+      const fcService = new Service(commands, parameters, {credentials, region, inputs})
 
       const hasFunctionAsyncConfig = _.has(functionProp, 'AsyncConfiguration')
       const hasCustomContainerConfig = _.has(functionProp, 'CustomContainerConfig')
@@ -318,7 +318,7 @@ class FcComponent extends Component {
         await fcRemove.removeNasFunctionIfExists(serviceName)
       }
 
-      const fcService = new Service(credentials, region)
+      const fcService = new Service(commands, parameters, {credentials, region})
       await fcService.remove(serviceName)
     }
 
