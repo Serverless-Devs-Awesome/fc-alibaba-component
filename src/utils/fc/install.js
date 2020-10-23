@@ -213,6 +213,9 @@ class Install {
     let imageTag
     const funfilePath = path.resolve(absCodeUri, cmdArgs.fcFile)
     if (fs.existsSync(funfilePath)) {
+      if (cmdArgs.runtime) {
+        this.logger.warn('Found fcfile in your path, -r/--runtime will be ignored')
+      }
       imageTag = await this.processFunfile(serviceName, serviceProps, codeUri, funfilePath, baseDir, funcArtifactDir, runtime, functionName)
     }
 

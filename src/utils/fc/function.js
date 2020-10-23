@@ -36,6 +36,7 @@ class Function extends Client {
   }
 
   getNasLocalConfig ({ Nas: nas }) {
+    console.log(nas)
     if (!nas || typeof nas === 'string' ) {
       return []
     }
@@ -81,17 +82,21 @@ class Function extends Client {
         await fse.copy(srcPath, destPath)
       }
     } else {
+      const nasLocalConfig = this.getNasLocalConfig(serviceInput)
+      if (nasLocalConfig) {
+        this.logger.warn(`Nas local dir(s) is configured, this will be ignored in deploy code to function`)
+      }
       const packToParame = {
         outputFilePath: cachePath,
         outputFileName: `${projectName}.zip`,
-        exclude: ['.s'],
+        exclude: ['.s'].concat(nasLocalConfig),
         include: []
       }
       if (singlePathConfigued) {
         packToParame.codeUri = code
       } else {
         packToParame.codeUri = code.Src
-        packToParame.exclude = packToParame.exclude.concat(code.Exclude || [], this.getNasLocalConfig(serviceInput))
+        packToParame.exclude = packToParame.exclude.concat(code.Exclude || [])
         packToParame.include = packToParame.include.concat(code.Include || [])
       }
 

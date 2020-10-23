@@ -24,7 +24,8 @@ class Nas {
     const nasCommand = this.commands[0]
     const isSyncCommand = nasCommand === 'sync'
     const isLsCommand = nasCommand === 'ls'
-    if (!isSyncCommand && !isLsCommand) {
+    const isRmCommand = nasCommand === 'rm'
+    if (!isSyncCommand && !isLsCommand && !isRmCommand) {
       this.logger.error(`Nas command error, unknown subcommand '${nasCommand}', use 's nas --help' for info.`)
       throw new Error('Input error.')
     }
@@ -32,19 +33,15 @@ class Nas {
     const cmdArgs = {
       alias: this.parameters.a || this.parameters.alias,
       noOverwirte: this.parameters.n || this.parameters.noOverwirte || false,
-      all: this.parameters.all
+      all: this.parameters.all,
+      force: this.parameters.f || this.parameters.force,
+      recursive: this.parameters.r || this.parameters.recursive
     }
 
     // TODO fix auto
     if (!this.serviceProp || !this.serviceProp.Nas) {
       this.logger.error('No nas config found in template.yaml')
       throw new Error('Input error.')
-    }
-    if (isSyncCommand) {
-      if (!this.serviceProp.Nas || this.serviceProp.Nas === 'Auto' || _.isEmpty(this.serviceProp.Nas.MountPoints)) {
-        this.logger.error('No \'MountPoints\' config found in your nas config, please set MountPoints manully for sync.')
-        throw new Error('Input error.')
-      }
     }
 
     // check function if exists
@@ -59,50 +56,21 @@ class Nas {
     }
 
     if (isSyncCommand) {
-      let hadSync = false
-      for (const mountPoint of this.serviceProp.Nas.MountPoints) {
-        const localDir = mountPoint.LocalDir
-        if (!localDir) {
-          this.logger.error('No \'LocalDir\' config found in your nas mounpoint config.')
-          throw new Error('Input error.')
-        }
-        const remoteDir = mountPoint.FcDir || mountPoint.MountDir
-        if (!remoteDir) {
-          this.logger.error('No \'FcDir\' config found in your nas mounpoint config.')
-          throw new Error('Input error.')
-        }
-        if (cmdArgs.alias && cmdArgs.alias !== mountPoint.Alias) {
-          continue
-        }
-
-        const nasComponentInputs = Object.assign({}, this.inputs)
-        process.argv = ['node', 's', 'cp']
-        if (typeof localDir === 'string') {
-          if (cmdArgs.noOverwirte) {
-            nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
-          } else {
-            nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
-          }
-  
-          this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
-          await this.nasComponent.cp(nasComponentInputs)
-        } else if (localDir instanceof Array) {
-          for (const d of localDir) {
-            if (cmdArgs.noOverwirte) {
-              nasComponentInputs.Args = `-r -n ${d} nas://${remoteDir}`
-            } else {
-              nasComponentInputs.Args = `-r ${d} nas://${remoteDir}`
-            }
-    
-            this.logger.info(`Sync ${d} to remote ${remoteDir}`)
-            await this.nasComponent.cp(nasComponentInputs)
-          }
-        }
-
-        hadSync = true
+      /**      let remoteDirs = []
+      if (this.commands.length <= 1) {
+        remoteDirs = remoteDirs.concat(this.getRemoteFcDirFromServiceProp())
+      } else {
+        remoteDirs = this.commands.slice(1)
+      } */
+      const syncLocalDirs = this.commands.slice(1)
+      if (_.isEmpty(syncLocalDirs) && _.isEmpty(this.serviceProp.Nas.LocalDir) && _.isEmpty(this.serviceProp.Nas.MountPoints)) {
+        this.logger.error('No local directory found in command line and temlate file, example: s nas sync <local dir>')
+        throw new Error('Input error.')
       }
-      if (!hadSync && cmdArgs.alias) {
-        this.logger.warn('No files or directory sync to NAS, please check alias if correct.')
+      if (this.serviceProp.Nas === 'Auto' || this.serviceProp.Nas.Type === 'Auto') {
+        await this.syncAuto(cmdArgs.noOverwirte, syncLocalDirs, this.serviceProp.Nas.FcDir)
+      } else {
+        await this.syncNonAuto(cmdArgs.alias, cmdArgs.noOverwirte, syncLocalDirs)
       }
     } else if (isLsCommand) {
       let remoteDirs = []
@@ -124,6 +92,125 @@ class Nas {
         this.logger.warn(`Now showing contents under remote directory ${remoteDir}:`)
         await this.nasComponent.ls(nasComponentInputs)
       }
+    } else if (isRmCommand) {
+      if (this.commands.length <= 1) {
+        throw new Error('Please input fc dir, use \'s nas --help\' for more info')
+      }
+      const fcDirs = this.commands.slice(1)
+      fcDirs.forEach(function(element, index, arr) {
+        if (!element.startsWith("nas://")) {
+          arr[index] = "nas://" + element;
+        }
+      });
+      const nasComponentInputs = Object.assign({}, this.inputs)
+      process.argv = ['node', 's', 'rm'] 
+      nasComponentInputs.Args = fcDirs.join(' ')
+      if (cmdArgs.force) {
+        nasComponentInputs.Args = '-f ' + nasComponentInputs.Args
+      }
+      if (cmdArgs.recursive) {
+        nasComponentInputs.Args = '-r ' + nasComponentInputs.Args
+      }
+      this.logger.info(`Try to delete ${fcDirs} use nas component`)
+      await this.nasComponent.rm(nasComponentInputs)
+      this.logger.success('Delete successfully')
+    }
+  }
+
+  /**
+   * sync for 'Nas: Auto'
+   */
+  async syncAuto (noOverwirte, localDirs, remoteDir = undefined) {
+    const nasComponentInputs = Object.assign({}, this.inputs)
+    process.argv = ['node', 's', 'cp']
+    remoteDir = remoteDir || FUN_AUTO_FC_MOUNT_DIR
+
+    for (const localDir of localDirs) {
+      this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
+      if (noOverwirte) {
+        nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
+      } else {
+        nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+      }
+      await this.nasComponent.cp(nasComponentInputs)
+    }
+  }
+
+  async syncNonAuto(alias, noOverwirte, localDirs) {
+    let hadSync = false
+
+    if (!_.isEmpty(localDirs)) {
+      for (const localDir of localDirs) {
+        for (const mountPoint of this.serviceProp.Nas.MountPoints) {
+          const remoteDir = mountPoint.FcDir || mountPoint.MountDir
+          if (!remoteDir) {
+            this.logger.error('No \'FcDir\' config found in your nas mounpoint config.')
+            throw new Error('Input error.')
+          }
+          if (alias && alias !== mountPoint.Alias) {
+            continue
+          }
+
+          const nasComponentInputs = Object.assign({}, this.inputs)
+          process.argv = ['node', 's', 'cp']
+          if (noOverwirte) {
+            nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
+          } else {
+            nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+          }
+  
+          this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
+          await this.nasComponent.cp(nasComponentInputs)
+          hadSync = true
+        }
+      }
+      return
+    } else {
+      for (const mountPoint of this.serviceProp.Nas.MountPoints) {
+        const localDir = mountPoint.LocalDir
+        if (!localDir) {
+          this.logger.error('No \'LocalDir\' config found in command line and template file, example: s nas sync <local_dir>.')
+          throw new Error('Input error.')
+        }
+        const remoteDir = mountPoint.FcDir || mountPoint.MountDir
+        if (!remoteDir) {
+          this.logger.error('No \'FcDir\' config found in your nas mounpoint config.')
+          throw new Error('Input error.')
+        }
+        if (alias && alias !== mountPoint.Alias) {
+          continue
+        }
+  
+        const nasComponentInputs = Object.assign({}, this.inputs)
+        process.argv = ['node', 's', 'cp']
+        if (typeof localDir === 'string') {
+          if (noOverwirte) {
+            nasComponentInputs.Args = `-r -n ${localDir} nas://${remoteDir}`
+          } else {
+            nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
+          }
+  
+          this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
+          await this.nasComponent.cp(nasComponentInputs)
+        } else if (localDir instanceof Array) {
+          for (const d of localDir) {
+            if (noOverwirte) {
+              nasComponentInputs.Args = `-r -n ${d} nas://${remoteDir}`
+            } else {
+              nasComponentInputs.Args = `-r ${d} nas://${remoteDir}`
+            }
+    
+            this.logger.info(`Sync ${d} to remote ${remoteDir}`)
+            await this.nasComponent.cp(nasComponentInputs)
+          }
+        }
+  
+        hadSync = true
+      }
+    }
+
+    if (!hadSync && cmdArgs.alias) {
+      this.logger.warn('No files or directory sync to NAS, please check alias if correct.')
     }
   }
 

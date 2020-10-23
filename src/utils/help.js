@@ -273,9 +273,9 @@ module.exports = (inputs) => ({
     description: `Usage: s nas [command] [options] [arguments]
 
     Operate NAS file system. Example:
-    * s nas sync : sync directories and files to NAS configured in template.yaml.
-    * s nas sync -n : sync directories and files to NAS without overwriting existed files.
-    * s nas ls /mnt/auto : list files under /mnt/auto.`,
+    * s nas sync ./node_modules: sync ./node_modules to NAS.
+    * s nas ls /mnt/auto : list files under /mnt/auto on NAS.
+    * s nas rm /mnt/auto/foo : delete /mnt/auto/foo on NAS.`,
     commands: [{
       name: 'sync',
       desc: 'synchronize the local directory to the remote NAS file system.'
@@ -291,7 +291,13 @@ module.exports = (inputs) => ({
       desc: 'Synchronize to NAS with this alias.'
     }, {
       name: '--all',
-      desc: 'Come with \'ls\' command for showing all files.'
+      desc: 'Use with \'ls\' command for showing all files.'
+    }, {
+      name: '-r/--recursive',
+      desc: 'Use with \'rm\' command for deleting directory.'
+    }, {
+      name: '-f/--force',
+      desc: 'Use with \'rm\' command for force deleting.'
     }]
   }
 })

@@ -628,9 +628,9 @@ class FcComponent extends Component {
     } = this.handlerInputs(inputs)
 
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
-      ['-n', '--no-overwrite', '-o', '--overwrite', '--all'],
+      ['n', 'noOverwrite', 'all', 'r', 'recursive', 'f', 'force'],
       [],
-      ['--alias', '-a', '-n', '--no-overwrite', '--all']
+      ['--alias', '-a', '-n', '--no-overwrite', '--all', '-r', '--recursive', '-f', '--force']
     )
 
     this.logger.info('Loading nas component, this may cost a few minutes...')
