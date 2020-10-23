@@ -31,10 +31,9 @@ function is2xxStatusCode (statusCode) {
 }
 
 class HttpInvoke extends Invoke {
-  constructor (credentials, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, authType, endpointPrefix, debuggerPath, debugArgs, nasBaseDir) {
-    super(serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir)
+  constructor (credentials, region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, authType, endpointPrefix, debuggerPath, debugArgs, nasBaseDir) {
+    super(credentials, region, serviceName, serviceProps, functionName, functionProps, debugPort, debugIde, baseDir, tmpDir, debuggerPath, debugArgs, nasBaseDir)
 
-    this.credentials = credentials
     this.isAnonymous = authType === 'ANONYMOUS' || authType === 'anonymous'
     this.endpointPrefix = endpointPrefix
     this._invokeInitializer = true
@@ -126,7 +125,7 @@ class HttpInvoke extends Invoke {
   }
 
   async _startRunner () {
-    const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, true, this.debugIde, this.debugArgs)
+    const envs = await docker.generateDockerEnvs(this.credentials, this.region, this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, null, this.nasConfig, true, this.debugIde, this.debugArgs)
 
     const opts = await dockerOpts.generateLocalStartOpts(this.runtime,
       this.containerName,
@@ -160,7 +159,7 @@ class HttpInvoke extends Invoke {
 
       const httpParams = generateHttpParams(req, this.endpointPrefix)
 
-      const envs = await docker.generateDockerEnvs(this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, httpParams, this.nasConfig, true, this.debugIde)
+      const envs = await docker.generateDockerEnvs(this.credentials, this.region, this.baseDir, this.serviceName, this.serviceProps, this.functionName, this.functionProps, this.debugPort, httpParams, this.nasConfig, true, this.debugIde)
 
       if (this.debugPort && !this.runner) {
         // don't reuse container

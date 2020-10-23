@@ -23,8 +23,9 @@ const serverPort = 8000
 const SERVER_CLOSE_TIMEOUT = 3000
 
 class DockerInvoke {
-  constructor (credentials, serviceName, serviceProp, functionName, functionProp, options) {
+  constructor (credentials, region, serviceName, serviceProp, functionName, functionProp, options) {
     this.credentials = credentials
+    this.region = region
     this.options = options
 
     this.serviceName = serviceName
@@ -133,7 +134,7 @@ class DockerInvoke {
     const EventInvoke = require('./event-invoke')
 
     const eventInvoke = new EventInvoke(
-      this.serviceName, this.serviceProp,
+      this.serviceName, this.region, this.serviceProp,
       this.functionName, this.functionProp,
       this.debugPort, this.debugIde,
       this.baseDir, absTmpDir,
@@ -198,7 +199,7 @@ class DockerInvoke {
       strict: true
     })
 
-    const httpSupport = new HttpSupport(this.credentials)
+    const httpSupport = new HttpSupport(this.credentials, this.region)
     await httpSupport.registerHttpTriggers(this.serviceName, this.serviceProp, this.functionName, this.functionProp, app, router, serverPort, this.httpTriggers, this.debugPort, this.debugIde, this.baseDir, this.debuggerPath, this.debugArgs, this.nasBaseDir, this.tplPath)
 
     this.startExpress(app)
