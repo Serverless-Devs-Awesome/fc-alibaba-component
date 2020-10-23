@@ -513,7 +513,10 @@ class Service extends Client {
     const isConfigLogAuto = definition.isLogConfigAuto(logConfig)
     const resolvedLogConfig = await logs.transformLogConfig(logConfig)
     if (isConfigLogAuto) {
-      await this.saveConfigToTemplate('Log', resolvedLogConfig)
+      await this.saveConfigToTemplate('Log', {
+        Project: resolvedLogConfig.project,
+        LogStore: resolvedLogConfig.logStore
+      })
     }
 
     const options = {
