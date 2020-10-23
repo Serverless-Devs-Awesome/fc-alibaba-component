@@ -82,7 +82,7 @@ class Function extends Client {
       }
     } else {
       const nasLocalConfig = this.getNasLocalConfig(serviceInput)
-      if (nasLocalConfig) {
+      if (!_.isEmpty(nasLocalConfig)) {
         this.logger.warn(`Nas local dir(s) is configured, this will be ignored in deploy code to function`)
       }
       const packToParame = {
