@@ -134,7 +134,7 @@ class DockerInvoke {
     const EventInvoke = require('./event-invoke')
 
     const eventInvoke = new EventInvoke(
-      this.serviceName, this.region, this.serviceProp,
+      this.credentials, this.region, this.serviceName, this.serviceProp,
       this.functionName, this.functionProp,
       this.debugPort, this.debugIde,
       this.baseDir, absTmpDir,
