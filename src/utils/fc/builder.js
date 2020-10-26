@@ -42,6 +42,10 @@ class Builder {
     if (!_.includes(['docker', 'local', 'image'], buildCommand)) {
       throw new Error(`Install command error, unknown subcommand '${buildCommand}', use 's build --help' for info.`)
     }
+    const runtime = this.functionProp.Runtime
+    if (!runtime || (!runtime.includes('java') && !runtime.includes('dotnetcore'))) {
+      throw new Error(`Build command is for java or dotnetcore runtime, current runtime is ${runtime}`)
+    }
 
     const buildImage = buildCommand === 'image'
     if (buildImage) {
@@ -94,7 +98,7 @@ class Builder {
   }
 
   async buildInDocker (serviceName, serviceProps, functionName, functionProps, baseDir, codeUri, funcArtifactDir, verbose) {
-    const stages = ['install', 'build']
+    const stages = ['build']
     const nasProps = {}
     const runtime = functionProps.Runtime
 
@@ -144,7 +148,7 @@ class Builder {
   }
 
   async buildArtifact (serviceName, serviceProps, functionName, functionProps, codePath, artifactPath, verbose) {
-    const stages = ['install', 'build']
+    const stages = ['build']
     const runtime = functionProps.Runtime
 
     // detect fcfile
@@ -213,7 +217,7 @@ class Builder {
     if (!runtime || typeof runtime !== 'string') {
       return false
     }
-    return runtime.includes('java')
+    return runtime.includes('java') || runtime.includes('dotnetcore')
   }
 
   async codeNeedBuild (baseDir, codeUri, runtime) {
