@@ -12,6 +12,7 @@ const rimraf = require('rimraf')
 const extract = require('extract-zip')
 const tmpDir = require('temp-dir')
 const uuid = require('uuid')
+const Builder = require('../../fc/builder')
 
 const DEFAULT_NAS_PATH_SUFFIX = path.join('.fun', 'nas')
 
@@ -54,7 +55,17 @@ class Invoke {
 
     this.runtime = this.functionProps.Runtime
     this.baseDir = baseDir
-    this.codeUri = path.resolve(this.baseDir, this.functionProps.CodeUri)
+    // resolve codeUri
+    const builder = new Builder()
+    if (builder.runtimeMustBuild(this.runtime)) {
+      if (!builder.hasBuild(baseDir, serviceName, functionName)) {
+        throw new Error('Please run \'s build local\' or \'s build docker\' before invoke')
+      }
+      this.codeUri = builder.getArtifactPath(baseDir, serviceName, functionName)
+    } else {
+      this.codeUri = path.resolve(this.baseDir, this.functionProps.CodeUri)
+    }
+
     this.tmpDir = tmpDir
     this.debuggerPath = debuggerPath
     this.debugArgs = debugArgs
