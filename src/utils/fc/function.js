@@ -95,8 +95,8 @@ class Function extends Client {
         packToParame.codeUri = code
       } else {
         packToParame.codeUri = code.Src
-        packToParame.exclude = packToParame.exclude.concat(code.Exclude || [])
-        packToParame.include = packToParame.include.concat(code.Include || [])
+        packToParame.exclude = packToParame.exclude.concat(code.Excludes || [])
+        packToParame.include = packToParame.include.concat(code.Includes || [])
       }
 
       const buildArtifactPath = this.builder.getArtifactPath(baseDir, serviceName, functionName)
