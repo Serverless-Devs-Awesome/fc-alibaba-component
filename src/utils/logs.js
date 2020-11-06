@@ -75,6 +75,10 @@ class Logs extends Client {
           requestId = found[0]
         }
 
+        if(currentMessage.includes("FC Invoke Start")){
+          requestId = currentMessage.replace("FC Invoke Start RequestId: ", "")
+        }
+
         if (requestId) {
           if (!_.has(acc, requestId)) {
             acc[requestId] = {
