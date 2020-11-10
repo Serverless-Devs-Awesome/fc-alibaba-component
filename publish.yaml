@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.45
+Version: 0.0.46
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
@@ -321,6 +321,11 @@ Properties:
             Required: false
             Default: 60
             Description: function运行的超时时间
+            Type:
+              - Number
+          InstanceConcurrency:
+            Required: false
+            Description: 单实例多并发
             Type:
               - Number
           Environment:
