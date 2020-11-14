@@ -2,6 +2,8 @@ const express = require('express')
 const { execSync } = require('child_process')
 const Logger = require('./logger')
 
+logger = new Logger()
+
 class StartService {
   /**
    *
@@ -14,7 +16,6 @@ class StartService {
     this.context = context || {}
     this.app = express()
     this.counter = 0
-    this.logger = new Logger()
   }
 
   randomNum () {
@@ -32,7 +33,7 @@ class StartService {
     this.server = this.app.listen(this.port, () => {
       const uri = `http://localhost:${this.port}`
 
-      this.logger.info(`Uri: ${uri}`)
+      logger.info(`Url: ${uri}`)
 
       if (this.context.openBrowser) {
         const startInstruction = process.platform === 'win32' ? 'start' : 'open'

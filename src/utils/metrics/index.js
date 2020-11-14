@@ -10,6 +10,8 @@ const requestOption = {
   method: 'GET'
 }
 
+logger = new Logger()
+
 class Metrics {
   constructor (credentials, region) {
     this.accountId = credentials.AccountID
@@ -31,7 +33,6 @@ class Metrics {
     })
     this.version = new Version(credentials, region)
     this.alias = new Alias(credentials, region)
-    this.logger = new Logger()
   }
 
   async get ({
@@ -63,7 +64,7 @@ class Metrics {
     }
     params.Dimensions = JSON.stringify(params.Dimensions)
 
-    this.logger.log('params:: ', params)
+    logger.log('params:: ', params)
 
     return await this.cmsClient.request('QueryMetricList', params, requestOption)
   }
@@ -92,10 +93,10 @@ class Metrics {
 
       app.get('/get/metric', async (req, res) => {
         const { query } = req
-        this.logger.log('Get /get/metric Reuqest：', query.metric)
+        logger.log('Get /get/metric Reuqest：', query.metric)
         const result = await that.get({ ...params, ...query })
-        this.logger.log('result: ', result.Datapoints)
-        this.logger.log('')
+        logger.log('result: ', result.Datapoints)
+        logger.log('')
         if (result.Datapoints) {
           res.send(result.Datapoints)
         } else {
@@ -104,7 +105,7 @@ class Metrics {
       })
 
       app.get('/get/version', async (req, res) => {
-        this.logger.log('Get /get/version Request')
+        logger.log('Get /get/version Request')
         const list = await that.version.list(params.serviceName)
         if (list.data && list.data.versions) {
           res.send(list.data.versions)
@@ -117,7 +118,7 @@ class Metrics {
       })
 
       app.get('/get/alias', async (req, res) => {
-        this.logger.log('Get /get/alias Request')
+        logger.log('Get /get/alias Request')
         const list = await that.alias.list(params.serviceName)
         if (list.data && list.data.aliases) {
           res.send(list.data.aliases)

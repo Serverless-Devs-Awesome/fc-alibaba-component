@@ -94,6 +94,8 @@ class Logs extends Client {
       }, {})
     } while (xLogCount !== count && xLogProgress !== 'Complete')
 
+    const logsResult = []
+
     return result
   }
 
