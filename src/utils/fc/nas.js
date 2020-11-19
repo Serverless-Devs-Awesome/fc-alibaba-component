@@ -102,6 +102,7 @@ class Nas {
           arr[index] = "nas://" + element;
         }
       });
+
       const nasComponentInputs = Object.assign({}, this.inputs)
       process.argv = ['node', 's', 'rm']
       nasComponentInputs.Args = fcDirs.join(' ')

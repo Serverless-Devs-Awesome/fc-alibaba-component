@@ -333,31 +333,6 @@ class FcComponent extends Component {
     }
   }
 
-  /**
-   * ---------------------------
-   * s invoke remote options:
-   *   -e or --event
-   *   -f or --event-file <path>
-   *   -s or --event-stdin
-   *   -q or qualifier
-   * ---------------------------
-   * s invoke docker options:
-   *   -e or --event
-   *   -f or --event-file <path>
-   *   -s or --event-stdin
-   *   -d or --debug-port
-   *   --no-reuse
-   *   --tmp-dir
-   *   --debug-port
-   *   --debug-args
-   *   --debugger-path
-   * ---------------------------
-   * s invoke local options:
-   *   -e or --event
-   *   -f or --event-file <path>
-   *   -s or --event-stdin
-   * @param {*} inputs
-   */
   async invoke (inputs) {
     this.help(inputs, getHelp(inputs).invoke)
     const {
