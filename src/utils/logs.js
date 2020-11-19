@@ -13,9 +13,6 @@ const { red } = require('colors')
 const inquirer = require('inquirer')
 const Logger = require('./logger')
 
-// const FIVE_SPACES = '     '
-// const TEN_SPACES = '          '
-
 class Logs extends Client {
   constructor (credentials, region, useAliyunSdk = true) {
     super(credentials, region)
@@ -93,8 +90,6 @@ class Logs extends Client {
         return acc
       }, {})
     } while (xLogCount !== count && xLogProgress !== 'Complete')
-
-    const logsResult = []
 
     return result
   }

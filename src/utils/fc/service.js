@@ -17,8 +17,7 @@ const { promiseRetry } = require('../common')
 const { red } = require('colors')
 const { DEFAULT_VPC_CONFIG, DEFAULT_NAS_CONFIG, FUN_GENERATED_SERVICE } = require('./static')
 const Logger = require('../logger')
-const yaml = require('js-yaml')
-
+const { Component } = require('@serverless-devs/s-core')
 // const FIVE_SPACES = '     '
 const EXTREME_PATH_PREFIX = '/share'
 
@@ -44,12 +43,6 @@ class Service extends Client {
     this.ram = new RAM(credentials)
     this.logger = new Logger()
   }
-  // constructor (credentials, region) {
-  //   super(credentials, region)
-  //   this.fcClient = this.buildFcClient()
-  //   this.ram = new RAM(credentials)
-  //   this.logger = new Logger()
-  // }
 
   /**
    * Remove service
@@ -454,29 +447,29 @@ class Service extends Client {
     if (this.parameters.skipSync) {
       return
     }
-    if (!this.inputs.Path || !this.inputs.Path.ConfigPath) {
-      this.logger.warn('Unknown template file path, failed to save back config')
-      return
-    }
-    this.logger.warn(`Save '${type}' config back to the template file, use --skip-sync if you don't need this`)
-    const tplFile = this.inputs.Path.ConfigPath
-    let doc = yaml.safeLoad(fs.readFileSync(tplFile, 'utf8'))
-    const projectName = this.inputs.Project.ProjectName
-    const project = doc[projectName]
-    if (!project) {
-      return
-    }
-    const properties = project.Properties
-    if (!properties) {
-      return
-    }
-    const service = properties.Service
-    if (!service) {
-      return
-    }
-    service[type] = config
-    fs.writeFileSync(tplFile, yaml.safeDump(doc))
-    this.logger.success('Save successfully')
+    // if (!this.inputs.Path || !this.inputs.Path.ConfigPath) {
+    //   this.logger.warn('Unknown template file path, failed to save back config')
+    //   return
+    // }
+    // this.logger.warn(`Save '${type}' config back to the template file, use --skip-sync if you don't need this`)
+    // const tplFile = this.inputs.Path.ConfigPath
+    // let doc = yaml.safeLoad(fs.readFileSync(tplFile, 'utf8'))
+    // const projectName = this.inputs.Project.ProjectName
+    // const project = doc[projectName]
+    // if (!project) {
+    //   return
+    // }
+    // const properties = project.Properties
+    // if (!properties) {
+    //   return
+    // }
+    // const service = properties.Service
+    // if (!service) {
+    //   return
+    // }
+    // service[type] = config
+    // fs.writeFileSync(tplFile, yaml.safeDump(doc))
+    // this.logger.success('Save successfully')
   }
 
   async makeService ({
@@ -488,6 +481,10 @@ class Service extends Client {
     vpcConfig,
     nasConfig
   }) {
+
+    this.component = new Component(this.region + "-" + serviceName)
+    await this.component.init()
+
     let service
     await promiseRetry(async (retry, times) => {
       try {
@@ -510,14 +507,23 @@ class Service extends Client {
     })
 
     const logs = new Logs(this.credentials, this.region, false)
-    const isConfigLogAuto = definition.isLogConfigAuto(logConfig)
+    const isLogAuto = definition.isLogConfigAuto(logConfig)
     const resolvedLogConfig = await logs.transformLogConfig(logConfig)
-    if (isConfigLogAuto) {
-      await this.saveConfigToTemplate('Log', {
+    if(isLogAuto){
+      // 存入缓存
+      this.component.state.Log = {
         Project: resolvedLogConfig.project,
         LogStore: resolvedLogConfig.logStore
-      })
+      }
+      await this.component.save()
     }
+
+    // if (isConfigLogAuto) {
+    //   await this.saveConfigToTemplate('Log', {
+    //     Project: resolvedLogConfig.project,
+    //     LogStore: resolvedLogConfig.logStore
+    //   })
+    // }
 
     const options = {
       description,
@@ -541,7 +547,14 @@ class Service extends Client {
         vpcConfig = await vpc.createDefaultVpcIfNotExist(this.credentials, this.region)
         this.logger.success('Default vpc config:' + JSON.stringify(vpcConfig))
 
-        await this.saveConfigToTemplate('Vpc', vpcConfig)
+        // 存入缓存
+        this.component.state.Vpc = {
+          SecurityGroupId: vpcConfig.securityGroupId,
+          VSwitchIds: vpcConfig.vswitchIds,
+          VpcId: vpcConfig.vpcId
+        }
+        await this.component.save()
+        // await this.saveConfigToTemplate('Vpc', vpcConfig)
       }
     }
 
@@ -557,8 +570,10 @@ class Service extends Client {
       nasConfig = await nas.generateAutoNasConfig(this.credentials, this.region, serviceName, vpcId, vswitchIds, nasConfig.UserId, nasConfig.GroupId, nasConfig.FcDir, nasConfig.LocalDir)
       this.logger.success('Default nas config: ' + JSON.stringify(nas.transformClientConfigToToolConfig(nasConfig)))
 
-      const saveConfig = nas.transformClientConfigToToolConfig(nasConfig)
-      await this.saveConfigToTemplate('Nas', saveConfig)
+      // 存入缓存
+      this.component.state.Nas = nas.transformClientConfigToToolConfig(nasConfig)
+      await this.component.save()
+      // await this.saveConfigToTemplate('Nas', saveConfig)
     } else {
       // transform nas config from tool format to fc client format
       nasConfig = nas.transformToolConfigToFcClientConfig(nasConfig)
@@ -629,6 +644,7 @@ class Service extends Client {
   async getService (serviceName) {
     return await this.fcClient.getService(serviceName)
   }
+
 }
 
 module.exports = Service

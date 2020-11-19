@@ -290,10 +290,10 @@ module.exports = (inputs) => ({
       name: '-n/--no-overwrite',
       desc: 'Never overwrite existing files on NAS when synchronizing files.'
     }, {
-      name: '-a/--alias <alias>',
+      name: '--alias <alias>',
       desc: 'Synchronize to NAS with this alias.'
     }, {
-      name: '--all',
+      name: '-a/--all',
       desc: 'Use with \'ls\' command for showing all files.'
     }, {
       name: '-r/--recursive',

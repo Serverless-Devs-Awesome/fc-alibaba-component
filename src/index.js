@@ -26,30 +26,49 @@ const DEFAULT = {
   Service: 'Default'
 }
 
+// 创建日志对象
+const logger = new Logger()
+
 class FcComponent extends Component {
   constructor () {
     super()
-    this.logger = new Logger()
   }
 
   // 解析入参
-  handlerInputs (inputs) {
+  async handlerInputs (inputs) {
+
     const projectName = inputs.Project.ProjectName
     const properties = inputs.Properties || {}
     const credentials = inputs.Credentials || {}
 
-    const state = inputs.State || {}
     const args = this.args(inputs.Args)
-
-    const serviceState = state.Service || {}
 
     const serviceProp = properties.Service || {}
     const functionProp = properties.Function || {}
 
-    const serviceName = serviceProp.Name || serviceState.Name || DEFAULT.Service
+    const serviceName = serviceProp.Name || DEFAULT.Service
     const functionName = functionProp.Name || ''
-
     const region = properties.Region || DEFAULT.Region
+
+    // 初始化this对象
+    this.id = region + "-" + serviceName
+    await this.init()
+    this.state.Region = region
+    this.state.ServiceName = serviceName
+    this.state.Token = credentials.AccountID
+    const state = this.state || inputs.State || {}
+    await this.save()
+
+    // 如果账号一致/地域一致/服务一致
+    // 则对Service下的VPC、LOG、NAS进行缓存读取
+    if(state.Token == credentials.AccountID && state.Region == region && state.ServiceName == serviceName){
+      const cacheList = ['Log', 'Vpc', 'Nas']
+      for(let i=0;i<cacheList.length;i++){
+        if(state[cacheList[i]] && (serviceProp[cacheList[i]] == "Auto" || serviceProp[cacheList[i]] == undefined)){
+          serviceProp[cacheList[i]] = state[cacheList[i]]
+        }
+      }
+    }
 
     return {
       projectName,
@@ -64,23 +83,7 @@ class FcComponent extends Component {
     }
   }
 
-  /**
-   * deploy usage:
-   *
-   * s deploy
-   * s deploy --config
 
-   * s deploy service
-   * s deploy function
-
-   * s deploy function --config
-   * s deploy function --code
-   *
-   * s deploy tags (-k/--key)
-   * s deploy domain （-d/--domain)
-   * s deploy trigger （-n/--name)
-   * @param {*} inputs
-   */
   async deploy (inputs) {
     this.help(inputs, getHelp(inputs).deploy)
 
@@ -93,7 +96,7 @@ class FcComponent extends Component {
       functionName,
       functionProp,
       args, region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const commands = args.Commands
     const parameters = args.Parameters
@@ -119,9 +122,9 @@ class FcComponent extends Component {
       const beforeDeployLog = deployAllConfig ? 'config to be updated' : 'to be deployed'
       const afterDeployLog = deployAllConfig ? 'config update success' : 'deploy success'
 
-      this.logger.info(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
+      logger.info(`Waiting for service ${serviceName} ${beforeDeployLog}...`)
       output.Service = await fcService.deploy(serviceName, serviceProp, hasFunctionAsyncConfig, hasCustomContainerConfig)
-      this.logger.success(`service ${serviceName} ${afterDeployLog}\n`)
+      logger.success(`Service ${serviceName} ${afterDeployLog}\n`)
     }
 
     // Function
@@ -134,7 +137,7 @@ class FcComponent extends Component {
       const beforeDeployLog = onlyDelpoyConfig ? 'config to be updated' : 'to be deployed'
       const afterDeployLog = onlyDelpoyConfig || deployAllConfig ? 'config update success' : 'deploy success'
 
-      this.logger.info(`Waiting for function ${functionName} ${beforeDeployLog}...`)
+      logger.info(`Waiting for function ${functionName} ${beforeDeployLog}...`)
       output.Function = await fcFunction.deploy({
         projectName,
         serviceName,
@@ -144,7 +147,7 @@ class FcComponent extends Component {
         onlyDelpoyCode,
         onlyDelpoyConfig
       })
-      this.logger.success(`function ${functionName} ${afterDeployLog}\n`)
+      logger.success(`function ${functionName} ${afterDeployLog}\n`)
     }
 
     // Triggers
@@ -183,7 +186,7 @@ class FcComponent extends Component {
       serviceName,
       args = {},
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
     const parameters = args.Parameters || {}
     const onlyDomainName = parameters.d || parameters.domain
     const fcDomain = new CustomDomain(credentials, region)
@@ -221,7 +224,7 @@ class FcComponent extends Component {
 
   // 版本
   async version (inputs, type) {
-    const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
+    const { credentials, region, serviceName, args } = await this.handlerInputs(inputs)
     const fcVersion = new Version(credentials, region)
     const { Parameters: parameters = {} } = args
 
@@ -236,7 +239,7 @@ class FcComponent extends Component {
 
   // 别名
   async alias (inputs, type) {
-    const { credentials, region, serviceName, args } = this.handlerInputs(inputs)
+    const { credentials, region, serviceName, args } = await this.handlerInputs(inputs)
     const { Parameters: parameters = {} } = args
     const { n, name, v, versionId, d, description, gv, w } = parameters
     const configName = n || name
@@ -275,7 +278,7 @@ class FcComponent extends Component {
       serviceName,
       serviceProp,
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = this.args(inputs.Args, ['-f, --force'])
     const removeType = commands[0]
@@ -367,7 +370,7 @@ class FcComponent extends Component {
         Parameters: options
       },
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     if (commands.length === 0) {
       throw new Error('Input error, use \'s invoke --help\' for info.')
@@ -394,7 +397,7 @@ class FcComponent extends Component {
       serviceName,
       functionName,
       credentials
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const args = this.args(inputs.Args, undefined, ['s', 'startTime', 'e', 'endTime'], undefined)
 
@@ -420,7 +423,7 @@ class FcComponent extends Component {
         to = (new Date(cmdParameters.e || cmdParameters.endTime)).getTime() / 1000
       } else {
         // 20 minutes ago
-        this.logger.warn('By default, find logs within 20 minutes...\n')
+        logger.warn('By default, find logs within 20 minutes...\n')
         from = moment().subtract(20, 'minutes').unix()
         to = moment().unix()
       }
@@ -470,7 +473,12 @@ class FcComponent extends Component {
       functionName,
       functionProp,
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
+
+    let tempFunctionProp = functionProp
+    if(typeof(functionProp) == "object"){
+      tempFunctionProp.CodeUri = tempFunctionProp.CodeUri.Src
+    }
 
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
       ['i', 'interactive', 'save'],
@@ -482,17 +490,16 @@ class FcComponent extends Component {
       serviceName,
       serviceProp,
       functionName,
-      functionProp,
+      functionProp: tempFunctionProp,
       region
     })
-
     await installer.handle()
   }
 
   // 构建
   async build (inputs) {
     this.help(inputs, getHelp(inputs).build)
-    this.logger.info('Start to build artifact.')
+    logger.info('Start to build artifact.')
     const {
       credentials,
       serviceName,
@@ -500,7 +507,7 @@ class FcComponent extends Component {
       functionName,
       functionProp,
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args)
 
@@ -560,7 +567,7 @@ class FcComponent extends Component {
       functionProp,
       args = {},
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const serviceName = serviceProp.Name
     const functionName = functionProp.Name
@@ -601,9 +608,6 @@ class FcComponent extends Component {
     await fse.outputFile(u, yaml.dump(sourceConfig))
   }
 
-  // 打包
-  async package (inputs) {}
-
   // NAS操作
   async nas (inputs) {
     this.help(inputs, getHelp(inputs).nas)
@@ -612,7 +616,7 @@ class FcComponent extends Component {
       serviceName,
       serviceProp,
       region
-    } = this.handlerInputs(inputs)
+    } = await this.handlerInputs(inputs)
 
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
       ['n', 'noOverwrite', 'all', 'r', 'recursive', 'f', 'force'],
@@ -620,9 +624,9 @@ class FcComponent extends Component {
       ['--alias', '-a', '-n', '--no-overwrite', '--all', '-r', '--recursive', '-f', '--force']
     )
 
-    this.logger.info('Loading nas component, this may cost a few minutes...')
+    logger.info('Loading nas component, this may cost a few minutes...')
     const nasComponent = await this.load('nas', 'Component')
-    this.logger.success('Load nas component successfully.')
+    logger.success('Load nas component successfully.')
 
     const nas = new Nas(commands, parameters, {
       credentials,

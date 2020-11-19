@@ -33,6 +33,7 @@ class Install {
   }
 
   async handle () {
+
     const { e, env, r, runtime, p, packageType, url, c, cmd, f, file, i, interactive, save } = this.parameters
 
     if (this.commands.length === 0) {

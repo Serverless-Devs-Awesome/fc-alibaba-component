@@ -31,9 +31,9 @@ class Nas {
     }
 
     const cmdArgs = {
-      alias: this.parameters.a || this.parameters.alias,
+      alias: this.parameters.alias,
       noOverwirte: this.parameters.n || this.parameters.noOverwirte || false,
-      all: this.parameters.all,
+      all: this.parameters.a || this.parameters.all,
       force: this.parameters.f || this.parameters.force,
       recursive: this.parameters.r || this.parameters.recursive
     }
@@ -103,7 +103,7 @@ class Nas {
         }
       });
       const nasComponentInputs = Object.assign({}, this.inputs)
-      process.argv = ['node', 's', 'rm'] 
+      process.argv = ['node', 's', 'rm']
       nasComponentInputs.Args = fcDirs.join(' ')
       if (cmdArgs.force) {
         nasComponentInputs.Args = '-f ' + nasComponentInputs.Args
@@ -158,7 +158,7 @@ class Nas {
           } else {
             nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
           }
-  
+
           this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
           await this.nasComponent.cp(nasComponentInputs)
           hadSync = true
@@ -180,7 +180,7 @@ class Nas {
         if (alias && alias !== mountPoint.Alias) {
           continue
         }
-  
+
         const nasComponentInputs = Object.assign({}, this.inputs)
         process.argv = ['node', 's', 'cp']
         if (typeof localDir === 'string') {
@@ -189,7 +189,7 @@ class Nas {
           } else {
             nasComponentInputs.Args = `-r ${localDir} nas://${remoteDir}`
           }
-  
+
           this.logger.info(`Sync ${localDir} to remote ${remoteDir}`)
           await this.nasComponent.cp(nasComponentInputs)
         } else if (localDir instanceof Array) {
@@ -199,12 +199,12 @@ class Nas {
             } else {
               nasComponentInputs.Args = `-r ${d} nas://${remoteDir}`
             }
-    
+
             this.logger.info(`Sync ${d} to remote ${remoteDir}`)
             await this.nasComponent.cp(nasComponentInputs)
           }
         }
-  
+
         hadSync = true
       }
     }
