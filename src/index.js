@@ -101,6 +101,13 @@ class FcComponent extends Component {
     const commands = args.Commands
     const parameters = args.Parameters
 
+    if (commands[0] && !['service', 'function', 'trigger', 'tags', 'domain'.includes(commands[0])]) {
+      throw new Error({
+        name: 'CommandsError',
+        message: 'Commands error,please execute the \'s deploy --help\' command.'
+      });
+    }
+
     const deployAll = _.isEmpty(commands)
     const deployAllConfig = (_.isEmpty(commands) && parameters.config)
 
@@ -282,6 +289,14 @@ class FcComponent extends Component {
     } = await this.handlerInputs(inputs)
 
     const { Commands: commands, Parameters: parameters } = this.args(inputs.Args, ['-f, --force'])
+
+    if (commands[0] && !['function', 'trigger', 'tags', 'domain'.includes(commands[0])]) {
+      throw new Error({
+        name: 'CommandsError',
+        message: 'Commands error,please execute the \'s remove --help\' command.'
+      });
+    }
+
     const removeType = commands[0]
     const fcRemove = new Remove(commands, parameters, { credentials, region, serviceProp })
 
@@ -361,7 +376,14 @@ class FcComponent extends Component {
     } else if (commands[0] === 'local') {
       const localInvoke = new LocalInvoke(credentials, region, serviceProp, functionProp, options)
       await localInvoke.invoke()
+    } else {
+      throw new Error({
+        name: 'CommandsError',
+        message: 'Commands error,please execute the \'s invoke --help\' command.'
+      });
     }
+
+
   }
 
   // 日志
@@ -451,10 +473,9 @@ class FcComponent extends Component {
       region
     } = await this.handlerInputs(inputs)
 
-    let tempFunctionProp = functionProp
-    if(typeof(functionProp) == "object"){
-      tempFunctionProp.CodeUri = tempFunctionProp.CodeUri.Src
-    }
+    let tempFunctionProp = JSON.parse(JSON.stringify(functionProp))
+    tempFunctionProp.CodeUri = typeof(functionProp.CodeUri) == "object" ? functionProp.CodeUri.Src : functionProp.CodeUri
+
 
     const { Commands: commands = [], Parameters: parameters } = this.args(inputs.Args,
       ['i', 'interactive', 'save'],

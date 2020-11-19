@@ -2,7 +2,7 @@ Type: Component
 Name: fc
 Provider:
   - Alibaba
-Version: 0.0.48
+Version: 0.0.50
 Description: 阿里云函数计算组件，可以快速部署阿里云FC
 HomePage: https://www.aliyun.com/
 Tags:
