@@ -42,12 +42,14 @@ class CustomDomain extends Client {
     }
 
     if (domainName.toLocaleUpperCase() === 'AUTO') {
+      logger.log(`Domain auto deploying ...`)
+      logger.warn(`This domain name is a temporary domain name. It is only used as a learning test and cannot be used in production environment.`)
       const getAutoDomain = new GetAutoDomain(this.credentials, this.region)
       const autoDomain = await getAutoDomain.getCustomAutoDomainName(ServiceName, FunctionName, true)
       domainName = autoDomain.domainName
       options.protocol = 'HTTP'
       if (!domainName) {
-        this.logger.error('获取临时域名失败')
+        this.logger.error('Failed to get temporary domain name')
         return false
       }
 
@@ -55,6 +57,7 @@ class CustomDomain extends Client {
         routeConfig: tempRouteConfig.length ? routeConfig : autoDomain.routeConfig
       })
     } else {
+      logger.log(`Domain: ${domainName} deploying ...`)
       Object.assign(options, {
         routeConfig
       })
@@ -84,11 +87,24 @@ class CustomDomain extends Client {
       } catch (e) { }
     } catch (e) {
       // 新建自定义域名
-      for (let i = 0; i <= 50; i++) {
+      let ds = true
+      for (let i = 0; i <= 600; i++) {
         try {
           await this.fcClient.createCustomDomain(domainName, options)
           return domainName
         } catch (ex) {
+          if(ex.message.includes("ICP")){
+            throw new Error(ex.message)
+          }else if(ex.message.includes("has not been resolved to your FC endpoint")){
+            if(ds == true){
+              const message = String(ex.message).split("the expected endpoint is")[1]
+              logger.warn(`Please cname your domain: ${domainName} to ${message.slice(2,message.length - 2)}`)
+              logger.info(`If you do not want to bind the domain name or terminate the process, you can execute "control + z"`)
+              ds = false
+            }
+          }else{
+            throw new Error(ex.message)
+          }
           this.sleep(1000)
         }
       }

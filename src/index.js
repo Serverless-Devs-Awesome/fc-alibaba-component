@@ -187,6 +187,7 @@ class FcComponent extends Component {
       args = {},
       region
     } = await this.handlerInputs(inputs)
+    logger.info(`Start deploying domains ...`)
     const parameters = args.Parameters || {}
     const onlyDomainName = parameters.d || parameters.domain
     const fcDomain = new CustomDomain(credentials, region)
