@@ -96,7 +96,7 @@ class CustomDomain extends Client {
           if(ex.message.includes("ICP")){
             throw new Error(ex.message)
           }else if(ex.message.includes("has not been resolved to your FC endpoint")){
-            if(ds == true){
+            if(ds == true && !ex.message.includes("test.functioncompute.com")){
               const message = String(ex.message).split("the expected endpoint is")[1]
               logger.warn(`Please cname your domain: ${domainName} to ${message.slice(2,message.length - 2)}`)
               logger.info(`If you do not want to bind the domain name or terminate the process, you can execute "control + z"`)
