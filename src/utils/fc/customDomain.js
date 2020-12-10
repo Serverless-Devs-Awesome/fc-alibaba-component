@@ -58,8 +58,18 @@ class CustomDomain extends Client {
       })
     } else {
       logger.log(`Domain: ${domainName} deploying ...`)
+
       Object.assign(options, {
-        routeConfig
+        routeConfig: routeConfig.routes.length > 0 ? routeConfig : {
+          routes: [
+            {
+              Path: '/*',
+              ServiceName: ServiceName,
+              FunctionName: FunctionName,
+              Qualifier: 'LATEST'
+            }
+          ]
+        }
       })
 
       if (!_.isEmpty(certConfig)) {
@@ -77,6 +87,8 @@ class CustomDomain extends Client {
         })
       }
     }
+
+    // console.log(JSON.stringify(options))
 
     try {
       await this.fcClient.getCustomDomain(domainName)
@@ -105,7 +117,7 @@ class CustomDomain extends Client {
           }else{
             throw new Error(ex.message)
           }
-          this.sleep(1000)
+          await this.sleep(1000)
         }
       }
     }
@@ -237,7 +249,7 @@ module.exports.handler = function (request, response, context) {
 
   async processTemporaryDomain () {
     const TMP_DOMAIN_URL =
-      'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console.prod/generate_preview_domain_for_fun/'
+        'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console.prod/generate_preview_domain_for_fun/'
     const { token } = await sendHttpRequest('POST', TMP_DOMAIN_URL, {
       accountID: this.accountId,
       region: this.region
@@ -260,7 +272,7 @@ module.exports.handler = function (request, response, context) {
 
   async getTmpDomainExpiredTime (domainName) {
     const TMP_DOMAIN_EXPIRED_TIME_URL =
-      'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console/get_expired_time/'
+        'https://1813774388953700.cn-shanghai.fc.aliyuncs.com/2016-08-15/proxy/generate_tmp_domain_for_console/get_expired_time/'
     const expiredTimeRs = await sendHttpRequest('POST', TMP_DOMAIN_EXPIRED_TIME_URL, {
       domain: domainName
     })
@@ -314,7 +326,7 @@ module.exports.handler = function (request, response, context) {
             return tmpDomainName
           }
           const { expiredTime } = await this.getTmpDomainExpiredTime(
-            tmpDomainName
+              tmpDomainName
           )
 
           if (expiredTime > Math.round(new Date().getTime() / 1000)) {
