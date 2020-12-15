@@ -60,6 +60,9 @@ class Trigger extends Client {
             resolve(undefined)
           }
         })
+        res.on('end', function () {
+          resolve("emptyData")
+        })
       })
       req.on('error', function (e) {
         resolve(undefined)
