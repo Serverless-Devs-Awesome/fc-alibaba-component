@@ -93,6 +93,9 @@ module.exports = (inputs) => ({
     },{
       name: '--skip-sync',
       desc: 'skip sync auto generated configuration back to template file.'
+    },{
+      name: '--push-registry <pushRegistry>',
+      desc: 'Modify the image upload path'
     }]
   },
   remove: {

@@ -209,7 +209,7 @@ class Function extends Client {
     return functionProperties
   }
 
-  async handlerCode (serviceInput, functionInput, serviceName, projectName) {
+  async handlerCode (serviceInput, functionInput, serviceName, projectName, pushRegistry) {
     const functionProperties = {}
 
     const deployContainerFunction = functionInput.Runtime === 'custom-container'
@@ -218,9 +218,16 @@ class Function extends Client {
         throw new Error('No CustomContainer found for container runtime')
       }
       const customContainer = functionInput.CustomContainer
-      let imageName = customContainer.Image
-      const crAccount = customContainer.CrAccount || {}
-      imageName = await this.pushImage(serviceName, functionInput.Name, crAccount.User, crAccount.Password, customContainer.Image)
+      const imageName = customContainer.Image
+      if (!imageName) {
+        throw new Error(
+          `ERR!: required Properties/${functionInput.Name}/CustomContainer: Missing property Image`
+        )
+      }
+      if (pushRegistry) {
+        const crAccount = customContainer.CrAccount || {}
+        await this.pushImage(crAccount.User, crAccount.Password, imageName, pushRegistry)
+      }
 
       // code和customContainerConfig不能同时存在
       functionProperties.code = undefined
@@ -258,7 +265,8 @@ class Function extends Client {
     projectName,
     serviceName, serviceProp,
     functionName, functionProp,
-    onlyDelpoyConfig, onlyDelpoyCode
+    onlyDelpoyConfig, onlyDelpoyCode,
+    pushRegistry
   }) {
     functionProp.Runtime = functionProp.Runtime ? functionProp.Runtime : DEFAULT.Runtime
     let functionProperties
@@ -267,11 +275,11 @@ class Function extends Client {
       functionProperties = this.handlerConfig(functionProp)
     } else if (onlyDelpoyCode) {
       this.logger.info('Only deploy function code.')
-      functionProperties = await this.handlerCode(serviceProp, functionProp, serviceName, projectName)
+      functionProperties = await this.handlerCode(serviceProp, functionProp, serviceName, projectName, pushRegistry)
     } else {
       functionProperties = {
         ...this.handlerConfig(functionProp),
-        ...await this.handlerCode(serviceProp, functionProp, serviceName, projectName)
+        ...await this.handlerCode(serviceProp, functionProp, serviceName, projectName, pushRegistry)
       }
     }
 
@@ -308,9 +316,30 @@ class Function extends Client {
     return functionName
   }
 
-  async pushImage (serviceName, functionName, userName, password, imageName) {
+  async pushImage (userName, password, imageName, pushRegistry) {
+    const imageArr = imageName.split('/');
+    let image = imageName
+    if (pushRegistry === 'acr-internet') {
+      imageArr[0] = `registry.${this.region}.aliyuncs.com`;
+      image = imageArr.join('/');
+    } else if (pushRegistry === 'acr-vpc') {
+      imageArr[0] = `registry-vpc.${this.region}.aliyuncs.com`;
+      image = imageArr.join('/');
+    } else if (pushRegistry) {
+      imageArr[0] = pushRegistry;
+      image = imageArr.join('/');
+    } else {
+      throw new Error(
+        `ERR!: unsupported value of --push-registry: ${pushRegistry}`
+      )
+    }
+    this.logger.info(`docker tag ${imageName} ${image}`);
+    execSync(`docker tag ${imageName} ${image}`, {
+      stdio: 'inherit'
+    });
+
     const cr = new AliyunContainerRepository(this.credentials, this.region)
-    const registry = imageName ? imageName.split('/')[0] : this.builder.getDefaultRegistry(this.region)
+    const registry = image ? image.split('/')[0] : this.builder.getDefaultRegistry(this.region)
 
     if (userName && password) {
       this.logger.info('Login to the registry...')
@@ -336,21 +365,11 @@ class Function extends Client {
       }
     }
 
-    if (!imageName) {
-      this.logger.info('Use default namespace and repository')
-      const defaultNamespace = this.builder.getDefaultNamespace()
-      this.logger.info(`Ensure default namespace exists: ${defaultNamespace}`)
-      await cr.ensureNamespace(defaultNamespace)
-      imageName = this.builder.getDefaultImageName(this.region, serviceName, functionName)
-    }
 
-    this.logger.info('Pushing image to registry')
-    execSync(`docker push ${imageName}`, {
+    this.logger.info(`docker push ${image}`)
+    execSync(`docker push ${image}`, {
       stdio: 'inherit'
     })
-    this.logger.success(`Push image to registry successfully: ${imageName}`)
-
-    return imageName
   }
 }
 

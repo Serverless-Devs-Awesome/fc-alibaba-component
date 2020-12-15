@@ -140,6 +140,7 @@ class FcComponent extends Component {
 
       const onlyDelpoyCode = (parameters.code && !deployAll)
       const onlyDelpoyConfig = (parameters.config || deployAllConfig)
+      const pushRegistry = parameters.pushRegistry
 
       const beforeDeployLog = onlyDelpoyConfig ? 'config to be updated' : 'to be deployed'
       const afterDeployLog = onlyDelpoyConfig || deployAllConfig ? 'config update success' : 'deploy success'
@@ -152,7 +153,8 @@ class FcComponent extends Component {
         functionName,
         functionProp,
         onlyDelpoyCode,
-        onlyDelpoyConfig
+        onlyDelpoyConfig,
+        pushRegistry
       })
       logger.success(`function ${functionName} ${afterDeployLog}\n`)
     }
