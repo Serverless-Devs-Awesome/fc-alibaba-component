@@ -83,6 +83,8 @@ MyFunction:
 #      Nas: Auto
 #      Nas:
 #        Type: Auto
+#        UserId: 33
+#        GroupId: 33
 #        FcDir: /home/aaaaaa
 #        LocalDir: ./ssss
 #        LocalDir: 
@@ -286,6 +288,8 @@ MyFunction:
 | Type | True | Enum | Automatic configuration |
 | FcDir | False | String | Function calculation directory |
 | LocalDir | False | String[Single directory]/List<String>[Multi directory configuration] | Local directory |
+| UserId | False | String | userID |
+| GroupId | False | String | groupID |
 
 #### MountPoints
 | Name |  Required  |  Type  |  Description  |

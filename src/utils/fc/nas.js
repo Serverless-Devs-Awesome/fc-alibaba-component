@@ -68,6 +68,7 @@ class Nas {
         throw new Error('Input error.')
       }
       if (this.serviceProp.Nas === 'Auto' || this.serviceProp.Nas.Type === 'Auto') {
+        this.logger.log(`Sync ${syncLocalDirs} to ${this.serviceProp.Nas.FcDir}`)
         await this.syncAuto(cmdArgs.noOverwirte, syncLocalDirs, this.serviceProp.Nas.FcDir)
       } else {
         await this.syncNonAuto(cmdArgs.alias, cmdArgs.noOverwirte, syncLocalDirs)

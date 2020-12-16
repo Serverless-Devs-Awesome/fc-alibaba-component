@@ -76,6 +76,8 @@ MyFunction:
 #      Nas: Auto
 #      Nas:
 #        Type: Auto
+#        UserId: 33
+#        GroupId: 33
 #        FcDir: /home/aaaaaa
 #        LocalDir: ./ssss
 #        LocalDir: 
@@ -279,6 +281,8 @@ MyFunction:
 | Type | True | Enum | 自动化配置 |
 | FcDir | False | String | 函数计算目录 |
 | LocalDir | False | String[单一目录]/List<String>[多目录配置] | 本地目录 |
+| UserId | False | String | userID |
+| GroupId | False | String | groupID |
 
 #### MountPoints
 | 参数名 |  必填  |  类型  |  参数描述  |
