@@ -87,6 +87,9 @@ class FcComponent extends Component {
   async deploy (inputs) {
     this.help(inputs, getHelp(inputs).deploy)
 
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       projectName,
       properties,
@@ -188,6 +191,10 @@ class FcComponent extends Component {
 
   // 部署自定义域名
   async domain (inputs, isRemove) {
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       credentials,
       properties,
@@ -234,6 +241,10 @@ class FcComponent extends Component {
 
   // 版本
   async version (inputs, type) {
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const { credentials, region, serviceName, args } = await this.handlerInputs(inputs)
     const fcVersion = new Version(credentials, region)
     const { Parameters: parameters = {} } = args
@@ -249,6 +260,10 @@ class FcComponent extends Component {
 
   // 别名
   async alias (inputs, type) {
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const { credentials, region, serviceName, args } = await this.handlerInputs(inputs)
     const { Parameters: parameters = {} } = args
     const { n, name, v, versionId, d, description, gv, w } = parameters
@@ -282,6 +297,10 @@ class FcComponent extends Component {
   // 移除
   async remove (inputs) {
     this.help(inputs, getHelp(inputs).remove)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       credentials,
       functionName,
@@ -352,6 +371,10 @@ class FcComponent extends Component {
 
   async invoke (inputs) {
     this.help(inputs, getHelp(inputs).invoke)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       credentials,
       serviceName,
@@ -391,6 +414,10 @@ class FcComponent extends Component {
   // 日志
   async logs (inputs) {
     this.help(inputs, getHelp(inputs).logs)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       region,
       serviceProp,
@@ -443,6 +470,10 @@ class FcComponent extends Component {
   // 指标
   async metrics (inputs) {
     this.help(inputs, getHelp(inputs).metrics)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const { State = {}, Properties } = inputs
     const { Service = {}, Function = {} } = Properties || State || {}
 
@@ -465,6 +496,9 @@ class FcComponent extends Component {
   // 安装
   async install (inputs) {
     this.help(inputs, getHelp(inputs).install)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
 
     const {
       credentials,
@@ -498,6 +532,10 @@ class FcComponent extends Component {
   // 构建
   async build (inputs) {
     this.help(inputs, getHelp(inputs).build)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     logger.info('Start to build artifact.')
     const {
       credentials,
@@ -525,6 +563,10 @@ class FcComponent extends Component {
   // 发布
   async publish (inputs) {
     this.help(inputs, getHelp(inputs).publish)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const { Commands: commands } = this.args(inputs.Args)
     const publishType = commands[0]
 
@@ -541,7 +583,12 @@ class FcComponent extends Component {
 
   // 删除
   async unpublish (inputs) {
+
     this.help(inputs, getHelp(inputs).unpublish)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const { Commands: commands } = this.args(inputs.Args)
     const unPublishType = commands[0]
 
@@ -559,6 +606,10 @@ class FcComponent extends Component {
   // 同步
   async sync (inputs) {
     this.help(inputs, getHelp(inputs).sync)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       credentials,
       properties,
@@ -610,6 +661,10 @@ class FcComponent extends Component {
   // NAS操作
   async nas (inputs) {
     this.help(inputs, getHelp(inputs).nas)
+
+    // 获取密钥信息
+    inputs.Credentials = await this.credentials(inputs)
+
     const {
       credentials,
       serviceName,
