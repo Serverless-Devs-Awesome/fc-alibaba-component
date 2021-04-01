@@ -1,6 +1,6 @@
 {
   "name": "@serverless-devs/fc-alibaba",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Serverless Devs Tool FC Component For Alibaba Cloud",
   "keywords": [
     "Serverless",
@@ -11,6 +11,7 @@
   ],
   "homepage": "https://www.serverless-devs.com",
   "author": "Serverless-Devs",
+  "main": "./src/index.js",
   "scripts": {
     "publish": "npm install --production"
   },
