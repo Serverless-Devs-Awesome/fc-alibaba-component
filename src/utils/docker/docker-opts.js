@@ -14,7 +14,7 @@ const _ = require('lodash')
 const { red } = require('colors')
 const httpx = require('httpx')
 const getVisitor = require('../tpl/visitor').getVisitor
-const pkg = require('../../package.json')
+const pkg = require('../../../package.json')
 
 const NAS_UID = 10003
 const NAS_GID = 10003
